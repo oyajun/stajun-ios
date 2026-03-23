@@ -6,13 +6,31 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		BF2583792F6689D4003F0D75 /* ElegantEmojiPicker in Frameworks */ = {isa = PBXBuildFile; productRef = BF2583782F6689D4003F0D75 /* ElegantEmojiPicker */; };
+		BF63C30D2F6ECB9500ECD2D2 /* SimpleKeychain in Frameworks */ = {isa = PBXBuildFile; productRef = BF63C30C2F6ECB9500ECD2D2 /* SimpleKeychain */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
-		BF266DFB2F65C83000E0ED9F /* StaJun.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StaJun.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF63C33D2F6EF14300ECD2D2 /* StaJun.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StaJun.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		BF63C33F2F6EF14300ECD2D2 /* Exceptions for "StaJun" folder in "StaJun" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BF266DFA2F65C83000E0ED9F /* StaJun */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		BF266DFD2F65C83000E0ED9F /* StaJun */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				BF63C33F2F6EF14300ECD2D2 /* Exceptions for "StaJun" folder in "StaJun" target */,
+			);
 			path = StaJun;
 			sourceTree = "<group>";
 		};
@@ -23,6 +41,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BF63C30D2F6ECB9500ECD2D2 /* SimpleKeychain in Frameworks */,
+				BF2583792F6689D4003F0D75 /* ElegantEmojiPicker in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -33,16 +53,8 @@
 			isa = PBXGroup;
 			children = (
 				BF266DFD2F65C83000E0ED9F /* StaJun */,
-				BF266DFC2F65C83000E0ED9F /* Products */,
+				BF63C33D2F6EF14300ECD2D2 /* StaJun.app */,
 			);
-			sourceTree = "<group>";
-		};
-		BF266DFC2F65C83000E0ED9F /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				BF266DFB2F65C83000E0ED9F /* StaJun.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -65,9 +77,11 @@
 			);
 			name = StaJun;
 			packageProductDependencies = (
+				BF2583782F6689D4003F0D75 /* ElegantEmojiPicker */,
+				BF63C30C2F6ECB9500ECD2D2 /* SimpleKeychain */,
 			);
 			productName = StaJun;
-			productReference = BF266DFB2F65C83000E0ED9F /* StaJun.app */;
+			productReference = BF63C33D2F6EF14300ECD2D2 /* StaJun.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -94,8 +108,12 @@
 			);
 			mainGroup = BF266DF22F65C83000E0ED9F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BF2583772F6689D4003F0D75 /* XCRemoteSwiftPackageReference "Elegant-Emoji-Picker" */,
+				BF63C30B2F6ECB9500ECD2D2 /* XCRemoteSwiftPackageReference "SimpleKeychain" */,
+			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = BF266DFC2F65C83000E0ED9F /* Products */;
+			productRefGroup = BF266DF22F65C83000E0ED9F;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -256,11 +274,16 @@
 				DEVELOPMENT_TEAM = AR6Y8XLSY2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StaJun/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = StaJun;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = "";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -288,11 +311,16 @@
 				DEVELOPMENT_TEAM = AR6Y8XLSY2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StaJun/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = StaJun;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = "";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -332,6 +360,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BF2583772F6689D4003F0D75 /* XCRemoteSwiftPackageReference "Elegant-Emoji-Picker" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Finalet/Elegant-Emoji-Picker";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		BF63C30B2F6ECB9500ECD2D2 /* XCRemoteSwiftPackageReference "SimpleKeychain" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/auth0/SimpleKeychain";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BF2583782F6689D4003F0D75 /* ElegantEmojiPicker */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BF2583772F6689D4003F0D75 /* XCRemoteSwiftPackageReference "Elegant-Emoji-Picker" */;
+			productName = ElegantEmojiPicker;
+		};
+		BF63C30C2F6ECB9500ECD2D2 /* SimpleKeychain */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BF63C30B2F6ECB9500ECD2D2 /* XCRemoteSwiftPackageReference "SimpleKeychain" */;
+			productName = SimpleKeychain;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = BF266DF32F65C83000E0ED9F /* Project object */;
 }

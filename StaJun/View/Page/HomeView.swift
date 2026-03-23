@@ -1,0 +1,122 @@
+//
+//  HomeView.swift
+//  StaJun
+//
+//  Created by 小山田純 on 2026/03/15.
+//
+
+import SwiftUI
+
+struct HomeView: View {
+    @Binding var studying : Bool
+    
+    let columns = [
+        GridItem(.flexible()),
+        GridItem(.flexible()),
+        GridItem(.flexible()),
+    ]
+    
+    var body: some View {
+        ScrollView(.vertical, showsIndicators: true){
+            HStack(alignment: .center){
+                
+                HStack(spacing: 20) {
+                    VStack(alignment: .center){
+                        Icon(emoji: "🍅", iconColor: .pink, active : studying)
+                        Text("You")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                
+                    Text("Studying")
+                        .font(.largeTitle)
+                        .bold()
+                    Toggle("", isOn: $studying)
+                        .labelsHidden()
+                        .scaleEffect(1.3)
+                        .padding(.trailing)
+                }
+                
+            }
+            .padding()
+            .frame(maxWidth: .infinity)
+            
+            
+            Text("Studying")
+                .font(.headline)
+            
+            LazyVGrid(columns: columns, spacing: 20) {
+                VStack(alignment: .center){
+                    Icon(emoji: "⭐️", iconColor: .red, active : true)
+                    Text("じゅげむじゅげむじゅげむじゅげむじゅげむじゅげむじゅげむじゅげむじゅげむじゅげむじゅげむじゅげむ")
+                        .lineLimit(1)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                VStack(alignment: .center){
+                    Icon(emoji: "🫛", iconColor: .red, active : true)
+                    Text("You")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                VStack(alignment: .center){
+                    Icon(emoji: "🫛", iconColor: .red, active : true)
+                    Text("You")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding()
+            
+            Text("Not Studying")
+                .font(.headline)
+                .padding(.top)
+            
+            LazyVGrid(columns: columns, spacing: 20) {
+                
+                    VStack(alignment: .center){
+                        Icon(emoji: "🏯", iconColor: .red, active : false)
+                        Text("You")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    VStack(alignment: .center){
+                        Icon(emoji: "🫛", iconColor: .red, active : false)
+                        Text("You")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    VStack(alignment: .center){
+                        Icon(emoji: "🫛", iconColor: .red, active : false)
+                        Text("You")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    VStack(alignment: .center){
+                        Icon(emoji: "🫛", iconColor: .red, active : false)
+                        Text("You")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    VStack(alignment: .center){
+                        Icon(emoji: "🫛", iconColor: .red, active : false)
+                        Text("You")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                }
+                .padding()
+                
+            }
+            .refreshable {
+                // TODO 更新コード
+            }
+            
+        }
+}
+
+#Preview {
+    @Previewable @State var studying: Bool = false
+    HomeView(studying: $studying)
+}
