@@ -1,5 +1,5 @@
 //
-//  HomeView.swift
+//  HomePage.swift
 //  StaJun
 //
 //  Created by 小山田純 on 2026/03/15.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct HomeView: View {
+struct HomePage: View {
     @Binding var studying : Bool
     
     let columns = [
@@ -118,5 +118,5 @@ struct HomeView: View {
 
 #Preview {
     @Previewable @State var studying: Bool = false
-    HomeView(studying: $studying)
+    HomePage(studying: $studying)
 }

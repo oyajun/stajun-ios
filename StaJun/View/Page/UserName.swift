@@ -11,42 +11,50 @@ struct UserName: View {
     @State private var username: String = ""
     @FocusState private var userNameFieldIsFocused: Bool
     var body: some View {
-        VStack(alignment: .leading){
-            Image(systemName: "person.circle")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
-                .padding(.bottom, 5)
-            
-            Text("Set your User Name")
-                .font(.largeTitle)
-            
-            Text("This User Name displays on your profile.")
-                .padding(.bottom, 15)
+        NavigationStack {
+            VStack(alignment: .leading){
+                Image(systemName: "person.circle")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.secondary)
+                    .padding(.bottom, 5)
                 
-            TextField("User name", text: $username)
-                .focused($userNameFieldIsFocused)
-                .padding(12)
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
-                .autocorrectionDisabled(true)
-                .keyboardType(.default)
-                .textContentType(.nickname)
-                .textInputAutocapitalization(.never)
-                .onAppear { userNameFieldIsFocused = true }
-                .submitLabel(.next)
-                .onSubmit {
+                Text("Set your User Name")
+                    .font(.largeTitle)
+                
+                Text("This User Name displays on your profile.")
+                    .padding(.bottom, 15)
                     
+                TextField("User name", text: $username)
+                    .focused($userNameFieldIsFocused)
+                    .padding(12)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
+                    .autocorrectionDisabled(true)
+                    .keyboardType(.default)
+                    .textContentType(.nickname)
+                    .textInputAutocapitalization(.never)
+                    .onAppear { userNameFieldIsFocused = true }
+                    .submitLabel(.next)
+                    .onSubmit {
+                        
+                    }
+                Spacer()
+                
+                NavigationLink {
+                    IconChooser(username: username)
+                } label: {
+                    Group{
+                        Text("Next")
+                    }
+                    .font(.title2)
+                    .padding(8)
+                    .frame(maxWidth: .infinity)
                 }
-            Spacer()
-        }
-        .padding()
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Next") {
-                }
-                .foregroundStyle(Color(.systemBlue))
-                .disabled(!username.isEmpty)
+                .buttonStyle(.glassProminent)
+                .tint(.blue)
+                .disabled(username.isEmpty)
             }
+            .padding()
         }
     }
 }

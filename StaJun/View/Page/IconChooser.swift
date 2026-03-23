@@ -9,8 +9,11 @@ import SwiftUI
 import ElegantEmojiPicker
 
 struct IconChooser: View {
-    @State private var color: Color = .blue
+    let username: String
     
+    @EnvironmentObject var appState: AppState
+    
+    @State private var color: Color = .blue
     @State private var selectedEmoji: Emoji? = Emoji(
         emoji: "😀",
         description: "grinning face",
@@ -21,69 +24,97 @@ struct IconChooser: View {
         iOSVersion: "6.0"
     )
     @State private var isEmojiPickerPresented: Bool = false
+    @State private var isSending: Bool = false
+    @State private var showErrorAlert: Bool = false
 
     var body: some View {
         
-        VStack(alignment: .leading) {
-            Text("Make your Icon" )
-                .font(.largeTitle)
-        
-            Text("Select your favorite emoji and color!")
-                .padding(.bottom, 15)
+        NavigationStack{
+            VStack(alignment: .leading) {
+                Text("Make your Icon" )
+                    .font(.largeTitle)
             
-            Icon(
-                emoji: selectedEmoji?.emoji ?? "No emoji selected",
-                iconColor: color,
-                active: false
-            ).padding(.bottom)
-            
-            
-            HStack()
-            {
-                Text("① Emoji:")
-                    .font(.title)
-                Button(action: {
-                    isEmojiPickerPresented.toggle()
-                }
-                ) {
-                    Text("Select")
-                        .font(.title2)
-                }
-                .buttonStyle(.borderedProminent)
-                .emojiPicker(
-                    isPresented: $isEmojiPickerPresented,
-                    selectedEmoji: $selectedEmoji,
-                    detents: [.large], // Specify which presentation detents to use for the slide sheet (Optional),
-                    configuration: ElegantConfiguration(
-                        showSearch: false,
-                        showRandom: false,
-                        showReset: false,
-                        showClose: false
-                    ),
-                    localization: ElegantLocalization(searchFieldPlaceholder: "絵文字を検索"
-                                                     )
-                )
-                .padding(10)
+                Text("Select your favorite emoji and color!")
+                    .padding(.bottom, 15)
                 
+                Icon(
+                    emoji: selectedEmoji?.emoji ?? "No emoji selected",
+                    iconColor: color,
+                    active: false
+                ).padding(.bottom)
+                
+                
+                HStack()
+                {
+                    Text("① Emoji:")
+                        .font(.title)
+                    Button(action: {
+                        isEmojiPickerPresented.toggle()
+                    }
+                    ) {
+                        Text("Select")
+                            .font(.title2)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .emojiPicker(
+                        isPresented: $isEmojiPickerPresented,
+                        selectedEmoji: $selectedEmoji,
+                        detents: [.large], // Specify which presentation detents to use for the slide sheet (Optional),
+                        configuration: ElegantConfiguration(
+                            showSearch: false,
+                            showRandom: false,
+                            showReset: false,
+                            showClose: false
+                        ),
+                        localization: ElegantLocalization(searchFieldPlaceholder: "絵文字を検索"
+                                                         )
+                    )
+                    .padding(10)
+                    
+                }
+
+                Text("② Color:")
+                    .font(.title)
+                ColorPickerGrid(selectedColor: $color)
+                
+                
+                Spacer()
+                
+                Button {
+                    Task{
+                        isSending = true
+                        if (await updateUser(
+                            name: username,
+                            iconEmoji: selectedEmoji?.emoji ?? "☺️",
+                            iconColor: color.toHex() ?? "#FF0000"
+                        )){
+                            appState.status = .home
+                        } else {
+                            showErrorAlert = true
+                        }
+                        isSending = false
+                    }
+                } label : {
+                    Group{
+                        if !isSending {
+                            Text("Done")
+                        } else {
+                            ProgressView()
+                        }
+                    }
+                    .font(.title2)
+                    .padding(8)
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(.blue)
+                .disabled(isSending)
             }
-
-            Text("② Color:")
-                .font(.title)
-            ColorPickerGrid(selectedColor: $color)
-            
-            
-            Spacer()
-
+            .padding()
         }
-        .padding()
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Save") {
-                }
-            }
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
-                }
+        .alert("Some error occurred", isPresented: $showErrorAlert) {
+            Button("Close") {
+                showErrorAlert = false
             }
         }
     }
@@ -91,6 +122,6 @@ struct IconChooser: View {
 
 
 #Preview {
-    IconChooser()
+    IconChooser(username: "Taro")
 }
 

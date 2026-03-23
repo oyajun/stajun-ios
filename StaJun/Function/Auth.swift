@@ -126,3 +126,114 @@ func signinEmailOtp(email: String, code: String) async -> signinEmailOtpStatus {
     }
 }
 
+// return true:成功　false:エラー
+func updateUser(name: String, iconEmoji: String, iconColor: String) async -> Bool {
+    let baseUrl = URL(string: ENV_BASEURL)!
+    let url = baseUrl.appendingPathComponent("api/auth/update-user")
+    
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+    let body: [String: Any] = [
+        "name": name,
+        "image": "\(iconEmoji):\(iconColor)"
+    ]
+
+    do {
+        let simpleKeychain = SimpleKeychain()
+        guard let token = try? simpleKeychain.string(forKey: "better-auth-access-token") else {
+            print("アクセストークンが取得できませんでした")
+            return false
+        }
+        
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        // async/await 通信
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        // ステータスコード確認
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print("レスポンス不正")
+            return false
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            print("ステータスコードエラー:", httpResponse.statusCode)
+            if let text = String(data: data, encoding: .utf8) {
+                print("レスポンス:", text)
+            }
+            return false
+        }
+
+        // デバッグ
+        if let text = String(data: data, encoding: .utf8) {
+            print("raw:", text)
+        }
+
+        // JSONパース
+        let object = try JSONSerialization.jsonObject(with: data, options: [])
+        print("json:", object)
+
+    } catch {
+        print("エラー:", error)
+        return false
+    }
+    return true
+}
+
+// return true:成功　false:エラー
+func signOut() async -> Bool {
+    let baseUrl = URL(string: ENV_BASEURL)!
+    let url = baseUrl.appendingPathComponent("api/auth/sign-out")
+    
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    
+    do {
+        let simpleKeychain = SimpleKeychain()
+        guard let token = try? simpleKeychain.string(forKey: "better-auth-access-token") else {
+            print("アクセストークンが取得できませんでした")
+            return false
+        }
+        
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        // async/await 通信
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        // ステータスコード確認
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print("レスポンス不正")
+            return false
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            print("ステータスコードエラー:", httpResponse.statusCode)
+            if let text = String(data: data, encoding: .utf8) {
+                print("レスポンス:", text)
+            }
+            return false
+        }
+
+        // デバッグ
+        if let text = String(data: data, encoding: .utf8) {
+            print("raw:", text)
+        }
+
+        // JSONパース
+        let object = try JSONSerialization.jsonObject(with: data, options: [])
+        print("json:", object)
+
+    } catch {
+        print("エラー:", error)
+        return false
+    }
+    
+    let simpleKeychain = SimpleKeychain()
+    _ = try? simpleKeychain.deleteItem(forKey: "better-auth-access-token")
+    
+    return true
+}
