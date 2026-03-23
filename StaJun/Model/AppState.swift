@@ -18,7 +18,10 @@ class AppState: ObservableObject {
     @Published var status: AppStateAction
     
     init() {
-        // TODO: ログインしているか判定する
-        self.status = .signIn
+        if (isSignedIn()){
+            self.status = .home
+        } else {
+            self.status = .signIn
+        }
     }
 }
