@@ -35,6 +35,12 @@ struct HomePage: View {
                         .labelsHidden()
                         .scaleEffect(1.3)
                         .padding(.trailing)
+                        .onChange(of: studying) {
+                            // 楽観的UI
+                            Task{
+                                await changeActivity(nowStudying: studying)
+                            }
+                        }
                 }
                 
             }
