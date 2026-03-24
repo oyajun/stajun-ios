@@ -5,10 +5,12 @@
 //  Created by 小山田純 on 2026/03/23.
 //
 
+
 struct SignInResponse: Codable {
     let token: String
     let user: SignInResponseUser
 }
+
 
 struct SignInResponseUser: Codable {
     let id: String

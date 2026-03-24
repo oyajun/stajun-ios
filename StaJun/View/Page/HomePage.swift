@@ -16,6 +16,9 @@ struct HomePage: View {
         GridItem(.flexible()),
     ]
     
+    @State private var showFollowModal: Bool = false
+    @Environment(\.dismiss) var dismiss
+    
     var body: some View {
         ScrollView(.vertical, showsIndicators: true){
             HStack(alignment: .center){
@@ -27,20 +30,38 @@ struct HomePage: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
+                    
+                    
                 
-                    Text("Studying")
-                        .font(.largeTitle)
-                        .bold()
-                    Toggle("", isOn: $studying)
-                        .labelsHidden()
-                        .scaleEffect(1.3)
-                        .padding(.trailing)
-                        .onChange(of: studying) {
-                            // 楽観的UI
-                            Task{
-                                await changeActivity(nowStudying: studying)
+                    VStack(alignment: .trailing){
+                        Button{
+                            showFollowModal = true
+                        } label: {
+                            Label("Add Friends", systemImage: "person.badge.plus")
+                        }.sheet(isPresented: $showFollowModal) {
+                            NavigationStack {
+                                FollowPage()
                             }
                         }
+                        Spacer()
+                        HStack{
+                            Text("Studying")
+                                .font(.title)
+                                .bold()
+                                .padding(.trailing)
+                            Toggle("", isOn: $studying)
+                                .labelsHidden()
+                                .scaleEffect(1.3)
+                                .padding(.trailing)
+                                .onChange(of: studying) {
+                                    // 楽観的UI
+                                    Task{
+                                        await changeActivity(nowStudying: studying)
+                                    }
+                                }
+                        }
+                        Spacer()
+                    }
                 }
                 
             }
