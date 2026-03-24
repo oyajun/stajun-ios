@@ -30,6 +30,9 @@ struct HomeView: View {
                         UserName()
                     }
                 }
+                Tab("Username", systemImage: "gearshape.fill") {
+                    FollowPage()
+                }
                 Tab(role: .search) {
                     OTPView(email: "example@example.com")
                 }
