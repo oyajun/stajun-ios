@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct HomePage: View {
     @Binding var studying : Bool
@@ -18,6 +19,9 @@ struct HomePage: View {
     
     @State private var showFollowModal: Bool = false
     @Environment(\.dismiss) var dismiss
+    
+    @Query private var followees: [User]
+    @Environment(\.modelContext) private var context
     
     var body: some View {
         ScrollView(.vertical, showsIndicators: true){
@@ -68,29 +72,20 @@ struct HomePage: View {
             .padding()
             .frame(maxWidth: .infinity)
             
-            
             Text("Studying")
                 .font(.headline)
             
             LazyVGrid(columns: columns, spacing: 20) {
-                VStack(alignment: .center){
-                    Icon(emoji: "⭐️", iconColor: .red, active : true)
-                    Text("じゅげむじゅげむじゅげむじゅげむじゅげむじゅげむじゅげむじゅげむじゅげむじゅげむじゅげむじゅげむ")
-                        .lineLimit(1)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                VStack(alignment: .center){
-                    Icon(emoji: "🫛", iconColor: .red, active : true)
-                    Text("You")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                VStack(alignment: .center){
-                    Icon(emoji: "🫛", iconColor: .red, active : true)
-                    Text("You")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                ForEach(followees) { followee  in
+                    if followee.activityNowStudying {
+                        VStack(alignment: .center){
+                            Icon(emoji: followee.iconEmoji, iconColor: Color(hex: followee.iconColor) ?? .blue, active : true)
+                            Text(followee.name)
+                                .lineLimit(1)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
             }
             .padding()
@@ -100,50 +95,35 @@ struct HomePage: View {
                 .padding(.top)
             
             LazyVGrid(columns: columns, spacing: 20) {
-                
-                    VStack(alignment: .center){
-                        Icon(emoji: "🏯", iconColor: .red, active : false)
-                        Text("You")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                ForEach(followees) { followee  in
+                    if !followee.activityNowStudying {
+                        VStack(alignment: .center){
+                            Icon(emoji: followee.iconEmoji, iconColor: Color(hex: followee.iconColor) ?? .blue, active : false)
+                            Text(followee.name)
+                                .lineLimit(1)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
-                    VStack(alignment: .center){
-                        Icon(emoji: "🫛", iconColor: .red, active : false)
-                        Text("You")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    VStack(alignment: .center){
-                        Icon(emoji: "🫛", iconColor: .red, active : false)
-                        Text("You")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    VStack(alignment: .center){
-                        Icon(emoji: "🫛", iconColor: .red, active : false)
-                        Text("You")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    VStack(alignment: .center){
-                        Icon(emoji: "🫛", iconColor: .red, active : false)
-                        Text("You")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    
                 }
-                .padding()
-                
+            }
+            .padding()
             }
             .refreshable {
-                // TODO 更新コード
+                Task{
+                    await setFolloweesActivity(context: context)
+                }
             }
-            
-        }
+            .onAppear {
+                Task{
+                    await setFolloweesActivity(context: context)
+                }
+            }
+    }
 }
 
 #Preview {
     @Previewable @State var studying: Bool = false
     HomePage(studying: $studying)
 }
+

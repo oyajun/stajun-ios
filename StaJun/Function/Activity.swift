@@ -7,6 +7,7 @@
 
 import Foundation
 import SimpleKeychain
+import SwiftData
 
 func changeActivity(nowStudying: Bool) async -> Bool {
     let baseUrl = URL(string: ENV_BASEURL)!
@@ -58,3 +59,92 @@ func changeActivity(nowStudying: Bool) async -> Bool {
     }
     return true
 }
+
+
+func setFolloweesActivity(context: ModelContext) async {
+    var followees: [ActivityResponseUser] = []
+    do {
+        followees = try await getFolloweesActivityServer()
+    } catch let error {
+//        switch error {
+//        case APIError.clientError:
+//        case APIError.decodingError:
+//        case APIError.invalidResponse:
+//        case APIError.networkError:
+//        case APIError.serverError:
+//        default:
+//        }
+        print("Failed to fetch followees activity:", error)
+        return
+    }
+
+    do {
+        let fetchDescriptor = FetchDescriptor<User>()
+        let fetchedItems = try context.fetch(fetchDescriptor)
+        for user in fetchedItems {
+            context.delete(user)
+        }
+        try context.save()
+    } catch {
+        print("Failed to clear existing users:", error)
+    }
+
+    for followee in followees {
+        print("a")
+        let user = User(activityResponseUser: followee)
+        context.insert(user)
+    }
+    try? context.save()
+}
+
+func getFolloweesActivityServer() async throws -> [ActivityResponseUser] {
+    let url = URL(string: ENV_BASEURL)!
+        .appendingPathComponent("/api/v1/user/followee")
+
+    var request = URLRequest(url: url)
+    request.httpMethod = "GET"
+
+    let simpleKeychain = SimpleKeychain()
+    guard let token = try? simpleKeychain.string(forKey: "better-auth-access-token") else {
+        throw APIError.unauthorized
+    }
+
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+    do {
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        switch httpResponse.statusCode {
+        case 200...299:
+            guard !data.isEmpty else {
+                print("データが空")
+                return []
+            }
+            do {
+                return try JSONDecoder().decode([ActivityResponseUser].self, from: data)
+            } catch {
+                throw APIError.decodingError
+            }
+
+        case 401:
+            throw APIError.unauthorized
+
+        case 400...499:
+            throw APIError.clientError(httpResponse.statusCode)
+
+        case 500...599:
+            throw APIError.serverError(httpResponse.statusCode)
+
+        default:
+            throw APIError.invalidResponse
+        }
+
+    } catch let error as URLError {
+        throw APIError.networkError(error)
+    }
+}
+
