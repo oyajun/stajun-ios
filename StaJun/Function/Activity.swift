@@ -97,7 +97,7 @@ func setFolloweesActivity(context: ModelContext) async {
     try? context.save()
 }
 
-func getFolloweesActivityServer() async throws -> [ActivityResponseUser] {
+private func getFolloweesActivityServer() async throws -> [ActivityResponseUser] {
     let url = URL(string: ENV_BASEURL)!
         .appendingPathComponent("/api/v1/user/followee")
 
