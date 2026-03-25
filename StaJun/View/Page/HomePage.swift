@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import SimpleKeychain
 
 struct HomePage: View {
     @Binding var studying : Bool
@@ -20,7 +21,8 @@ struct HomePage: View {
     @State private var showFollowModal: Bool = false
     @Environment(\.dismiss) var dismiss
     
-    @Query private var followees: [User]
+    @Query(sort: \User.activityUpdatedAt, order: .reverse) private var followees: [User]
+    @State private var me: User? = nil
     @Environment(\.modelContext) private var context
     
     var body: some View {
@@ -29,8 +31,8 @@ struct HomePage: View {
                 
                 HStack(spacing: 20) {
                     VStack(alignment: .center){
-                        Icon(emoji: "🍅", iconColor: .pink, active : studying)
-                        Text("You")
+                        Icon(emoji: me?.iconEmoji ?? "❓", iconColor: Color(hex: me?.iconColor ?? "#FFFFFF") ?? .blue, active : studying)
+                        Text(me?.name ?? "You")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -60,7 +62,8 @@ struct HomePage: View {
                                 .onChange(of: studying) {
                                     // 楽観的UI
                                     Task{
-                                        await changeActivity(nowStudying: studying)
+                                        _ = await changeActivity(nowStudying: studying)
+                                        _ = await setFolloweesActivity(context: context)
                                     }
                                 }
                         }
@@ -119,6 +122,22 @@ struct HomePage: View {
                     await setFolloweesActivity(context: context)
                 }
             }
+            .task {
+                if let id = getMeId() {
+                    let descriptor = FetchDescriptor<User>(predicate: #Predicate { $0.id == id })
+                    me = try? context.fetch(descriptor).first
+                }
+            }
+    }
+    
+    private func getMeId() -> String? {
+        let keychain = SimpleKeychain()
+        if let data = try? keychain.data(forKey: "userid"),
+           let id = String(data: data, encoding: .utf8),
+           !id.isEmpty {
+            return id
+        }
+        return nil
     }
 }
 

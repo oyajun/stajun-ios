@@ -114,6 +114,9 @@ func signinEmailOtp(email: String, code: String) async -> signinEmailOtpStatus {
         let simpleKeychain = SimpleKeychain()
         try simpleKeychain.set(responseStruct.token, forKey: "better-auth-access-token")
         
+        // useridをキーチェーンに保存
+        try simpleKeychain.set(responseStruct.user.id, forKey: "userid")
+        
     } catch {
         print("エラー:", error)
         return signinEmailOtpStatus.error
