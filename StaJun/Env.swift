@@ -6,7 +6,7 @@
 //
 
 #if DEBUG
-let ENV_BASEURL = "http://192.168.128.109:3000/"
+let ENV_BASEURL = "http://192.168.128.192:3000/"
 //let ENV_BASEURL = "http://localhost:3000/"
 
 #else //PRODUCTION

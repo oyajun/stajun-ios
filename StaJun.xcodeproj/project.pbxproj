@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BF04D0542F750E820009D34D /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = BF04D0532F750E820009D34D /* CodeScanner */; };
 		BF2583792F6689D4003F0D75 /* ElegantEmojiPicker in Frameworks */ = {isa = PBXBuildFile; productRef = BF2583782F6689D4003F0D75 /* ElegantEmojiPicker */; };
 		BF63C30D2F6ECB9500ECD2D2 /* SimpleKeychain in Frameworks */ = {isa = PBXBuildFile; productRef = BF63C30C2F6ECB9500ECD2D2 /* SimpleKeychain */; };
 /* End PBXBuildFile section */
@@ -43,6 +44,7 @@
 			files = (
 				BF63C30D2F6ECB9500ECD2D2 /* SimpleKeychain in Frameworks */,
 				BF2583792F6689D4003F0D75 /* ElegantEmojiPicker in Frameworks */,
+				BF04D0542F750E820009D34D /* CodeScanner in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -79,6 +81,7 @@
 			packageProductDependencies = (
 				BF2583782F6689D4003F0D75 /* ElegantEmojiPicker */,
 				BF63C30C2F6ECB9500ECD2D2 /* SimpleKeychain */,
+				BF04D0532F750E820009D34D /* CodeScanner */,
 			);
 			productName = StaJun;
 			productReference = BF63C33D2F6EF14300ECD2D2 /* StaJun.app */;
@@ -111,6 +114,7 @@
 			packageReferences = (
 				BF2583772F6689D4003F0D75 /* XCRemoteSwiftPackageReference "Elegant-Emoji-Picker" */,
 				BF63C30B2F6ECB9500ECD2D2 /* XCRemoteSwiftPackageReference "SimpleKeychain" */,
+				BF04D0522F750E820009D34D /* XCRemoteSwiftPackageReference "CodeScanner" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BF266DF22F65C83000E0ED9F;
@@ -364,6 +368,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		BF04D0522F750E820009D34D /* XCRemoteSwiftPackageReference "CodeScanner" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/twostraws/CodeScanner";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.2;
+			};
+		};
 		BF2583772F6689D4003F0D75 /* XCRemoteSwiftPackageReference "Elegant-Emoji-Picker" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Finalet/Elegant-Emoji-Picker";
@@ -383,6 +395,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		BF04D0532F750E820009D34D /* CodeScanner */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BF04D0522F750E820009D34D /* XCRemoteSwiftPackageReference "CodeScanner" */;
+			productName = CodeScanner;
+		};
 		BF2583782F6689D4003F0D75 /* ElegantEmojiPicker */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = BF2583772F6689D4003F0D75 /* XCRemoteSwiftPackageReference "Elegant-Emoji-Picker" */;

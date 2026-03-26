@@ -46,10 +46,6 @@ func follow(userId: String) async -> Bool  {
             print("raw:", text)
         }
 
-        // JSONパース
-        let object = try JSONSerialization.jsonObject(with: data, options: [])
-        print("json:", object)
-
     } catch {
         print("エラー:", error)
         return false

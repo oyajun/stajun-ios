@@ -6,26 +6,11 @@
 //
 
 import SwiftUI
-import VisionKit
-internal import Vision
-
-struct QRCodeScanner: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> DataScannerViewController {
-        let dataScannerViewController = DataScannerViewController(
-            recognizedDataTypes: [.barcode(symbologies: [.qr])],
-            isHighlightingEnabled: true
-        )
-        try? dataScannerViewController.startScanning()
-        return dataScannerViewController
-    }
-
-    func updateUIViewController(_ uiViewController: DataScannerViewController, context: Context) {
-    }
-}
 
 struct FollowPage: View {
     @State private var selected: Int = 0
     @Environment(\.dismiss) var dismiss
+    @State private var myurl: String = ""
     
     var body: some View {
         NavigationStack {
@@ -38,13 +23,22 @@ struct FollowPage: View {
                 .padding()
 
                 if selected == 0 {
+                    
                     Spacer()
-                    Text("Scan this code on your friend's phone")
+                    
                         .font(.title2)
-                    QrCodeView(data: "oyajun")
+                    Group(){
+                        if (myurl.isEmpty) {
+                            Text("Uneable to display your QR Code")
+                        } else {
+                            Text("Scan this code in your friend's Stajun App")
+                            QrCodeView(data: myurl)
+                        }
+                    }
+                    .padding(30)
                     Spacer()
                 } else {
-                    QRCodeScanner()
+                    CodeScanner()
                 }
             }
         }
@@ -55,7 +49,15 @@ struct FollowPage: View {
                 }
             }
         }
+        .onAppear {
+            do {
+                myurl = try myAccountURL().absoluteString
+            } catch {
+                myurl = ""
+            }
+        }
     }
+        
 }
 
 #Preview {
