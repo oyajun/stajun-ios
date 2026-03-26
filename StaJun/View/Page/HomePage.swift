@@ -75,15 +75,6 @@ struct HomePage: View {
             .padding()
             .frame(maxWidth: .infinity)
             
-            
-            Button("test") {
-                do {
-                    _ = try myAccountURL()
-                } catch {
-                    
-                }
-            }
-            
             Text("Studying")
                 .font(.headline)
             
