@@ -6,8 +6,11 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct WelcomePage: View {
+    @Environment(\.modelContext) private var context
+
     var body: some View {
         NavigationStack{
             VStack{
@@ -35,6 +38,18 @@ struct WelcomePage: View {
                 Spacer()
             }
             .padding()
+        }
+        .onAppear {
+            do {
+                let fetchDescriptor = FetchDescriptor<User>()
+                let fetchedItems = try context.fetch(fetchDescriptor)
+                for user in fetchedItems {
+                    context.delete(user)
+                }
+                try context.save()
+            } catch {
+                print("Failed to clear existing users:", error)
+            }
         }
     }
 }

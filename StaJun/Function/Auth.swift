@@ -193,6 +193,7 @@ func signOut() async -> Bool {
     let simpleKeychain = SimpleKeychain()
     do {
         _ = try simpleKeychain.deleteItem(forKey: "better-auth-access-token")
+        _ = try simpleKeychain.deleteItem(forKey: "userid")
     } catch {
         return true // 失敗しても無視
     }
