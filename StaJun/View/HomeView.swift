@@ -17,24 +17,8 @@ struct HomeView: View {
                 Tab("Home", systemImage: "house.fill") {
                     HomePage(studying: $studying)
                 }
-                Tab("Welcome", systemImage: "gearshape.fill") {
-                    NavigationStack{
-                        WelcomePage()
-                    }
-                }
                 Tab("Settings", systemImage: "gearshape.fill") {
                     SettingsPage()
-                }
-                Tab("Username", systemImage: "gearshape.fill") {
-                    NavigationStack{
-                        UserName()
-                    }
-                }
-                Tab("Username", systemImage: "gearshape.fill") {
-                    FollowPage()
-                }
-                Tab(role: .search) {
-                    OTPView(email: "example@example.com")
                 }
             }
         }
