@@ -55,17 +55,25 @@ struct HomePage: View {
                                 .font(.title)
                                 .bold()
                                 .padding(.trailing)
-                            Toggle("", isOn: $studying)
-                                .labelsHidden()
-                                .scaleEffect(1.3)
-                                .padding(.trailing)
-                                .onChange(of: studying) {
-                                    // 楽観的UI
-                                    Task{
-                                        _ = await changeActivity(nowStudying: studying)
+                            Toggle("", isOn: Binding(
+                                get: { studying },
+                                set: { newValue in
+                                    print("ユーザーが操作")
+                                    
+                                    // 1. まず値を更新（UIが即座に反応する）
+                                    studying = newValue
+                                    
+                                    // 2. ユーザーが操作した時だけ実行したい処理
+                                    Task {
+                                        _ = await changeActivity(nowStudying: newValue)
                                         _ = await setFolloweesActivity(context: context)
                                     }
                                 }
+                            )
+                            )
+                            .labelsHidden()
+                            .scaleEffect(1.3)
+                            .padding(.trailing)
                         }
                         Spacer()
                     }
