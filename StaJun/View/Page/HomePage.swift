@@ -132,16 +132,10 @@ struct HomePage: View {
             .onAppear {
                 Task{
                     await setFolloweesActivity(context: context)
-                }
-                if let id = getMeId() {
-                    let descriptor = FetchDescriptor<User>(predicate: #Predicate { $0.id == id })
-                    me = try? context.fetch(descriptor).first
-                }
-            }
-            .task {
-                if let id = getMeId() {
-                    let descriptor = FetchDescriptor<User>(predicate: #Predicate { $0.id == id })
-                    me = try? context.fetch(descriptor).first
+                    if let id = getMeId() {
+                        let descriptor = FetchDescriptor<User>(predicate: #Predicate { $0.id == id })
+                        me = try? context.fetch(descriptor).first
+                    }
                 }
             }
     }

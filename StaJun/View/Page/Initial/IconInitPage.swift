@@ -85,8 +85,8 @@ struct IconInitPage: View {
                         isSending = true
                         if (await updateUser(
                             name: username,
-                            iconEmoji: selectedEmoji?.emoji ?? "☺️",
-                            iconColor: color.toHex() ?? "#FF0000"
+                            iconEmoji: selectedEmoji?.emoji ?? "❓",
+                            iconColor: color.toHex() ?? "#FFFFFF"
                         )){
                             appState.status = .home
                         } else {
