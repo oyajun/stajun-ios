@@ -16,7 +16,7 @@ struct SettingsPage: View {
     
     var body: some View {
         NavigationStack {
-            Form {
+            List {
                 Section (){
                     Button {
                         showSignOutDialog = true
@@ -43,9 +43,6 @@ struct SettingsPage: View {
                         Text("Are you sure you want to log out?")
                     }
                     .alert("Failed to log out", isPresented: $showSignOutError) {
-                        Button("Close", role: .close){
-                            showSignOutError = false
-                        }
                     }
                 }
                 
@@ -57,7 +54,14 @@ struct SettingsPage: View {
                             .foregroundStyle(Color.red)
                     }
                 }
+                
+                Section(){
+                    NavigationLink("About StaJun") {
+                        About()
+                    }
+                }
             }
+            .navigationTitle("Settings")
             .navigationDestination(
                 isPresented: $goDeleteUserPage,
             ){

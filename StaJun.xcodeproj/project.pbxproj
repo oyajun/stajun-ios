@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		BF04D0542F750E820009D34D /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = BF04D0532F750E820009D34D /* CodeScanner */; };
+		BF0A0E2E2F764E2D001FF7D4 /* LicenseList in Frameworks */ = {isa = PBXBuildFile; productRef = BF0A0E2D2F764E2D001FF7D4 /* LicenseList */; };
 		BF2583792F6689D4003F0D75 /* ElegantEmojiPicker in Frameworks */ = {isa = PBXBuildFile; productRef = BF2583782F6689D4003F0D75 /* ElegantEmojiPicker */; };
 		BF63C30D2F6ECB9500ECD2D2 /* SimpleKeychain in Frameworks */ = {isa = PBXBuildFile; productRef = BF63C30C2F6ECB9500ECD2D2 /* SimpleKeychain */; };
 /* End PBXBuildFile section */
@@ -44,6 +45,7 @@
 			files = (
 				BF63C30D2F6ECB9500ECD2D2 /* SimpleKeychain in Frameworks */,
 				BF2583792F6689D4003F0D75 /* ElegantEmojiPicker in Frameworks */,
+				BF0A0E2E2F764E2D001FF7D4 /* LicenseList in Frameworks */,
 				BF04D0542F750E820009D34D /* CodeScanner in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -82,6 +84,7 @@
 				BF2583782F6689D4003F0D75 /* ElegantEmojiPicker */,
 				BF63C30C2F6ECB9500ECD2D2 /* SimpleKeychain */,
 				BF04D0532F750E820009D34D /* CodeScanner */,
+				BF0A0E2D2F764E2D001FF7D4 /* LicenseList */,
 			);
 			productName = StaJun;
 			productReference = BF63C33D2F6EF14300ECD2D2 /* StaJun.app */;
@@ -115,6 +118,7 @@
 				BF2583772F6689D4003F0D75 /* XCRemoteSwiftPackageReference "Elegant-Emoji-Picker" */,
 				BF63C30B2F6ECB9500ECD2D2 /* XCRemoteSwiftPackageReference "SimpleKeychain" */,
 				BF04D0522F750E820009D34D /* XCRemoteSwiftPackageReference "CodeScanner" */,
+				BF0A0E2C2F764E2D001FF7D4 /* XCRemoteSwiftPackageReference "LicenseList" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BF266DF22F65C83000E0ED9F;
@@ -288,7 +292,7 @@
 				INFOPLIST_KEY_UIStatusBarStyle = "";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -326,7 +330,7 @@
 				INFOPLIST_KEY_UIStatusBarStyle = "";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -376,6 +380,14 @@
 				minimumVersion = 2.5.2;
 			};
 		};
+		BF0A0E2C2F764E2D001FF7D4 /* XCRemoteSwiftPackageReference "LicenseList" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/cybozu/LicenseList.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.3.0;
+			};
+		};
 		BF2583772F6689D4003F0D75 /* XCRemoteSwiftPackageReference "Elegant-Emoji-Picker" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Finalet/Elegant-Emoji-Picker";
@@ -399,6 +411,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = BF04D0522F750E820009D34D /* XCRemoteSwiftPackageReference "CodeScanner" */;
 			productName = CodeScanner;
+		};
+		BF0A0E2D2F764E2D001FF7D4 /* LicenseList */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BF0A0E2C2F764E2D001FF7D4 /* XCRemoteSwiftPackageReference "LicenseList" */;
+			productName = LicenseList;
 		};
 		BF2583782F6689D4003F0D75 /* ElegantEmojiPicker */ = {
 			isa = XCSwiftPackageProductDependency;
