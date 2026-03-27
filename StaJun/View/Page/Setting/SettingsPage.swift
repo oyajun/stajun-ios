@@ -16,6 +16,21 @@ struct SettingsPage: View {
     var body: some View {
         NavigationStack {
             List {
+                Section(header: Text("Profile")) {
+                    NavigationLink {} label: {
+                        Label("User Name", systemImage: "pencil")
+                    }
+                    NavigationLink {} label: {
+                        Label("Icon", systemImage: "face.smiling")
+                    }
+                }
+                
+                Section(){
+                    NavigationLink {About()} label: {
+                        Label("About StaJun", systemImage: "info.circle")
+                    }
+                }
+                
                 Section (){
                     Button {
                         showSignOutDialog = true
@@ -51,12 +66,6 @@ struct SettingsPage: View {
                     } label: {
                         Label("Delete your account", systemImage: "trash")
                             .foregroundStyle(Color.red)
-                    }
-                }
-                
-                Section(){
-                    NavigationLink("About StaJun") {
-                        About()
                     }
                 }
             }
