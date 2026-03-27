@@ -12,7 +12,6 @@ struct SettingsPage: View {
     @State private var showSignOutDialog: Bool = false
     @State private var isSignOuting: Bool = false
     @State private var showSignOutError: Bool = false
-    @State private var goDeleteUserPage : Bool = false
     
     var body: some View {
         NavigationStack {
@@ -47,8 +46,8 @@ struct SettingsPage: View {
                 }
                 
                 Section(){
-                    Button {
-                        goDeleteUserPage = true
+                    NavigationLink() {
+                        DeleteUserPage()
                     } label: {
                         Label("Delete your account", systemImage: "trash")
                             .foregroundStyle(Color.red)
@@ -62,11 +61,6 @@ struct SettingsPage: View {
                 }
             }
             .navigationTitle("Settings")
-            .navigationDestination(
-                isPresented: $goDeleteUserPage,
-            ){
-                DeleteUserPage()
-            }
         }
     }
 }
