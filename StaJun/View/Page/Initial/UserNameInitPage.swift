@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct UserName: View {
+struct UserNameInitPage: View {
     @State private var username: String = ""
     @FocusState private var userNameFieldIsFocused: Bool
     var body: some View {
@@ -41,7 +41,7 @@ struct UserName: View {
                 Spacer()
                 
                 NavigationLink {
-                    IconChooser(username: username)
+                    IconInitPage(username: username)
                 } label: {
                     Group{
                         Text("Next")
@@ -60,5 +60,5 @@ struct UserName: View {
 }
 
 #Preview {
-    UserName()
+    UserNameInitPage()
 }

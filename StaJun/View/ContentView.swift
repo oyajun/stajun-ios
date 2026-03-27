@@ -20,7 +20,7 @@ struct ContentView: View {
             }
         } else if (appState.status == .initialSetting) {
             NavigationStack{
-                UserName()
+                UserNameInitPage()
             }
         } else {
             HomeView()

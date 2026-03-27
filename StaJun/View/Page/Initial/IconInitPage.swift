@@ -8,7 +8,7 @@
 import SwiftUI
 import ElegantEmojiPicker
 
-struct IconChooser: View {
+struct IconInitPage: View {
     let username: String
     
     @EnvironmentObject var appState: AppState
@@ -122,6 +122,6 @@ struct IconChooser: View {
 
 
 #Preview {
-    IconChooser(username: "Taro")
+    IconInitPage(username: "Taro")
 }
 
