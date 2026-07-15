@@ -15,49 +15,46 @@ struct EditProfileView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            VStack(spacing: 0) {
                 // Preview
-                Section {
-                    HStack {
-                        Spacer()
-                        VStack(spacing: 8) {
-                            UserIconView(
-                                emoji: selectedEmoji,
-                                backgroundColor: selectedColor,
-                                size: 80
-                            )
-                            Text(username.isEmpty ? "Username" : username)
-                                .font(.headline)
-                                .foregroundStyle(username.isEmpty ? .secondary : .primary)
-                        }
-                        Spacer()
+                HStack {
+                    Spacer()
+                    VStack(spacing: 8) {
+                        UserIconView(
+                            emoji: selectedEmoji,
+                            backgroundColor: selectedColor,
+                            size: 80
+                        )
+                        Text(username.isEmpty ? "Username" : username)
+                            .font(.headline)
+                            .foregroundStyle(username.isEmpty ? .secondary : .primary)
                     }
-                    .padding(.vertical, 8)
+                    Spacer()
                 }
+                .padding(.vertical, 24)
 
-                // Username
-                Section("Username") {
-                    TextField("Username", text: $username)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                }
+                // Form
+                Form {
+                    Section("Username") {
+                        TextField("Username", text: $username)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                    }
 
-                // Icon emoji
-                Section("Icon Emoji") {
-                    EmojiPickerView(selected: $selectedEmoji)
-                }
+                    Section("Icon Emoji") {
+                        EmojiPickerView(selected: $selectedEmoji)
+                    }
 
-                // Background color
-                Section("Icon Background Color") {
-                    ColorPresetPickerView(selected: $selectedColor)
-                }
+                    Section("Icon Background Color") {
+                        ColorPresetPickerView(selected: $selectedColor)
+                    }
 
-                // Error
-                if let errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                            .font(.subheadline)
+                    if let errorMessage {
+                        Section {
+                            Text(errorMessage)
+                                .foregroundStyle(.red)
+                                .font(.subheadline)
+                        }
                     }
                 }
             }
