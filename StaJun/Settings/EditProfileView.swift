@@ -15,8 +15,7 @@ struct EditProfileView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Preview
+            Form {
                 HStack {
                     Spacer()
                     VStack(spacing: 8) {
@@ -32,29 +31,29 @@ struct EditProfileView: View {
                     Spacer()
                 }
                 .padding(.vertical, 24)
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color(.systemGray6))
 
-                // Form
-                Form {
-                    Section("Username") {
-                        TextField("Username", text: $username)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                    }
+                Section("Username") {
+                    TextField("Username", text: $username)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                }
 
-                    Section("Icon Emoji") {
-                        EmojiPickerView(selected: $selectedEmoji)
-                    }
+                Section("Icon Emoji") {
+                    EmojiPickerView(selected: $selectedEmoji)
+                }
 
-                    Section("Icon Background Color") {
-                        ColorPresetPickerView(selected: $selectedColor)
-                    }
+                Section("Icon Background Color") {
+                    ColorPresetPickerView(selected: $selectedColor)
+                }
 
-                    if let errorMessage {
-                        Section {
-                            Text(errorMessage)
-                                .foregroundStyle(.red)
-                                .font(.subheadline)
-                        }
+                if let errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundStyle(.red)
+                            .font(.subheadline)
                     }
                 }
             }
