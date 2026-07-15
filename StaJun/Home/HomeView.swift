@@ -40,7 +40,6 @@ struct HomeView: View {
                     }
                 }
             }
-            .navigationTitle("Home")
             .refreshable {
                 await loadFeed()
             }
