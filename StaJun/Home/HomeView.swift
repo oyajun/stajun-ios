@@ -34,7 +34,7 @@ struct HomeView: View {
                             NavigationLink {
                                 UserProfileView(userId: user.id)
                             } label: {
-                                FeedUserRow(user: user)
+                                FeedUserRow(user: user, now: now)
                             }
                         }
                     }
@@ -192,6 +192,7 @@ struct HomeView: View {
 
 struct FeedUserRow: View {
     let user: UserWithStudyStatus
+    let now: Date
 
     var body: some View {
         HStack(spacing: 12) {
@@ -205,9 +206,14 @@ struct FeedUserRow: View {
                 Text(user.username)
                     .font(.body)
                 if user.isStudying {
-                    Text("Studying")
-                        .font(.subheadline)
-                        .foregroundStyle(.orange)
+                    HStack(spacing: 4) {
+                        Text("Studying")
+                        if let since = user.studyingSince {
+                            Text("· \(studyingDurationString(since: since))")
+                        }
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.orange)
                 } else {
                     Text("Not Studying")
                         .font(.subheadline)
@@ -215,6 +221,18 @@ struct FeedUserRow: View {
                 }
             }
             Spacer()
+        }
+    }
+
+    private func studyingDurationString(since: Date) -> String {
+        let seconds = max(0, Int(now.timeIntervalSince(since)))
+        let h = seconds / 3600
+        let m = (seconds % 3600) / 60
+        let s = seconds % 60
+        if h > 0 {
+            return String(format: "%d:%02d:%02d", h, m, s)
+        } else {
+            return String(format: "%02d:%02d", m, s)
         }
     }
 }
