@@ -8,5 +8,5 @@ enum Config {
     #endif
 
     /// Home feed polling interval (seconds)
-    static let feedPollingInterval: TimeInterval = 10
+    static let feedPollingInterval: TimeInterval = 60
 }
