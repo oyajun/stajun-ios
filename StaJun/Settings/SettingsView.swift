@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var isEditing = false
     @State private var isSaving = false
     @State private var isSigningOut = false
+    @State private var showSignOutConfirmation = false
     @State private var errorMessage: String?
     @State private var showDeleteAccount = false
 
@@ -46,7 +47,7 @@ struct SettingsView: View {
                 // Sign out and delete
                 Section {
                     Button("Sign Out") {
-                        Task { await signOut() }
+                        showSignOutConfirmation = true
                     }
                     .foregroundStyle(.red)
                     .disabled(isSigningOut)
@@ -75,6 +76,14 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showDeleteAccount) {
                 DeleteAccountView()
+            }
+            .alert("Sign Out", isPresented: $showSignOutConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Sign Out", role: .destructive) {
+                    Task { await signOut() }
+                }
+            } message: {
+                Text("Are you sure you want to sign out?")
             }
             .task {
                 // Fetch latest profile
