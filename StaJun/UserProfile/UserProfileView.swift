@@ -51,6 +51,13 @@ struct UserProfileView: View {
                             Label("Studying", systemImage: "book.fill")
                                 .font(.body)
                                 .foregroundStyle(.orange)
+                            if let since = user.studyingSince {
+                                TimelineView(.periodic(from: .now, by: 1)) { context in
+                                    Text(studyingDurationString(since: since, now: context.date))
+                                        .font(.title3.monospacedDigit().bold())
+                                        .foregroundStyle(.orange)
+                                }
+                            }
                         } else {
                             Text("Not Studying")
                                 .font(.body)
@@ -90,6 +97,18 @@ struct UserProfileView: View {
                     Text(errorMessage).foregroundStyle(.red).font(.subheadline)
                 }
             }
+        }
+    }
+
+    private func studyingDurationString(since: Date, now: Date) -> String {
+        let seconds = max(0, Int(now.timeIntervalSince(since)))
+        let h = seconds / 3600
+        let m = (seconds % 3600) / 60
+        let s = seconds % 60
+        if h > 0 {
+            return String(format: "%d:%02d:%02d", h, m, s)
+        } else {
+            return String(format: "%02d:%02d", m, s)
         }
     }
 
