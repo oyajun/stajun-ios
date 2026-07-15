@@ -52,7 +52,7 @@ struct UserProfileView: View {
                                 .font(.body)
                                 .foregroundStyle(.orange)
                         } else {
-                            Text("On Break")
+                            Text("Not Studying")
                                 .font(.body)
                                 .foregroundStyle(.secondary)
                         }

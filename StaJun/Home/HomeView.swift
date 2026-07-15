@@ -61,18 +61,16 @@ struct HomeView: View {
     @ViewBuilder
     private var studyCard: some View {
         VStack(spacing: 12) {
-            if isStudying, let start = studyStartedAt {
-                HStack {
-                    Image(systemName: "timer")
-                        .foregroundStyle(.orange)
-                    Text(elapsedString(from: start, to: now))
-                        .font(.title3.monospacedDigit().bold())
-                        .foregroundStyle(.orange)
-                    Spacer()
-                    Text("Studying")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+            HStack {
+                Image(systemName: "timer")
+                    .foregroundStyle(isStudying ? .orange : .secondary)
+                Text(isStudying ? elapsedString(from: studyStartedAt ?? now, to: now) : "--:--")
+                    .font(.title3.monospacedDigit().bold())
+                    .foregroundStyle(isStudying ? .orange : .secondary)
+                Spacer()
+                Text(isStudying ? "Studying" : "Not Studying")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
 
             Button {
@@ -100,8 +98,6 @@ struct HomeView: View {
                     .foregroundStyle(.red)
             }
         }
-        .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
     }
 
     // MARK: - Empty Feed
@@ -213,7 +209,7 @@ struct FeedUserRow: View {
                         .font(.subheadline)
                         .foregroundStyle(.orange)
                 } else {
-                    Text("On Break")
+                    Text("Not Studying")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
