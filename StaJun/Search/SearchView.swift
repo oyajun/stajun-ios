@@ -65,6 +65,8 @@ struct SearchView: View {
         do {
             let response = try await APIClient.searchUsers(query: query)
             results = response.users
+        } catch APIError.notFound {
+            results = []
         } catch {
             errorMessage = error.localizedDescription
         }
