@@ -64,7 +64,7 @@ enum APIClient {
         method: String,
         body: (any Encodable)? = nil
     ) throws -> URLRequest {
-        let url = Config.baseURL.appendingPathComponent(path)
+        let url = URL(string: path, relativeTo: Config.baseURL)!
         var req = URLRequest(url: url)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
