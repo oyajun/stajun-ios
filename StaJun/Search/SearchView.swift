@@ -32,7 +32,7 @@ struct SearchView: View {
 
                 if let errorMessage {
                     Text(errorMessage)
-                        .font(.footnote)
+                        .font(.subheadline)
                         .foregroundStyle(.red)
                         .listRowBackground(Color.clear)
                 }
@@ -108,7 +108,7 @@ struct SearchUserRow: View {
                 onFollowToggle()
             } label: {
                 Text(user.isFollowing ? "フォロー中" : "フォロー")
-                    .font(.footnote)
+                    .font(.subheadline)
                     .fontWeight(.medium)
             }
             .buttonStyle(.bordered)

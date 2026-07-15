@@ -29,22 +29,22 @@ struct EmailInputView: View {
                 // メール入力
                 VStack(alignment: .leading, spacing: 8) {
                     Text("メールアドレス")
-                        .font(.footnote)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                     ZStack(alignment: .leading) {
                         if email.isEmpty {
-                            Text("example@email.com")
+                            Text(verbatim: "example@email.com")
                                 .foregroundStyle(Color(white: 0.6))
                                 .padding(.horizontal, 16)
                                 .allowsHitTesting(false)
                         }
                         TextField("", text: $email)
                             .autocorrectionDisabled()
-                            #if os(iOS)
                             .keyboardType(.emailAddress)
                             .textInputAutocapitalization(.never)
                             .textContentType(.emailAddress)
-                            #endif
+                            .foregroundStyle(.primary)
+                            .tint(.primary)
                             .padding()
                     }
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -54,7 +54,7 @@ struct EmailInputView: View {
                 // エラー
                 if let errorMessage {
                     Text(errorMessage)
-                        .font(.footnote)
+                        .font(.subheadline)
                         .foregroundStyle(.red)
                         .padding(.horizontal)
                 }

@@ -68,6 +68,14 @@ enum APIClient {
         var req = URLRequest(url: url)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // better-auth CSRF対策として Origin ヘッダを設定（末尾のスラッシュは除去）
+        var origin = Config.baseURL.absoluteString
+        if origin.hasSuffix("/") {
+            origin = String(origin.dropLast())
+        }
+        req.setValue(origin, forHTTPHeaderField: "Origin")
+        
         if let token = KeychainHelper.token {
             req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }

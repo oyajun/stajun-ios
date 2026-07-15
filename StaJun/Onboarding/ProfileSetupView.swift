@@ -58,7 +58,7 @@ struct ProfileSetupView: View {
                     Section {
                         Text(errorMessage)
                             .foregroundStyle(.red)
-                            .font(.footnote)
+                            .font(.subheadline)
                     }
                 }
             }

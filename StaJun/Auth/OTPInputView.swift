@@ -32,7 +32,7 @@ struct OTPInputView: View {
                 // OTP 入力フィールド
                 VStack(alignment: .leading, spacing: 8) {
                     Text("6桁のコード")
-                        .font(.footnote)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                     TextField("000000", text: $otp)
                         #if os(iOS)
@@ -52,7 +52,7 @@ struct OTPInputView: View {
                 // エラー
                 if let errorMessage {
                     Text(errorMessage)
-                        .font(.footnote)
+                        .font(.subheadline)
                         .foregroundStyle(.red)
                         .padding(.horizontal)
                 }
@@ -84,7 +84,7 @@ struct OTPInputView: View {
                         ProgressView()
                     } else {
                         Text("コードを再送信")
-                            .font(.footnote)
+                            .font(.subheadline)
                     }
                 }
                 .buttonStyle(.plain)
@@ -96,7 +96,7 @@ struct OTPInputView: View {
                     appState.authState = .unauthenticated
                 } label: {
                     Text("メールアドレスを変更")
-                        .font(.footnote)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)

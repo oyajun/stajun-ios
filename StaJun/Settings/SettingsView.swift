@@ -114,7 +114,7 @@ struct SettingsView: View {
             Section {
                 Text(errorMessage)
                     .foregroundStyle(.red)
-                    .font(.footnote)
+                    .font(.subheadline)
             }
         }
     }

@@ -71,7 +71,7 @@ struct HomeView: View {
                         .foregroundStyle(.orange)
                     Spacer()
                     Text("勉強中")
-                        .font(.footnote)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -100,7 +100,7 @@ struct HomeView: View {
 
             if let studyError {
                 Text(studyError)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.red)
             }
         }
@@ -117,10 +117,10 @@ struct HomeView: View {
                     .font(.largeTitle)
                     .foregroundStyle(.secondary)
                 Text("フォロー中のユーザーがいません")
-                    .font(.subheadline)
+                    .font(.body)
                     .foregroundStyle(.secondary)
                 Text("検索タブからユーザーを見つけましょう")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.tertiary)
             }
             .frame(maxWidth: .infinity)
@@ -214,11 +214,11 @@ struct FeedUserRow: View {
                     .font(.body)
                 if user.isStudying {
                     Text("勉強中")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.orange)
                 } else {
                     Text("休憩中")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
             }

@@ -57,14 +57,14 @@ struct DeleteAccountView: View {
             Label("削除後は取り消せません", systemImage: "exclamationmark.triangle")
                 .foregroundStyle(.red)
             Text("フォロー関係・学習記録がすべて削除されます。")
-                .font(.footnote)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
 
         Section {
             VStack(alignment: .leading, spacing: 8) {
                 Text("確認のため「\(expectedUsername)」と入力してください")
-                    .font(.footnote)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
                 TextField("ユーザー名", text: $confirmUsername)
                     .autocorrectionDisabled()
@@ -82,7 +82,7 @@ struct DeleteAccountView: View {
 
         if let errorMessage {
             Section {
-                Text(errorMessage).foregroundStyle(.red).font(.footnote)
+                Text(errorMessage).foregroundStyle(.red).font(.subheadline)
             }
         }
     }
@@ -91,7 +91,7 @@ struct DeleteAccountView: View {
     private var otpSection: some View {
         Section {
             Label("本人確認のため認証コードを送信します", systemImage: "lock.shield")
-                .font(.footnote)
+                .font(.subheadline)
         }
 
         if step == .sendOTP {
@@ -138,7 +138,7 @@ struct DeleteAccountView: View {
 
         if let errorMessage {
             Section {
-                Text(errorMessage).foregroundStyle(.red).font(.footnote)
+                Text(errorMessage).foregroundStyle(.red).font(.subheadline)
             }
         }
     }
@@ -151,7 +151,7 @@ struct DeleteAccountView: View {
                 VStack(spacing: 12) {
                     ProgressView()
                     Text("削除中…")
-                        .font(.subheadline)
+                        .font(.body)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()

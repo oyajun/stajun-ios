@@ -49,11 +49,11 @@ struct UserProfileView: View {
 
                         if user.isStudying {
                             Label("勉強中", systemImage: "book.fill")
-                                .font(.subheadline)
+                                .font(.body)
                                 .foregroundStyle(.orange)
                         } else {
                             Text("休憩中")
-                                .font(.subheadline)
+                                .font(.body)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -87,7 +87,7 @@ struct UserProfileView: View {
 
             if let errorMessage {
                 Section {
-                    Text(errorMessage).foregroundStyle(.red).font(.footnote)
+                    Text(errorMessage).foregroundStyle(.red).font(.subheadline)
                 }
             }
         }
