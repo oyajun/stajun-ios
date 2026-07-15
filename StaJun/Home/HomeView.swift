@@ -83,11 +83,8 @@ struct HomeView: View {
                         ProgressView()
                             .tint(isStudying ? .white : .white)
                     } else {
-                        Label(
-                            isStudying ? "Stop Studying" : "Start Studying",
-                            systemImage: isStudying ? "stop.fill" : "play.fill"
-                        )
-                        .fontWeight(.semibold)
+                        Text(isStudying ? "Stop Studying" : "Start Studying")
+                            .fontWeight(.semibold)
                     }
                 }
                 .frame(maxWidth: .infinity)
