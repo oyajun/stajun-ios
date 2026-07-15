@@ -33,7 +33,7 @@ struct SettingsView: View {
                 .padding(.vertical, 20)
                 .listRowInsets(EdgeInsets())
                 .listRowSeparator(.hidden)
-                .listRowBackground(Color(.systemGray6))
+                .listRowBackground(Color.clear)
 
                 // Account
                 Section("Account") {

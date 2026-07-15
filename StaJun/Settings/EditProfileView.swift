@@ -33,7 +33,7 @@ struct EditProfileView: View {
                 .padding(.vertical, 24)
                 .listRowInsets(EdgeInsets())
                 .listRowSeparator(.hidden)
-                .listRowBackground(Color(.systemGray6))
+                .listRowBackground(Color.clear)
 
                 Section("Username") {
                     TextField("Username", text: $username)
