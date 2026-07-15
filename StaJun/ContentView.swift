@@ -6,8 +6,8 @@ struct ContentView: View {
     var body: some View {
         switch appState.authState {
         case .checking:
-            // 起動時検証中
-            ProgressView("読み込み中…")
+            // Checking on startup
+            ProgressView("Loading…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         case .unauthenticated:

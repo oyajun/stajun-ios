@@ -17,7 +17,7 @@ struct EmailInputView: View {
             VStack(spacing: 32) {
                 Spacer()
 
-                // ロゴ・タイトル
+                // Logo and title
                 VStack(spacing: 8) {
                     Text("StaJun")
                         .font(.largeTitle.bold())
@@ -26,9 +26,9 @@ struct EmailInputView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                // メール入力
+                // Email input
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("メールアドレス")
+                    Text("Email Address")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     ZStack(alignment: .leading) {
@@ -51,7 +51,7 @@ struct EmailInputView: View {
                 }
                 .padding(.horizontal)
 
-                // エラー
+                // Error
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.subheadline)
@@ -59,7 +59,7 @@ struct EmailInputView: View {
                         .padding(.horizontal)
                 }
 
-                // 送信ボタン
+                // Send button
                 Button {
                     Task { await submit() }
                 } label: {
@@ -68,7 +68,7 @@ struct EmailInputView: View {
                             ProgressView()
                                 .tint(.white)
                         } else {
-                            Text("認証コードを送信")
+                            Text("Send Authentication Code")
                                 .fontWeight(.semibold)
                         }
                     }

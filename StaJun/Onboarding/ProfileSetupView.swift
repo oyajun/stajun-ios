@@ -17,7 +17,7 @@ struct ProfileSetupView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // プレビュー
+                // Preview
                 Section {
                     HStack {
                         Spacer()
@@ -27,7 +27,7 @@ struct ProfileSetupView: View {
                                 backgroundColor: selectedColor,
                                 size: 80
                             )
-                            Text(username.isEmpty ? "ユーザー名" : username)
+                            Text(username.isEmpty ? "Username" : username)
                                 .font(.headline)
                                 .foregroundStyle(username.isEmpty ? .secondary : .primary)
                         }
@@ -36,24 +36,24 @@ struct ProfileSetupView: View {
                     .padding(.vertical, 8)
                 }
 
-                // ユーザー名
-                Section("ユーザー名") {
-                    TextField("例：jun_stajun", text: $username)
+                // Username
+                Section("Username") {
+                    TextField("e.g., jun_stajun", text: $username)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                 }
 
-                // 絵文字選択
-                Section("アイコン絵文字") {
+                // Icon emoji
+                Section("Icon Emoji") {
                     EmojiPickerView(selected: $selectedEmoji)
                 }
 
-                // 背景色選択
-                Section("アイコン背景色") {
+                // Background color
+                Section("Icon Background Color") {
                     ColorPresetPickerView(selected: $selectedColor)
                 }
 
-                // エラー
+                // Error
                 if let errorMessage {
                     Section {
                         Text(errorMessage)
@@ -62,11 +62,11 @@ struct ProfileSetupView: View {
                     }
                 }
             }
-            .navigationTitle("プロフィール作成")
+            .navigationTitle("Create Profile")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("完了") {
+                    Button("Done") {
                         Task { await submit() }
                     }
                     .disabled(!isValid || isLoading)

@@ -20,18 +20,18 @@ struct OTPInputView: View {
                 VStack(spacing: 8) {
                     Text("📨")
                         .font(.system(size: 64))
-                    Text("認証コードを入力")
+                    Text("Enter Authentication Code")
                         .font(.title2.bold())
-                    Text("\(email) に送信したコードを入力してください")
+                    Text("Enter the code sent to \(email)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
 
-                // OTP 入力フィールド
+                // OTP input field
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("6桁のコード")
+                    Text("6-Digit Code")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     TextField("000000", text: $otp)
@@ -49,7 +49,7 @@ struct OTPInputView: View {
                 }
                 .padding(.horizontal)
 
-                // エラー
+                // Error
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.subheadline)
@@ -57,7 +57,7 @@ struct OTPInputView: View {
                         .padding(.horizontal)
                 }
 
-                // 確認ボタン
+                // Verification button
                 Button {
                     Task { await verify() }
                 } label: {
@@ -65,7 +65,7 @@ struct OTPInputView: View {
                         if isLoading {
                             ProgressView().tint(.white)
                         } else {
-                            Text("確認")
+                            Text("Verify")
                                 .fontWeight(.semibold)
                         }
                     }
@@ -76,14 +76,14 @@ struct OTPInputView: View {
                 .disabled(!isValidOTP || isLoading)
                 .padding(.horizontal)
 
-                // 再送信
+                // Resend
                 Button {
                     Task { await resend() }
                 } label: {
                     if isResending {
                         ProgressView()
                     } else {
-                        Text("コードを再送信")
+                        Text("Resend Code")
                             .font(.subheadline)
                     }
                 }
@@ -91,11 +91,11 @@ struct OTPInputView: View {
                 .foregroundStyle(Color.accentColor)
                 .disabled(isResending)
 
-                // 戻る
+                // Change email
                 Button {
                     appState.authState = .unauthenticated
                 } label: {
-                    Text("メールアドレスを変更")
+                    Text("Change Email Address")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }

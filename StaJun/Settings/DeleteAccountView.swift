@@ -4,17 +4,17 @@ struct DeleteAccountView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
 
-    // ステップ管理
+    // Step management
     enum Step {
-        case confirm       // username 入力確認
-        case sendOTP       // OTP 送信
-        case verifyOTP     // OTP 入力
-        case deleting      // 削除中
+        case confirm       // Username confirmation
+        case sendOTP       // Send OTP
+        case verifyOTP     // Verify OTP
+        case deleting      // Deleting
     }
 
     @State private var step: Step = .confirm
 
-    // 確認入力
+    // Confirmation input
     @State private var confirmUsername = ""
     private var expectedUsername: String { appState.currentUser?.username ?? "" }
     private var isConfirmed: Bool { confirmUsername == expectedUsername }
@@ -38,11 +38,11 @@ struct DeleteAccountView: View {
                     deletingSection
                 }
             }
-            .navigationTitle("アカウントを削除")
+            .navigationTitle("Delete Account")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { dismiss() }
+                    Button("Cancel") { dismiss() }
                         .disabled(step == .deleting)
                 }
             }
@@ -54,26 +54,26 @@ struct DeleteAccountView: View {
     @ViewBuilder
     private var confirmSection: some View {
         Section {
-            Label("削除後は取り消せません", systemImage: "exclamationmark.triangle")
+            Label("Cannot be undone after deletion", systemImage: "exclamationmark.triangle")
                 .foregroundStyle(.red)
-            Text("フォロー関係・学習記録がすべて削除されます。")
+            Text("All follow relationships and study records will be deleted.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
 
         Section {
             VStack(alignment: .leading, spacing: 8) {
-                Text("確認のため「\(expectedUsername)」と入力してください")
+                Text("Enter '\(expectedUsername)' to confirm")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                TextField("ユーザー名", text: $confirmUsername)
+                TextField("Username", text: $confirmUsername)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
             }
         }
 
         Section {
-            Button("次へ（本人確認）") {
+            Button("Next (Verify Identity)") {
                 step = .sendOTP
             }
             .disabled(!isConfirmed)
@@ -90,12 +90,12 @@ struct DeleteAccountView: View {
     @ViewBuilder
     private var otpSection: some View {
         Section {
-            Label("本人確認のため認証コードを送信します", systemImage: "lock.shield")
+            Label("We'll send an authentication code to verify your identity", systemImage: "lock.shield")
                 .font(.subheadline)
         }
 
         if step == .sendOTP {
-            Section("メールアドレス") {
+            Section("Email Address") {
                 TextField("example@email.com", text: $email)
                     .autocorrectionDisabled()
                     #if os(iOS)
@@ -105,13 +105,13 @@ struct DeleteAccountView: View {
                     #endif
             }
             Section {
-                Button("認証コードを送信") {
+                Button("Send Authentication Code") {
                     Task { await sendOTP() }
                 }
                 .disabled(isLoading || email.isEmpty)
             }
         } else {
-            Section("認証コード（6桁）") {
+            Section("Authentication Code (6 digits)") {
                 TextField("000000", text: $otp)
                     #if os(iOS)
                     .keyboardType(.numberPad)
@@ -123,13 +123,13 @@ struct DeleteAccountView: View {
                     }
             }
             Section {
-                Button("アカウントを削除する") {
+                Button("Delete Account") {
                     Task { await verifyAndDelete() }
                 }
                 .foregroundStyle(.red)
                 .disabled(isLoading || otp.count != 6)
 
-                Button("コードを再送信") {
+                Button("Resend Code") {
                     Task { await sendOTP() }
                 }
                 .disabled(isLoading)
@@ -150,7 +150,7 @@ struct DeleteAccountView: View {
                 Spacer()
                 VStack(spacing: 12) {
                     ProgressView()
-                    Text("削除中…")
+                    Text("Deleting…")
                         .font(.body)
                         .foregroundStyle(.secondary)
                 }
@@ -179,9 +179,9 @@ struct DeleteAccountView: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
-            // OTP 再認証（セッションをフレッシュにする）
+            // Re-authenticate with OTP to refresh session
             try await APIClient.signIn(email: email, otp: otp)
-            // アカウント削除
+            // Delete account
             step = .deleting
             try await APIClient.deleteAccount()
             appState.clearAfterAccountDeletion()

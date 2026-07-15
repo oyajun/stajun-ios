@@ -22,7 +22,7 @@ struct UserProfileView: View {
             } else if let user {
                 userContent(user)
             } else {
-                ContentUnavailableView("ユーザーが見つかりません", systemImage: "person.slash")
+                ContentUnavailableView("User Not Found", systemImage: "person.slash")
             }
         }
         .navigationTitle(user?.username ?? "")
@@ -33,7 +33,7 @@ struct UserProfileView: View {
     @ViewBuilder
     private func userContent(_ user: UserWithStudyStatus) -> some View {
         List {
-            // アイコン・ステータス
+            // Icon and status
             Section {
                 HStack {
                     Spacer()
@@ -48,11 +48,11 @@ struct UserProfileView: View {
                             .font(.title2.bold())
 
                         if user.isStudying {
-                            Label("勉強中", systemImage: "book.fill")
+                            Label("Studying", systemImage: "book.fill")
                                 .font(.body)
                                 .foregroundStyle(.orange)
                         } else {
-                            Text("休憩中")
+                            Text("On Break")
                                 .font(.body)
                                 .foregroundStyle(.secondary)
                         }
@@ -63,7 +63,7 @@ struct UserProfileView: View {
             }
             .listRowBackground(Color.clear)
 
-            // フォローボタン（自分以外）
+            // Follow button (for other users)
             if !isOwnProfile {
                 Section {
                     Button {
@@ -74,7 +74,7 @@ struct UserProfileView: View {
                             if isFollowLoading {
                                 ProgressView()
                             } else {
-                                Text(user.isFollowing ?? false ? "フォロー中" : "フォローする")
+                                Text(user.isFollowing ?? false ? "Following" : "Follow")
                                     .fontWeight(.medium)
                             }
                             Spacer()

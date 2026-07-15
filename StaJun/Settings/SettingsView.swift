@@ -3,7 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
 
-    // 編集用
+    // For editing
     @State private var username = ""
     @State private var selectedEmoji = ""
     @State private var selectedColor = ""
@@ -19,7 +19,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // プロフィールプレビュー
+                // Profile preview
                 Section {
                     HStack {
                         Spacer()
@@ -29,7 +29,7 @@ struct SettingsView: View {
                                 backgroundColor: isEditing ? selectedColor : (currentUser?.iconBackgroundColor ?? "#FFD54F"),
                                 size: 72
                             )
-                            Text(isEditing ? (username.isEmpty ? "ユーザー名" : username) : (currentUser?.username ?? ""))
+                            Text(isEditing ? (username.isEmpty ? "Username" : username) : (currentUser?.username ?? ""))
                                 .font(.headline)
                         }
                         Spacer()
@@ -43,33 +43,33 @@ struct SettingsView: View {
                     readonlySections
                 }
 
-                // ログアウト・削除
+                // Sign out and delete
                 Section {
-                    Button("ログアウト") {
+                    Button("Sign Out") {
                         Task { await signOut() }
                     }
                     .foregroundStyle(.red)
                     .disabled(isSigningOut)
 
-                    Button("アカウントを削除…") {
+                    Button("Delete Account…") {
                         showDeleteAccount = true
                     }
                     .foregroundStyle(.red)
                 }
             }
-            .navigationTitle("設定")
+            .navigationTitle("Settings")
             .toolbar {
                 if isEditing {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("保存") { Task { await save() } }
+                        Button("Save") { Task { await save() } }
                             .disabled(isSaving)
                     }
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("キャンセル") { cancelEdit() }
+                        Button("Cancel") { cancelEdit() }
                     }
                 } else {
                     ToolbarItem(placement: .primaryAction) {
-                        Button("編集") { startEdit() }
+                        Button("Edit") { startEdit() }
                     }
                 }
             }
@@ -77,7 +77,7 @@ struct SettingsView: View {
                 DeleteAccountView()
             }
             .task {
-                // 最新のプロフィールを取得
+                // Fetch latest profile
                 if let profile = try? await APIClient.getMyProfile() {
                     appState.updateCurrentUser(profile)
                 }
@@ -89,7 +89,7 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var readonlySections: some View {
-        Section("ユーザー名") {
+        Section("Username") {
             Text(currentUser?.username ?? "")
                 .foregroundStyle(.secondary)
         }
@@ -97,17 +97,17 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var editSections: some View {
-        Section("ユーザー名") {
-            TextField("ユーザー名", text: $username)
+        Section("Username") {
+            TextField("Username", text: $username)
                 .autocorrectionDisabled()
                 #if os(iOS)
                 .textInputAutocapitalization(.never)
                 #endif
         }
-        Section("アイコン絵文字") {
+        Section("Icon Emoji") {
             EmojiPickerView(selected: $selectedEmoji)
         }
-        Section("アイコン背景色") {
+        Section("Icon Background Color") {
             ColorPresetPickerView(selected: $selectedColor)
         }
         if let errorMessage {

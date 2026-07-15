@@ -1,11 +1,11 @@
 import Foundation
 import Security
 
-/// Keychain を使ったトークン永続化ヘルパー
+/// Keychain helper for token persistence
 enum KeychainHelper {
     private static let tokenKey = "com.oyajun.StaJun.authToken"
 
-    /// 保存済み Bearer トークン（無ければ nil）
+    /// Saved Bearer token (nil if not available)
     static var token: String? {
         get { load(key: tokenKey) }
         set {
@@ -21,7 +21,7 @@ enum KeychainHelper {
 
     private static func save(key: String, value: String) {
         let data = Data(value.utf8)
-        // 既存を削除してから追加（update の代わり）
+        // Delete existing before adding (instead of update)
         delete(key: key)
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,

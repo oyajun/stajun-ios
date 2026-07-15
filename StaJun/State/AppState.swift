@@ -4,11 +4,11 @@ import SwiftUI
 // MARK: - Auth State
 
 enum AuthState: Equatable {
-    case checking              // 起動時にトークンを検証中
-    case unauthenticated       // 未認証（SC-01）
-    case awaitingOTP(email: String) // OTP 入力待ち（SC-02）
-    case onboarding            // 認証済みだがプロフィール未登録（SC-03）
-    case authenticated         // 認証＋オンボーディング完了
+    case checking              // Verifying token on startup
+    case unauthenticated       // Unauthenticated (SC-01)
+    case awaitingOTP(email: String) // Waiting for OTP input (SC-02)
+    case onboarding            // Authenticated but profile not registered (SC-03)
+    case authenticated         // Authenticated + onboarding complete
 }
 
 // MARK: - AppState
@@ -22,7 +22,7 @@ final class AppState {
         Task { await checkExistingSession() }
     }
 
-    /// 起動時: Keychain にトークンがあればサーバーで検証する
+    /// On startup: Verify token on server if it exists in Keychain
     private func checkExistingSession() async {
         guard KeychainHelper.token != nil else {
             authState = .unauthenticated
@@ -38,7 +38,7 @@ final class AppState {
         } catch APIError.onboardingRequired {
             authState = .onboarding
         } catch {
-            // ネットワーク障害等 → 一旦未認証に
+            // Network error etc → temporarily mark as unauthenticated
             KeychainHelper.token = nil
             authState = .unauthenticated
         }
@@ -46,16 +46,16 @@ final class AppState {
 
     // MARK: - Actions
 
-    /// メール入力後、OTP 送信して awaitingOTP に遷移
+    /// Send OTP after email input and transition to awaitingOTP
     func requestOTP(email: String) async throws {
         try await APIClient.sendOTP(email: email)
         authState = .awaitingOTP(email: email)
     }
 
-    /// OTP 検証→サインイン成功後、プロフィール状態を確認して遷移
+    /// Verify OTP and check profile state after successful sign-in
     func verifyOTP(email: String, otp: String) async throws {
         try await APIClient.signIn(email: email, otp: otp)
-        // signIn 内で Keychain にトークン保存済み
+        // Token already saved to Keychain in signIn
         do {
             let profile = try await APIClient.getMyProfile()
             currentUser = profile
@@ -65,18 +65,18 @@ final class AppState {
         }
     }
 
-    /// オンボーディング完了
+    /// Complete onboarding
     func completeOnboarding(profile: UserProfile) {
         currentUser = profile
         authState = .authenticated
     }
 
-    /// プロフィール更新
+    /// Update profile
     func updateCurrentUser(_ profile: UserProfile) {
         currentUser = profile
     }
 
-    /// ログアウト
+    /// Sign out
     func signOut() async {
         try? await APIClient.signOut()
         KeychainHelper.token = nil
@@ -84,7 +84,7 @@ final class AppState {
         authState = .unauthenticated
     }
 
-    /// アカウント削除後のクリーンアップ
+    /// Clean up after account deletion
     func clearAfterAccountDeletion() {
         KeychainHelper.token = nil
         currentUser = nil

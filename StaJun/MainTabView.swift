@@ -5,13 +5,13 @@ struct MainTabView: View {
 
     var body: some View {
         TabView {
-            Tab("ホーム", systemImage: "house") {
+            Tab("Home", systemImage: "house") {
                 HomeView()
             }
-            Tab("検索", systemImage: "magnifyingglass") {
+            Tab("Search", systemImage: "magnifyingglass") {
                 SearchView()
             }
-            Tab("設定", systemImage: "gearshape") {
+            Tab("Settings", systemImage: "gearshape") {
                 SettingsView()
             }
         }

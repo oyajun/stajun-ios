@@ -37,8 +37,8 @@ struct SearchView: View {
                         .listRowBackground(Color.clear)
                 }
             }
-            .navigationTitle("検索")
-            .searchable(text: $query, prompt: "ユーザーを検索")
+            .navigationTitle("Search")
+            .searchable(text: $query, prompt: "Search Users")
             .onChange(of: query) { _, newValue in
                 scheduleSearch(query: newValue)
             }
@@ -82,7 +82,7 @@ struct SearchView: View {
                     results[index].isFollowing = true
                 }
             } catch {
-                // エラーは無視（UI はロールバック不要）
+                // Ignore errors (no UI rollback needed)
             }
         }
     }
@@ -107,7 +107,7 @@ struct SearchUserRow: View {
             Button {
                 onFollowToggle()
             } label: {
-                Text(user.isFollowing ? "フォロー中" : "フォロー")
+                Text(user.isFollowing ? "Following" : "Follow")
                     .font(.subheadline)
                     .fontWeight(.medium)
             }

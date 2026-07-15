@@ -18,15 +18,15 @@ enum APIError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unauthorized:
-            return "ログインが必要です。"
+            return "Login is required."
         case .onboardingRequired:
-            return "プロフィール設定が必要です。"
+            return "Profile setup is required."
         case .sessionNotFresh:
-            return "セッションが古くなっています。再認証してください。"
+            return "Session has expired. Please re-authenticate."
         case .forbidden(_, let msg):
             return msg
         case .notFound:
-            return "見つかりませんでした。"
+            return "Not found."
         case .conflict(_, let msg):
             return msg
         case .badRequest(_, let msg):
@@ -36,9 +36,9 @@ enum APIError: Error, LocalizedError {
         case .networkError(let e):
             return e.localizedDescription
         case .decodingError(let e):
-            return "データの解析に失敗しました: \(e.localizedDescription)"
+            return "Failed to parse data: \(e.localizedDescription)"
         case .unknown:
-            return "不明なエラーが発生しました。"
+            return "An unknown error occurred."
         }
     }
 }
@@ -68,8 +68,8 @@ enum APIClient {
         var req = URLRequest(url: url)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // better-auth CSRF対策として Origin ヘッダを設定（末尾のスラッシュは除去）
+
+        // Set Origin header for better-auth CSRF protection (remove trailing slash)
         var origin = Config.baseURL.absoluteString
         if origin.hasSuffix("/") {
             origin = String(origin.dropLast())
@@ -85,7 +85,7 @@ enum APIClient {
         return req
     }
 
-    /// レスポンスボディを T にデコードして返す。4xx/5xx は APIError を throw。
+    /// Decode response body to T. Throws APIError for 4xx/5xx.
     @discardableResult
     private static func perform<T: Decodable>(
         path: String,
@@ -103,7 +103,7 @@ enum APIClient {
 
         let http = response as! HTTPURLResponse
 
-        // Bearer トークンをヘッダから自動保存
+        // Auto-save Bearer token from header
         if let token = http.value(forHTTPHeaderField: "set-auth-token"), !token.isEmpty {
             KeychainHelper.token = token
         }
@@ -111,7 +111,7 @@ enum APIClient {
         if http.statusCode >= 400 {
             let parsed = try? decoder.decode(APIErrorResponse.self, from: data)
             let code = parsed?.error.code ?? "UNKNOWN"
-            let message = parsed?.error.message ?? "エラーが発生しました。"
+            let message = parsed?.error.message ?? "An error occurred."
             switch http.statusCode {
             case 401: throw APIError.unauthorized
             case 403:
@@ -140,53 +140,53 @@ enum APIClient {
 
     // MARK: - Auth
 
-    /// OTP メールを送信する
+    /// Send OTP email
     static func sendOTP(email: String) async throws {
         try await perform(path: "/api/auth/email-otp/send-verification-otp", method: "POST", body: SendOTPRequest(email: email), as: EmptyResponse.self)
     }
 
-    /// OTP でサインイン（set-auth-token を Keychain に自動保存）
+    /// Sign in with OTP (set-auth-token auto-saved to Keychain)
     static func signIn(email: String, otp: String) async throws {
         try await perform(path: "/api/auth/sign-in/email-otp", method: "POST", body: VerifyOTPRequest(email: email, otp: otp), as: EmptyResponse.self)
     }
 
-    /// サインアウト（Keychain のトークンは呼び出し側で削除すること）
+    /// Sign out (caller must delete token from Keychain)
     static func signOut() async throws {
         try await perform(path: "/api/auth/sign-out", method: "POST", as: EmptyResponse.self)
     }
 
     // MARK: - Profile
 
-    /// 自分のプロフィール取得
+    /// Get my profile
     static func getMyProfile() async throws -> UserProfile {
         try await perform(path: "/api/v1/users/me", method: "GET", as: UserProfile.self)
     }
 
-    /// 初回プロフィール登録（オンボーディング）
+    /// Create profile (onboarding)
     static func createProfile(username: String, iconEmoji: String, iconBackgroundColor: String) async throws -> UserProfile {
         let body = CreateProfileRequest(username: username, iconEmoji: iconEmoji, iconBackgroundColor: iconBackgroundColor)
         return try await perform(path: "/api/v1/users/me", method: "POST", body: body, as: UserProfile.self)
     }
 
-    /// プロフィール更新（部分更新）
+    /// Update profile (partial update)
     static func updateProfile(username: String? = nil, iconEmoji: String? = nil, iconBackgroundColor: String? = nil) async throws -> UserProfile {
         let body = UpdateProfileRequest(username: username, iconEmoji: iconEmoji, iconBackgroundColor: iconBackgroundColor)
         return try await perform(path: "/api/v1/users/me", method: "PATCH", body: body, as: UserProfile.self)
     }
 
-    /// アカウント削除（フレッシュなセッション必須）
+    /// Delete account (fresh session required)
     static func deleteAccount() async throws {
         try await perform(path: "/api/v1/users/me", method: "DELETE", as: EmptyResponse.self)
     }
 
     // MARK: - Users
 
-    /// 他ユーザーのプロフィール取得（id 指定）
+    /// Get user profile by ID
     static func getUser(id: String) async throws -> UserWithStudyStatus {
         try await perform(path: "/api/v1/users/\(id)", method: "GET", as: UserWithStudyStatus.self)
     }
 
-    /// ユーザー検索
+    /// Search users
     static func searchUsers(query: String, limit: Int = 20, offset: Int = 0) async throws -> SearchResponse {
         let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
         return try await perform(path: "/api/v1/users/search?q=\(encoded)&limit=\(limit)&offset=\(offset)", method: "GET", as: SearchResponse.self)
@@ -194,41 +194,41 @@ enum APIClient {
 
     // MARK: - Follow
 
-    /// フォローする
+    /// Follow a user
     static func follow(userId: String) async throws -> FollowActionResponse {
         try await perform(path: "/api/v1/users/\(userId)/follow", method: "POST", as: FollowActionResponse.self)
     }
 
-    /// フォロー解除
+    /// Unfollow a user
     static func unfollow(userId: String) async throws {
         try await perform(path: "/api/v1/users/\(userId)/follow", method: "DELETE", as: EmptyResponse.self)
     }
 
-    /// フォロー中一覧
+    /// Get following list
     static func getFollowing() async throws -> FollowingResponse {
         try await perform(path: "/api/v1/me/following", method: "GET", as: FollowingResponse.self)
     }
 
     // MARK: - Study Sessions
 
-    /// 自分の現在の学習状態取得
+    /// Get my current study status
     static func getMyStudyStatus() async throws -> MyStudyStatus {
         try await perform(path: "/api/v1/study-sessions/me", method: "GET", as: MyStudyStatus.self)
     }
 
-    /// 勉強開始
+    /// Start studying
     static func startStudy() async throws -> StudySession {
         try await perform(path: "/api/v1/study-sessions/start", method: "POST", as: StudySession.self)
     }
 
-    /// 勉強終了
+    /// Stop studying
     static func stopStudy() async throws -> StudySession {
         try await perform(path: "/api/v1/study-sessions/stop", method: "POST", as: StudySession.self)
     }
 
     // MARK: - Home Feed
 
-    /// ホームフィード取得（ポーリング用）
+    /// Get home feed (for polling)
     static func getHomeFeed() async throws -> HomeFeedResponse {
         try await perform(path: "/api/v1/home/feed", method: "GET", as: HomeFeedResponse.self)
     }

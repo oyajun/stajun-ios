@@ -7,6 +7,6 @@ enum Config {
     static let baseURL = URL(string: "https://YOUR_PRODUCTION_URL_HERE")!
     #endif
 
-    /// ホームフィードのポーリング間隔（秒）
+    /// Home feed polling interval (seconds)
     static let feedPollingInterval: TimeInterval = 10
 }

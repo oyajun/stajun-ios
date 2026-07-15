@@ -4,32 +4,32 @@ import Combine
 struct HomeView: View {
     @Environment(AppState.self) private var appState
 
-    // 自分の学習状態
+    // Study status
     @State private var isStudying = false
     @State private var studyStartedAt: Date?
     @State private var studyActionLoading = false
     @State private var studyError: String?
 
-    // フィード
+    // Feed
     @State private var feedUsers: [UserWithStudyStatus] = []
     @State private var feedError: String?
 
-    // タイマー（経過時間表示）
+    // Timer (elapsed time display)
     @State private var now = Date()
 
     var body: some View {
         NavigationStack {
             List {
-                // 勉強開始/終了カード（Liquid Glass）
+                // Study start/stop card (Liquid Glass)
                 studyCard
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
 
-                // フォロー中ユーザー一覧
+                // Following users list
                 if feedUsers.isEmpty {
                     emptyFeedSection
                 } else {
-                    Section("フォロー中") {
+                    Section("Following") {
                         ForEach(feedUsers) { user in
                             NavigationLink {
                                 UserProfileView(userId: user.id)
@@ -40,7 +40,7 @@ struct HomeView: View {
                     }
                 }
             }
-            .navigationTitle("ホーム")
+            .navigationTitle("Home")
             .refreshable {
                 await loadFeed()
             }
@@ -70,7 +70,7 @@ struct HomeView: View {
                         .font(.title3.monospacedDigit().bold())
                         .foregroundStyle(.orange)
                     Spacer()
-                    Text("勉強中")
+                    Text("Studying")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -85,7 +85,7 @@ struct HomeView: View {
                             .tint(isStudying ? .white : .white)
                     } else {
                         Label(
-                            isStudying ? "勉強を終わる" : "勉強を始める",
+                            isStudying ? "Stop Studying" : "Start Studying",
                             systemImage: isStudying ? "stop.fill" : "play.fill"
                         )
                         .fontWeight(.semibold)
@@ -116,10 +116,10 @@ struct HomeView: View {
                 Image(systemName: "person.2")
                     .font(.largeTitle)
                     .foregroundStyle(.secondary)
-                Text("フォロー中のユーザーがいません")
+                Text("No Following Users")
                     .font(.body)
                     .foregroundStyle(.secondary)
-                Text("検索タブからユーザーを見つけましょう")
+                Text("Find users in the Search tab")
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)
             }
@@ -137,7 +137,7 @@ struct HomeView: View {
             isStudying = status.isStudying
             studyStartedAt = status.startedAt
         } catch {
-            // サイレントに失敗（画面はデフォルト値で表示）
+            // Silent failure (screen shows default values)
         }
     }
 
@@ -173,9 +173,9 @@ struct HomeView: View {
                 studyStartedAt = session.startedAt
             }
         } catch APIError.conflict {
-            studyError = "すでに勉強中です"
+            studyError = "Already studying"
         } catch APIError.notFound {
-            studyError = "アクティブなセッションがありません"
+            studyError = "No active session"
         } catch {
             studyError = error.localizedDescription
         }
@@ -213,11 +213,11 @@ struct FeedUserRow: View {
                 Text(user.username)
                     .font(.body)
                 if user.isStudying {
-                    Text("勉強中")
+                    Text("Studying")
                         .font(.subheadline)
                         .foregroundStyle(.orange)
                 } else {
-                    Text("休憩中")
+                    Text("On Break")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }

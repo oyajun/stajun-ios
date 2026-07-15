@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Color Extension
 
 extension Color {
-    /// "#RRGGBB" 形式の文字列から Color を生成
+    /// Create Color from a "#RRGGBB" format string
     init?(hex: String) {
         var s = hex.trimmingCharacters(in: .whitespacesAndNewlines)
         if s.hasPrefix("#") { s = String(s.dropFirst()) }

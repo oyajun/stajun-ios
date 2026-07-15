@@ -1,1 +1,1 @@
-// テンプレートの残骸。使用しません。
+// Template remnant. Not used.
