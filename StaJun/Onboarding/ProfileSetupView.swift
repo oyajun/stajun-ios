@@ -38,7 +38,7 @@ struct ProfileSetupView: View {
 
                 // Username
                 Section("Username") {
-                    TextField("e.g., alex_smith", text: $username)
+                    TextField("e.g., Alex", text: $username)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                 }
