@@ -3,16 +3,9 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
 
-    // For editing
-    @State private var username = ""
-    @State private var selectedEmoji = ""
-    @State private var selectedColor = ""
-
-    @State private var isEditing = false
-    @State private var isSaving = false
     @State private var isSigningOut = false
     @State private var showSignOutConfirmation = false
-    @State private var errorMessage: String?
+    @State private var showEditProfile = false
     @State private var showDeleteAccount = false
 
     private var currentUser: UserProfile? { appState.currentUser }
@@ -20,28 +13,44 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // Profile preview
+                // Profile
                 Section {
-                    HStack {
+                    HStack(spacing: 12) {
                         Spacer()
                         VStack(spacing: 8) {
                             UserIconView(
-                                emoji: isEditing ? selectedEmoji : (currentUser?.iconEmoji ?? ""),
-                                backgroundColor: isEditing ? selectedColor : (currentUser?.iconBackgroundColor ?? "#FFD54F"),
+                                emoji: currentUser?.iconEmoji ?? "",
+                                backgroundColor: currentUser?.iconBackgroundColor ?? "#FFD54F",
                                 size: 72
                             )
-                            Text(isEditing ? (username.isEmpty ? "Username" : username) : (currentUser?.username ?? ""))
+                            Text(currentUser?.username ?? "")
                                 .font(.headline)
                         }
                         Spacer()
+                        VStack {
+                            Button(action: { showEditProfile = true }) {
+                                Image(systemName: "pencil")
+                                    .foregroundStyle(.blue)
+                            }
+                            Spacer()
+                        }
+                        .padding(.top, 8)
                     }
                     .padding(.vertical, 8)
                 }
 
-                if isEditing {
-                    editSections
-                } else {
-                    readonlySections
+                // Account
+                Section("Account") {
+                    if let email = appState.userEmail {
+                        HStack {
+                            Text("Email")
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text(email)
+                                .lineLimit(1)
+                                .font(.subheadline)
+                        }
+                    }
                 }
 
                 // Sign out and delete
@@ -59,20 +68,8 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
-            .toolbar {
-                if isEditing {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") { Task { await save() } }
-                            .disabled(isSaving)
-                    }
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { cancelEdit() }
-                    }
-                } else {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button("Edit") { startEdit() }
-                    }
-                }
+            .sheet(isPresented: $showEditProfile) {
+                EditProfileView()
             }
             .sheet(isPresented: $showDeleteAccount) {
                 DeleteAccountView()
@@ -86,77 +83,10 @@ struct SettingsView: View {
                 Text("Are you sure you want to sign out?")
             }
             .task {
-                // Fetch latest profile
                 if let profile = try? await APIClient.getMyProfile() {
                     appState.updateCurrentUser(profile)
                 }
             }
-        }
-    }
-
-    // MARK: - Sections
-
-    @ViewBuilder
-    private var readonlySections: some View {
-        Section("Username") {
-            Text(currentUser?.username ?? "")
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    @ViewBuilder
-    private var editSections: some View {
-        Section("Username") {
-            TextField("Username", text: $username)
-                .autocorrectionDisabled()
-                #if os(iOS)
-                .textInputAutocapitalization(.never)
-                #endif
-        }
-        Section("Icon Emoji") {
-            EmojiPickerView(selected: $selectedEmoji)
-        }
-        Section("Icon Background Color") {
-            ColorPresetPickerView(selected: $selectedColor)
-        }
-        if let errorMessage {
-            Section {
-                Text(errorMessage)
-                    .foregroundStyle(.red)
-                    .font(.subheadline)
-            }
-        }
-    }
-
-    // MARK: - Actions
-
-    private func startEdit() {
-        username = currentUser?.username ?? ""
-        selectedEmoji = currentUser?.iconEmoji ?? (IconPresets.emojis.first ?? "📚")
-        selectedColor = currentUser?.iconBackgroundColor ?? (IconPresets.colors.first ?? "#FFD54F")
-        isEditing = true
-    }
-
-    private func cancelEdit() {
-        isEditing = false
-        errorMessage = nil
-    }
-
-    private func save() async {
-        isSaving = true
-        errorMessage = nil
-        defer { isSaving = false }
-        do {
-            let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
-            let updated = try await APIClient.updateProfile(
-                username: trimmed.isEmpty ? nil : trimmed,
-                iconEmoji: selectedEmoji.isEmpty ? nil : selectedEmoji,
-                iconBackgroundColor: selectedColor.isEmpty ? nil : selectedColor
-            )
-            appState.updateCurrentUser(updated)
-            isEditing = false
-        } catch {
-            errorMessage = error.localizedDescription
         }
     }
 
