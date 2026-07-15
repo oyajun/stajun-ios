@@ -13,31 +13,27 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // Profile
-                Section {
-                    HStack(spacing: 12) {
-                        Spacer()
-                        VStack(spacing: 8) {
-                            UserIconView(
-                                emoji: currentUser?.iconEmoji ?? "",
-                                backgroundColor: currentUser?.iconBackgroundColor ?? "#FFD54F",
-                                size: 72
-                            )
-                            Text(currentUser?.username ?? "")
-                                .font(.headline)
+                HStack {
+                    Spacer()
+                    VStack(spacing: 12) {
+                        UserIconView(
+                            emoji: currentUser?.iconEmoji ?? "",
+                            backgroundColor: currentUser?.iconBackgroundColor ?? "#FFD54F",
+                            size: 72
+                        )
+                        Text(currentUser?.username ?? "")
+                            .font(.headline)
+                        Button("Edit Profile") {
+                            showEditProfile = true
                         }
-                        Spacer()
-                        VStack {
-                            Button(action: { showEditProfile = true }) {
-                                Image(systemName: "pencil")
-                                    .foregroundStyle(.blue)
-                            }
-                            Spacer()
-                        }
-                        .padding(.top, 8)
+                        .font(.subheadline)
                     }
-                    .padding(.vertical, 8)
+                    Spacer()
                 }
+                .padding(.vertical, 20)
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color(.systemGray6))
 
                 // Account
                 Section("Account") {
