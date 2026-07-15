@@ -4,6 +4,7 @@ import Security
 /// Keychain helper for token persistence
 enum KeychainHelper {
     private static let tokenKey = "com.oyajun.StaJun.authToken"
+    private static let emailKey = "com.oyajun.StaJun.userEmail"
 
     /// Saved Bearer token (nil if not available)
     static var token: String? {
@@ -13,6 +14,18 @@ enum KeychainHelper {
                 save(key: tokenKey, value: value)
             } else {
                 delete(key: tokenKey)
+            }
+        }
+    }
+
+    /// Saved sign-in email (nil if not available)
+    static var email: String? {
+        get { load(key: emailKey) }
+        set {
+            if let value = newValue {
+                save(key: emailKey, value: value)
+            } else {
+                delete(key: emailKey)
             }
         }
     }

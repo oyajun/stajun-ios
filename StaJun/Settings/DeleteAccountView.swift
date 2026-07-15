@@ -6,36 +6,37 @@ struct DeleteAccountView: View {
 
     // Step management
     enum Step {
-        case confirm       // Username confirmation
-        case sendOTP       // Send OTP
+        case confirm       // Initial warning
         case verifyOTP     // Verify OTP
         case deleting      // Deleting
     }
 
     @State private var step: Step = .confirm
 
-    // Confirmation input
-    @State private var confirmUsername = ""
-    private var expectedUsername: String { appState.currentUser?.username ?? "" }
-    private var isConfirmed: Bool { confirmUsername == expectedUsername }
-
     // OTP
-    @State private var email = ""
     @State private var otp = ""
 
     @State private var isLoading = false
     @State private var errorMessage: String?
 
+    private var email: String? { appState.userEmail }
+
     var body: some View {
         NavigationStack {
-            Form {
-                switch step {
-                case .confirm:
-                    confirmSection
-                case .sendOTP, .verifyOTP:
-                    otpSection
-                case .deleting:
-                    deletingSection
+            Group {
+                if email == nil {
+                    noEmailView
+                } else {
+                    Form {
+                        switch step {
+                        case .confirm:
+                            confirmSection
+                        case .verifyOTP:
+                            otpSection
+                        case .deleting:
+                            deletingSection
+                        }
+                    }
                 }
             }
             .navigationTitle("Delete Account")
@@ -49,40 +50,40 @@ struct DeleteAccountView: View {
         }
     }
 
+    // MARK: - No email fallback
+
+    private var noEmailView: some View {
+        VStack(spacing: 12) {
+            Spacer()
+            Image(systemName: "exclamationmark.triangle")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+            Text("Please sign out and sign in again before deleting your account.")
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 32)
+            Spacer()
+        }
+    }
+
     // MARK: - Sections
 
     @ViewBuilder
     private var confirmSection: some View {
         Section {
-            Label("Cannot be undone after deletion", systemImage: "exclamationmark.triangle")
-                .foregroundStyle(.red)
-            Text("All follow relationships and study records will be deleted.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-
-        Section {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Enter '\(expectedUsername)' to confirm")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                TextField("Username", text: $confirmUsername)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
+            Button("Send Authentication Code") {
+                if let email {
+                    Task { await sendOTP(email: email) }
+                }
             }
-        }
-
-        Section {
-            Button("Next (Verify Identity)") {
-                step = .sendOTP
-            }
-            .disabled(!isConfirmed)
             .foregroundStyle(.red)
-        }
-
-        if let errorMessage {
-            Section {
-                Text(errorMessage).foregroundStyle(.red).font(.subheadline)
+            .disabled(isLoading)
+        } footer: {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("This cannot be undone. All follow relationships and study records will be deleted. We'll send an authentication code to your email to verify your identity.")
+                if let errorMessage {
+                    Text(errorMessage).foregroundStyle(.red)
+                }
             }
         }
     }
@@ -90,55 +91,39 @@ struct DeleteAccountView: View {
     @ViewBuilder
     private var otpSection: some View {
         Section {
-            Label("We'll send an authentication code to verify your identity", systemImage: "lock.shield")
-                .font(.subheadline)
-        }
-
-        if step == .sendOTP {
-            Section("Email Address") {
-                TextField("example@email.com", text: $email)
-                    .autocorrectionDisabled()
-                    #if os(iOS)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .textContentType(.emailAddress)
-                    #endif
-            }
-            Section {
-                Button("Send Authentication Code") {
-                    Task { await sendOTP() }
+            TextField("000000", text: $otp)
+                #if os(iOS)
+                .keyboardType(.numberPad)
+                .textContentType(.oneTimeCode)
+                #endif
+                .font(.body.monospacedDigit())
+                .onChange(of: otp) { _, v in
+                    otp = String(v.filter(\.isNumber).prefix(6))
                 }
-                .disabled(isLoading || email.isEmpty)
-            }
-        } else {
-            Section("Authentication Code (6 digits)") {
-                TextField("000000", text: $otp)
-                    #if os(iOS)
-                    .keyboardType(.numberPad)
-                    .textContentType(.oneTimeCode)
-                    #endif
-                    .font(.body.monospacedDigit())
-                    .onChange(of: otp) { _, v in
-                        otp = String(v.filter(\.isNumber).prefix(6))
-                    }
-            }
-            Section {
-                Button("Delete Account") {
-                    Task { await verifyAndDelete() }
-                }
-                .foregroundStyle(.red)
-                .disabled(isLoading || otp.count != 6)
-
-                Button("Resend Code") {
-                    Task { await sendOTP() }
-                }
-                .disabled(isLoading)
+        } header: {
+            Text("Authentication Code (6 digits)")
+        } footer: {
+            if let email {
+                Text("Enter the code sent to \(email).")
             }
         }
 
-        if let errorMessage {
-            Section {
-                Text(errorMessage).foregroundStyle(.red).font(.subheadline)
+        Section {
+            Button("Delete Account") {
+                Task { await verifyAndDelete() }
+            }
+            .foregroundStyle(.red)
+            .disabled(isLoading || otp.count != 6)
+
+            Button("Resend Code") {
+                if let email {
+                    Task { await sendOTP(email: email) }
+                }
+            }
+            .disabled(isLoading)
+        } footer: {
+            if let errorMessage {
+                Text(errorMessage).foregroundStyle(.red)
             }
         }
     }
@@ -162,7 +147,7 @@ struct DeleteAccountView: View {
 
     // MARK: - Actions
 
-    private func sendOTP() async {
+    private func sendOTP(email: String) async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -175,6 +160,7 @@ struct DeleteAccountView: View {
     }
 
     private func verifyAndDelete() async {
+        guard let email else { return }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }

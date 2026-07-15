@@ -18,6 +18,12 @@ final class AppState {
     var authState: AuthState = .checking
     var currentUser: UserProfile?
 
+    /// Signed-in email, persisted in Keychain so it can be reused for re-authentication (e.g. account deletion)
+    var userEmail: String? {
+        get { KeychainHelper.email }
+        set { KeychainHelper.email = newValue }
+    }
+
     init() {
         Task { await checkExistingSession() }
     }
@@ -56,6 +62,7 @@ final class AppState {
     func verifyOTP(email: String, otp: String) async throws {
         try await APIClient.signIn(email: email, otp: otp)
         // Token already saved to Keychain in signIn
+        userEmail = email
         do {
             let profile = try await APIClient.getMyProfile()
             currentUser = profile
@@ -87,6 +94,7 @@ final class AppState {
     /// Clean up after account deletion
     func clearAfterAccountDeletion() {
         KeychainHelper.token = nil
+        KeychainHelper.email = nil
         currentUser = nil
         authState = .unauthenticated
     }
