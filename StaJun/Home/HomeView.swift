@@ -105,7 +105,7 @@ struct HomeView: View {
             }
         }
         .padding()
-        .glassEffect(in: RoundedRectangle(cornerRadius: 16))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
     }
 
     // MARK: - Empty Feed

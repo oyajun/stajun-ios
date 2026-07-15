@@ -70,6 +70,7 @@ struct UserIconView: View {
             Text(emoji)
                 .font(.system(size: size * 0.48))
         }
+        .frame(width: size * 1.4, height: size * 1.4)
         .onAppear { if isStudying { pulse = true } }
         .onChange(of: isStudying) { _, studying in
             pulse = studying
