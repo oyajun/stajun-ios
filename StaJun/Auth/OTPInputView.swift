@@ -76,30 +76,31 @@ struct OTPInputView: View {
                 .disabled(!isValidOTP || isLoading)
                 .padding(.horizontal)
 
-                // Resend
-                Button {
-                    Task { await resend() }
-                } label: {
-                    if isResending {
-                        ProgressView()
-                    } else {
-                        Text("Resend Code")
-                            .font(.subheadline)
+                // Resend / Change email
+                HStack(spacing: 24) {
+                    Button {
+                        Task { await resend() }
+                    } label: {
+                        if isResending {
+                            ProgressView()
+                        } else {
+                            Text("Resend Code")
+                                .font(.subheadline)
+                        }
                     }
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.accentColor)
-                .disabled(isResending)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentColor)
+                    .disabled(isResending)
 
-                // Change email
-                Button {
-                    appState.authState = .unauthenticated
-                } label: {
-                    Text("Change Email Address")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    Button {
+                        appState.authState = .unauthenticated
+                    } label: {
+                        Text("Change Email Address")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
 
                 Spacer()
             }
