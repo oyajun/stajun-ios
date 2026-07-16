@@ -10,6 +10,11 @@ struct UserProfileView: View {
     @State private var errorMessage: String?
     @State private var isFollowLoading = false
 
+    // Posts by this user (public)
+    @State private var posts: [Post] = []
+    @State private var postsCursor: String?
+    @State private var isLoadingPosts = false
+
     private var isOwnProfile: Bool {
         appState.currentUser?.id == userId
     }
@@ -27,7 +32,10 @@ struct UserProfileView: View {
         }
         .navigationTitle(user?.username ?? "")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
+        .task {
+            await load()
+            await loadPosts()
+        }
     }
 
     @ViewBuilder
@@ -97,6 +105,31 @@ struct UserProfileView: View {
                     Text(errorMessage).foregroundStyle(.red).font(.subheadline)
                 }
             }
+
+            // Posts by this user
+            Section("Posts") {
+                if posts.isEmpty {
+                    Text(isLoadingPosts ? "Loading…" : "No posts yet")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(posts) { post in
+                        PostRow(post: post)
+                            .swipeActions(edge: .trailing) {
+                                if isOwnProfile {
+                                    Button(role: .destructive) {
+                                        Task { await deletePost(post) }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                            }
+                            .onAppear {
+                                if post.id == posts.last?.id { loadMorePosts() }
+                            }
+                    }
+                }
+            }
         }
     }
 
@@ -120,6 +153,42 @@ struct UserProfileView: View {
         defer { isLoading = false }
         do {
             user = try await APIClient.getUser(id: userId)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func loadPosts() async {
+        isLoadingPosts = true
+        defer { isLoadingPosts = false }
+        do {
+            let response = try await APIClient.getUserPosts(userId: userId)
+            posts = response.posts
+            postsCursor = response.nextCursor
+        } catch {
+            // Non-fatal: profile still shows without posts.
+        }
+    }
+
+    private func loadMorePosts() {
+        guard let cursor = postsCursor, !isLoadingPosts else { return }
+        Task {
+            isLoadingPosts = true
+            defer { isLoadingPosts = false }
+            do {
+                let response = try await APIClient.getUserPosts(userId: userId, cursor: cursor)
+                posts.append(contentsOf: response.posts)
+                postsCursor = response.nextCursor
+            } catch {
+                // Ignore pagination errors.
+            }
+        }
+    }
+
+    private func deletePost(_ post: Post) async {
+        do {
+            try await APIClient.deletePost(id: post.id)
+            posts.removeAll { $0.id == post.id }
         } catch {
             errorMessage = error.localizedDescription
         }

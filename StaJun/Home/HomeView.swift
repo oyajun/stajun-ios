@@ -20,6 +20,10 @@ struct HomeView: View {
     // Network reachability
     @State private var network = NetworkMonitor.shared
 
+    // Post composer (shown after stopping a study session)
+    @State private var showComposePost = false
+    @State private var composeInitialMinutes = 0
+
     var body: some View {
         NavigationStack {
             List {
@@ -69,6 +73,9 @@ struct HomeView: View {
                 Timer.publish(every: 1, on: .main, in: .common).autoconnect()
             ) { _ in
                 now = Date()
+            }
+            .sheet(isPresented: $showComposePost) {
+                ComposePostView(initialMinutes: composeInitialMinutes)
             }
         }
     }
@@ -193,9 +200,13 @@ struct HomeView: View {
         defer { studyActionLoading = false }
         do {
             if isStudying {
-                _ = try await APIClient.stopStudy()
+                let session = try await APIClient.stopStudy()
                 isStudying = false
                 studyStartedAt = nil
+                // Offer to post the just-finished session; prefill with elapsed minutes.
+                let elapsed = Int(((session.endedAt ?? Date()).timeIntervalSince(session.startedAt)) / 60)
+                composeInitialMinutes = max(1, elapsed)
+                showComposePost = true
             } else {
                 let session = try await APIClient.startStudy()
                 isStudying = true

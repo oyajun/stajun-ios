@@ -68,6 +68,38 @@ struct FollowActionResponse: Codable {
     let isFollowing: Bool
 }
 
+// MARK: - Posts (機能2: 学習時間の投稿)
+
+/// Request body for POST /api/v1/posts
+struct CreatePostRequest: Encodable {
+    let minutes: Int
+    let comment: String?
+}
+
+/// Response of POST /api/v1/posts (a newly created study-time post)
+struct StudyPost: Codable, Identifiable {
+    let id: String
+    let minutes: Int
+    let comment: String?
+    let createdAt: Date
+}
+
+/// A timeline post, including its author summary. Used by GET /api/v1/posts.
+struct Post: Codable, Identifiable {
+    let id: String
+    let userId: String
+    let minutes: Int
+    let comment: String?
+    let createdAt: Date
+    let user: UserProfile
+}
+
+/// Cursor-paginated list of posts
+struct PostsResponse: Codable {
+    let posts: [Post]
+    let nextCursor: String?
+}
+
 // MARK: - Search
 
 struct SearchResponse: Codable {

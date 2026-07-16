@@ -54,7 +54,10 @@ enum APIClient {
     }()
 
     private static let encoder: JSONEncoder = {
-        JSONEncoder()
+        let e = JSONEncoder()
+        // Always send timestamps to the server as UTC (ISO8601 uses "Z").
+        e.dateEncodingStrategy = .iso8601
+        return e
     }()
 
     // MARK: Low-level
@@ -189,24 +192,29 @@ enum APIClient {
     /// Search users
     static func searchUsers(query: String, limit: Int = 20, offset: Int = 0) async throws -> SearchResponse {
         let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-        return try await perform(path: "/api/v1/users/search?q=\(encoded)&limit=\(limit)&offset=\(offset)", method: "GET", as: SearchResponse.self)
+        return try await perform(path: "/api/v1/users?q=\(encoded)&limit=\(limit)&offset=\(offset)", method: "GET", as: SearchResponse.self)
     }
 
     // MARK: - Follow
 
     /// Follow a user
     static func follow(userId: String) async throws -> FollowActionResponse {
-        try await perform(path: "/api/v1/users/\(userId)/follow", method: "POST", as: FollowActionResponse.self)
+        try await perform(path: "/api/v1/follow/\(userId)", method: "PUT", as: FollowActionResponse.self)
     }
 
     /// Unfollow a user
     static func unfollow(userId: String) async throws {
-        try await perform(path: "/api/v1/users/\(userId)/follow", method: "DELETE", as: EmptyResponse.self)
+        try await perform(path: "/api/v1/follow/\(userId)", method: "DELETE", as: EmptyResponse.self)
     }
 
-    /// Get following list
-    static func getFollowing() async throws -> FollowingResponse {
-        try await perform(path: "/api/v1/me/following", method: "GET", as: FollowingResponse.self)
+    /// Get the users that a given user follows (with studying flags). Pass "me" for the current user.
+    static func getFollowing(userId: String = "me") async throws -> HomeFeedResponse {
+        try await perform(path: "/api/v1/following/\(userId)", method: "GET", as: HomeFeedResponse.self)
+    }
+
+    /// Get the followers of a given user (with studying flags). Pass "me" for the current user.
+    static func getFollowers(userId: String = "me") async throws -> HomeFeedResponse {
+        try await perform(path: "/api/v1/followers/\(userId)", method: "GET", as: HomeFeedResponse.self)
     }
 
     // MARK: - Study Sessions
@@ -228,8 +236,55 @@ enum APIClient {
 
     // MARK: - Home Feed
 
-    /// Get home feed (for polling)
+    /// Get home feed (my following users with studying flags, for polling).
+    /// Merged into the unified GET /following/me endpoint.
     static func getHomeFeed() async throws -> HomeFeedResponse {
-        try await perform(path: "/api/v1/home/feed", method: "GET", as: HomeFeedResponse.self)
+        try await getFollowing(userId: "me")
+    }
+
+    // MARK: - Posts (Study Time Posts)
+
+    /// Create a study-time post. Study time is entered manually (minutes),
+    /// independent of live study sessions.
+    static func createPost(minutes: Int, comment: String?) async throws -> StudyPost {
+        // The API disallows control characters (incl. line breaks) in comments,
+        // so collapse newlines to spaces before trimming.
+        let sanitized = comment?
+            .replacingOccurrences(of: "\r\n", with: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let body = CreatePostRequest(
+            minutes: minutes,
+            comment: (sanitized?.isEmpty ?? true) ? nil : sanitized
+        )
+        return try await perform(path: "/api/v1/posts", method: "POST", body: body, as: StudyPost.self)
+    }
+
+    /// Home timeline (own + following users' posts).
+    static func getTimeline(cursor: String? = nil, limit: Int = 20) async throws -> PostsResponse {
+        try await perform(path: postsPath(userId: nil, cursor: cursor, limit: limit), method: "GET", as: PostsResponse.self)
+    }
+
+    /// Posts by a specific user (public, viewable even without following). Pass "me" for own posts.
+    static func getUserPosts(userId: String, cursor: String? = nil, limit: Int = 20) async throws -> PostsResponse {
+        try await perform(path: postsPath(userId: userId, cursor: cursor, limit: limit), method: "GET", as: PostsResponse.self)
+    }
+
+    /// Delete own post.
+    static func deletePost(id: String) async throws {
+        try await perform(path: "/api/v1/posts/\(id)", method: "DELETE", as: EmptyResponse.self)
+    }
+
+    /// Build a GET /api/v1/posts path with optional userId filter and cursor.
+    private static func postsPath(userId: String?, cursor: String?, limit: Int) -> String {
+        var query = ["limit=\(limit)"]
+        if let userId {
+            query.append("userId=\(userId)")
+        }
+        if let cursor, let encoded = cursor.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            query.append("cursor=\(encoded)")
+        }
+        return "/api/v1/posts?" + query.joined(separator: "&")
     }
 }

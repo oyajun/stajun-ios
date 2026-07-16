@@ -8,6 +8,9 @@ struct MainTabView: View {
             Tab("Home", systemImage: "house") {
                 HomeView()
             }
+            Tab("Timeline", systemImage: "list.bullet.rectangle") {
+                PostTimelineView()
+            }
             Tab("Search", systemImage: "magnifyingglass") {
                 SearchView()
             }
