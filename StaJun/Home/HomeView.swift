@@ -28,6 +28,8 @@ struct HomeView: View {
                     offlineBanner
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 0, trailing: 16))
+                        .listRowSeparator(.hidden)
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
                 // Study start/stop card (Liquid Glass)
@@ -50,6 +52,7 @@ struct HomeView: View {
                     }
                 }
             }
+            .animation(.easeInOut, value: network.isOnline)
             .refreshable {
                 await loadFeed()
             }
@@ -122,9 +125,6 @@ struct HomeView: View {
             Text("You're offline")
                 .fontWeight(.medium)
             Spacer()
-            Text("Showing last saved status")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
         .font(.subheadline)
         .foregroundStyle(.secondary)
