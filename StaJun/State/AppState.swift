@@ -87,6 +87,7 @@ final class AppState {
     func signOut() async {
         try? await APIClient.signOut()
         KeychainHelper.token = nil
+        FeedCache.clear()
         currentUser = nil
         authState = .unauthenticated
     }
@@ -95,6 +96,7 @@ final class AppState {
     func clearAfterAccountDeletion() {
         KeychainHelper.token = nil
         KeychainHelper.email = nil
+        FeedCache.clear()
         currentUser = nil
         authState = .unauthenticated
     }

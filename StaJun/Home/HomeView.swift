@@ -17,9 +17,19 @@ struct HomeView: View {
     // Timer (elapsed time display)
     @State private var now = Date()
 
+    // Network reachability
+    @State private var network = NetworkMonitor.shared
+
     var body: some View {
         NavigationStack {
             List {
+                // Offline banner
+                if !network.isOnline {
+                    offlineBanner
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 0, trailing: 16))
+                }
+
                 // Study start/stop card (Liquid Glass)
                 studyCard
                     .listRowBackground(Color.clear)
@@ -44,6 +54,10 @@ struct HomeView: View {
                 await loadFeed()
             }
             .task {
+                // Show last-known feed immediately (works offline)
+                if feedUsers.isEmpty {
+                    feedUsers = FeedCache.load()
+                }
                 await loadMyStatus()
                 await loadFeed()
                 await startPolling()
@@ -100,6 +114,25 @@ struct HomeView: View {
         }
     }
 
+    // MARK: - Offline Banner
+
+    private var offlineBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wifi.slash")
+            Text("You're offline")
+                .fontWeight(.medium)
+            Spacer()
+            Text("Showing last saved status")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+        .padding(12)
+        .frame(maxWidth: .infinity)
+        .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+    }
+
     // MARK: - Empty Feed
 
     private var emptyFeedSection: some View {
@@ -138,6 +171,10 @@ struct HomeView: View {
             feedError = nil
             let response = try await APIClient.getHomeFeed()
             feedUsers = response.users
+            FeedCache.save(response.users)
+        } catch APIError.networkError {
+            // Offline: keep showing cached feed, banner already indicates offline
+            feedError = nil
         } catch {
             feedError = error.localizedDescription
         }
