@@ -37,16 +37,22 @@ final class AppState {
         do {
             let profile = try await APIClient.getMyProfile()
             currentUser = profile
+            ProfileCache.save(profile)
             authState = .authenticated
         } catch APIError.unauthorized {
+            // Token actually invalid → sign out
             KeychainHelper.token = nil
+            ProfileCache.clear()
             authState = .unauthenticated
         } catch APIError.onboardingRequired {
             authState = .onboarding
         } catch {
-            // Network error etc → temporarily mark as unauthenticated
-            KeychainHelper.token = nil
-            authState = .unauthenticated
+            // Server unreachable / network error / server error:
+            // a token exists but we can't verify it right now. Keep the user
+            // signed in (optimistically) instead of logging them out just
+            // because the server is down. Use the cached profile if we have one.
+            currentUser = ProfileCache.load()
+            authState = .authenticated
         }
     }
 
@@ -75,12 +81,14 @@ final class AppState {
     /// Complete onboarding
     func completeOnboarding(profile: UserProfile) {
         currentUser = profile
+        ProfileCache.save(profile)
         authState = .authenticated
     }
 
     /// Update profile
     func updateCurrentUser(_ profile: UserProfile) {
         currentUser = profile
+        ProfileCache.save(profile)
     }
 
     /// Sign out
@@ -88,6 +96,7 @@ final class AppState {
         try? await APIClient.signOut()
         KeychainHelper.token = nil
         FeedCache.clear()
+        ProfileCache.clear()
         currentUser = nil
         authState = .unauthenticated
     }
@@ -97,6 +106,7 @@ final class AppState {
         KeychainHelper.token = nil
         KeychainHelper.email = nil
         FeedCache.clear()
+        ProfileCache.clear()
         currentUser = nil
         authState = .unauthenticated
     }
