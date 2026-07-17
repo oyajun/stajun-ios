@@ -21,6 +21,30 @@ struct PostRow: View {
         return "\(m)m"
     }
 
+    private var postedAtText: String {
+        let calendar = Calendar.autoupdatingCurrent
+        let now = Date()
+        let locale = Locale.autoupdatingCurrent
+
+        if calendar.isDate(post.createdAt, inSameDayAs: now) {
+            return post.createdAt.formatted(
+                .dateTime.locale(locale).hour().minute()
+            )
+        }
+
+        let createdYear = calendar.component(.year, from: post.createdAt)
+        let currentYear = calendar.component(.year, from: now)
+        if createdYear == currentYear {
+            return post.createdAt.formatted(
+                .dateTime.locale(locale).month().day().hour().minute()
+            )
+        }
+
+        return post.createdAt.formatted(
+            .dateTime.locale(locale).year().month().day().hour().minute()
+        )
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             authorLink {
@@ -40,7 +64,7 @@ struct PostRow: View {
                             .lineLimit(1)
                     }
                     Spacer(minLength: 8)
-                    Text(post.createdAt.formatted(date: .abbreviated, time: .shortened))
+                    Text(postedAtText)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
