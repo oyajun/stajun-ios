@@ -5,6 +5,7 @@ import Security
 enum KeychainHelper {
     private static let tokenKey = "com.oyajun.StaJun.authToken"
     private static let emailKey = "com.oyajun.StaJun.userEmail"
+    private static let lock = NSLock()
 
     /// Saved Bearer token (nil if not available)
     static var token: String? {
@@ -33,19 +34,32 @@ enum KeychainHelper {
     // MARK: - Private
 
     private static func save(key: String, value: String) {
+        lock.lock()
+        defer { lock.unlock() }
+
         let data = Data(value.utf8)
-        // Delete existing before adding (instead of update)
-        delete(key: key)
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrAccount: key,
+        ]
+        let attributes: [CFString: Any] = [
             kSecValueData: data,
             kSecAttrAccessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
-        SecItemAdd(query as CFDictionary, nil)
+
+        let updateStatus = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+        if updateStatus == errSecItemNotFound {
+            var addQuery = query
+            addQuery[kSecValueData] = data
+            addQuery[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            SecItemAdd(addQuery as CFDictionary, nil)
+        }
     }
 
     private static func load(key: String) -> String? {
+        lock.lock()
+        defer { lock.unlock() }
+
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrAccount: key,
@@ -59,6 +73,9 @@ enum KeychainHelper {
     }
 
     private static func delete(key: String) {
+        lock.lock()
+        defer { lock.unlock() }
+
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrAccount: key,

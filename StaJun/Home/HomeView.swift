@@ -14,6 +14,8 @@ struct HomeView: View {
     // Feed
     @State private var feedUsers: [UserWithStudyStatus] = []
     @State private var feedError: String?
+    @State private var isRefreshingStudyState = false
+    @State private var isLoadingFeed = false
 
     // Timer (elapsed time display)
     @State private var now = Date()
@@ -193,6 +195,10 @@ struct HomeView: View {
     /// "studying" signal across devices; the device's local timer is what we measure
     /// with (seeded from the server for sessions started on another device).
     private func refreshStudyState() async {
+        guard !isRefreshingStudyState else { return }
+        isRefreshingStudyState = true
+        defer { isRefreshingStudyState = false }
+
         // Offline: trust the local session (if any); it keeps ticking smoothly.
         guard network.isOnline else {
             applyLocalSession()
@@ -261,6 +267,10 @@ struct HomeView: View {
     }
 
     private func loadFeed() async {
+        guard !isLoadingFeed else { return }
+        isLoadingFeed = true
+        defer { isLoadingFeed = false }
+
         do {
             feedError = nil
             let response = try await APIClient.getHomeFeed()
