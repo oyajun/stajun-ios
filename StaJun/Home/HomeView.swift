@@ -59,6 +59,7 @@ struct HomeView: View {
             }
             .animation(.easeInOut, value: network.isOnline)
             .refreshable {
+                await refreshStudyState()
                 await loadFeed()
             }
             .task {
@@ -66,19 +67,30 @@ struct HomeView: View {
                 if feedUsers.isEmpty {
                     feedUsers = FeedCache.load()
                 }
-                await refreshStudyState()
+                let syncedOfflineStart = await syncOfflineStartToServerIfNeeded()
+                if !syncedOfflineStart {
+                    await refreshStudyState()
+                }
                 await loadFeed()
                 await startPolling()
             }
             .onChange(of: network.isOnline) { _, online in
                 if online {
-                    Task { await refreshStudyState() }
+                    Task {
+                        let syncedOfflineStart = await syncOfflineStartToServerIfNeeded()
+                        if !syncedOfflineStart {
+                            await refreshStudyState()
+                        }
+                    }
                 }
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
                     Task {
-                        await refreshStudyState()
+                        let syncedOfflineStart = await syncOfflineStartToServerIfNeeded()
+                        if !syncedOfflineStart {
+                            await refreshStudyState()
+                        }
                         await loadFeed()
                     }
                 }
@@ -196,29 +208,44 @@ struct HomeView: View {
             return
         }
 
-        if status.isStudying {
+        if LocalStudyStore.startedOffline, let local = LocalStudyStore.localStartedAt {
+            // Sessions started offline stay local. Refreshing must not send a new
+            // server start, because that would move the session's apparent start time.
+            isStudying = true
+            studyStartedAt = local
+        } else if status.isStudying {
             // Keep our local timer if we have one; otherwise seed it from the
             // server's approximate start time (handoff for another device's session).
             let start = LocalStudyStore.localStartedAt ?? status.startedAt ?? Date()
             LocalStudyStore.localStartedAt = start
             isStudying = true
             studyStartedAt = start
-            // Report a still-unsent offline start (idempotent).
-            if LocalStudyStore.startedOffline, (try? await APIClient.startStudy()) != nil {
-                LocalStudyStore.startedOffline = false
-            }
-        } else if LocalStudyStore.startedOffline, let local = LocalStudyStore.localStartedAt {
-            // Our offline start hasn't reached the server yet — send it, keep studying.
-            if (try? await APIClient.startStudy()) != nil {
-                LocalStudyStore.startedOffline = false
-            }
-            isStudying = true
-            studyStartedAt = local
         } else {
             // Ended elsewhere (or past the server's 24h cutoff): clear local state.
             LocalStudyStore.clear()
             isStudying = false
             studyStartedAt = nil
+        }
+    }
+
+    /// Tell the server about a session that began offline without changing the
+    /// local start time used by the timer.
+    @discardableResult
+    private func syncOfflineStartToServerIfNeeded() async -> Bool {
+        guard network.isOnline,
+              LocalStudyStore.startedOffline,
+              let local = LocalStudyStore.localStartedAt
+        else { return false }
+
+        isStudying = true
+        studyStartedAt = local
+
+        do {
+            try await APIClient.startStudy()
+            LocalStudyStore.startedOffline = false
+            return true
+        } catch {
+            return false
         }
     }
 
