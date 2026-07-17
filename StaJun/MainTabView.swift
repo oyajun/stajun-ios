@@ -2,23 +2,31 @@ import SwiftUI
 
 struct MainTabView: View {
     @Environment(AppState.self) private var appState
+    @State private var selectedTab: MainTab = .home
 
     var body: some View {
-        TabView {
-            Tab("Home", systemImage: "house") {
+        TabView(selection: $selectedTab) {
+            Tab("Home", systemImage: "house", value: .home) {
                 HomeView()
             }
-            Tab("Timeline", systemImage: "list.bullet.rectangle") {
+            Tab("Timeline", systemImage: "list.bullet.rectangle", value: .timeline) {
                 PostTimelineView()
             }
-            Tab("Search", systemImage: "magnifyingglass") {
+            Tab(value: .search, role: .search) {
                 SearchView()
             }
-            Tab("Settings", systemImage: "gearshape") {
+            Tab("Settings", systemImage: "gearshape", value: .settings) {
                 SettingsView()
             }
         }
     }
+}
+
+private enum MainTab: Hashable {
+    case home
+    case timeline
+    case search
+    case settings
 }
 
 #Preview {
