@@ -34,6 +34,14 @@ final class AppState {
             authState = .unauthenticated
             return
         }
+
+        // If we have a cached profile, enter the app immediately so launch isn't
+        // blocked on the network, then verify the session in the background.
+        if let cached = ProfileCache.load() {
+            currentUser = cached
+            authState = .authenticated
+        }
+
         do {
             let profile = try await APIClient.getMyProfile()
             currentUser = profile
@@ -43,6 +51,7 @@ final class AppState {
             // Token actually invalid → sign out
             KeychainHelper.token = nil
             ProfileCache.clear()
+            currentUser = nil
             authState = .unauthenticated
         } catch APIError.onboardingRequired {
             authState = .onboarding

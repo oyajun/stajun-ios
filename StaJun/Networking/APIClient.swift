@@ -70,6 +70,8 @@ enum APIClient {
         let url = URL(string: path, relativeTo: Config.baseURL)!
         var req = URLRequest(url: url)
         req.httpMethod = method
+        // Fail reasonably fast instead of hanging on the default 60s timeout.
+        req.timeoutInterval = 20
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         // Set Origin header for better-auth CSRF protection (remove trailing slash)
@@ -224,14 +226,15 @@ enum APIClient {
         try await perform(path: "/api/v1/study-sessions/me", method: "GET", as: MyStudyStatus.self)
     }
 
-    /// Start studying
-    static func startStudy() async throws -> StudySession {
-        try await perform(path: "/api/v1/study-sessions/start", method: "POST", as: StudySession.self)
+    /// Start studying. Idempotent upsert on the server (the server flag is only
+    /// an approximate signal for others; the device holds the real timer).
+    static func startStudy() async throws {
+        try await perform(path: "/api/v1/study-sessions/start", method: "POST", as: EmptyResponse.self)
     }
 
-    /// Stop studying
-    static func stopStudy() async throws -> StudySession {
-        try await perform(path: "/api/v1/study-sessions/stop", method: "POST", as: StudySession.self)
+    /// Stop studying. Clears the server flag (idempotent).
+    static func stopStudy() async throws {
+        try await perform(path: "/api/v1/study-sessions/stop", method: "POST", as: EmptyResponse.self)
     }
 
     // MARK: - Home Feed

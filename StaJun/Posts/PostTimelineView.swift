@@ -98,22 +98,7 @@ struct PostTimelineView: View {
             } else {
                     List {
                         ForEach(posts) { post in
-                            PostRow(post: post, onTapAuthor: { path.append(post.userId) })
-                                .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
-                                .swipeActions(edge: .trailing) {
-                                    if post.userId == appState.currentUser?.id {
-                                        Button(role: .destructive) {
-                                            Task { await delete(post) }
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
-                                    }
-                                }
-                                .onAppear {
-                                    if post.id == posts.last?.id {
-                                        loadMore()
-                                    }
-                                }
+                            postRow(post)
                         }
 
                         if isLoadingMore {
@@ -129,6 +114,37 @@ struct PostTimelineView: View {
                 }
             }
         }
+
+    /// A timeline row. Own posts get a long-press menu to delete; others don't.
+    @ViewBuilder
+    private func postRow(_ post: Post) -> some View {
+        let base = PostRow(post: post, onTapAuthor: { path.append(post.userId) })
+            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+            .onAppear {
+                if post.id == posts.last?.id {
+                    loadMore()
+                }
+            }
+        if post.userId == appState.currentUser?.id {
+            base
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) {
+                        Task { await delete(post) }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+                .contextMenu {
+                    Button(role: .destructive) {
+                        Task { await delete(post) }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+        } else {
+            base
+        }
+    }
 
     private var emptyDescription: String {
         switch scope {

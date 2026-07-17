@@ -3,6 +3,7 @@ import Combine
 
 struct HomeView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.scenePhase) private var scenePhase
 
     // Study status
     @State private var isStudying = false
@@ -65,9 +66,22 @@ struct HomeView: View {
                 if feedUsers.isEmpty {
                     feedUsers = FeedCache.load()
                 }
-                await loadMyStatus()
+                await refreshStudyState()
                 await loadFeed()
                 await startPolling()
+            }
+            .onChange(of: network.isOnline) { _, online in
+                if online {
+                    Task { await refreshStudyState() }
+                }
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active {
+                    Task {
+                        await refreshStudyState()
+                        await loadFeed()
+                    }
+                }
             }
             .onReceive(
                 Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -163,13 +177,59 @@ struct HomeView: View {
 
     // MARK: - Actions
 
-    private func loadMyStatus() async {
+    /// Reconcile the study state against the server. The server flag is the shared
+    /// "studying" signal across devices; the device's local timer is what we measure
+    /// with (seeded from the server for sessions started on another device).
+    private func refreshStudyState() async {
+        // Offline: trust the local session (if any); it keeps ticking smoothly.
+        guard network.isOnline else {
+            applyLocalSession()
+            return
+        }
+
+        let status: MyStudyStatus
         do {
-            let status = try await APIClient.getMyStudyStatus()
-            isStudying = status.isStudying
-            studyStartedAt = status.startedAt
+            status = try await APIClient.getMyStudyStatus()
         } catch {
-            // Silent failure (screen shows default values)
+            // Couldn't reach the server: fall back to the local session.
+            applyLocalSession()
+            return
+        }
+
+        if status.isStudying {
+            // Keep our local timer if we have one; otherwise seed it from the
+            // server's approximate start time (handoff for another device's session).
+            let start = LocalStudyStore.localStartedAt ?? status.startedAt ?? Date()
+            LocalStudyStore.localStartedAt = start
+            isStudying = true
+            studyStartedAt = start
+            // Report a still-unsent offline start (idempotent).
+            if LocalStudyStore.startedOffline, (try? await APIClient.startStudy()) != nil {
+                LocalStudyStore.startedOffline = false
+            }
+        } else if LocalStudyStore.startedOffline, let local = LocalStudyStore.localStartedAt {
+            // Our offline start hasn't reached the server yet — send it, keep studying.
+            if (try? await APIClient.startStudy()) != nil {
+                LocalStudyStore.startedOffline = false
+            }
+            isStudying = true
+            studyStartedAt = local
+        } else {
+            // Ended elsewhere (or past the server's 24h cutoff): clear local state.
+            LocalStudyStore.clear()
+            isStudying = false
+            studyStartedAt = nil
+        }
+    }
+
+    /// Reflect the local session (used when offline / server unreachable).
+    private func applyLocalSession() {
+        if let local = LocalStudyStore.localStartedAt {
+            isStudying = true
+            studyStartedAt = local
+        } else {
+            isStudying = false
+            studyStartedAt = nil
         }
     }
 
@@ -190,6 +250,7 @@ struct HomeView: View {
     private func startPolling() async {
         while !Task.isCancelled {
             try? await Task.sleep(for: .seconds(Config.feedPollingInterval))
+            await refreshStudyState()
             await loadFeed()
         }
     }
@@ -198,26 +259,48 @@ struct HomeView: View {
         studyActionLoading = true
         studyError = nil
         defer { studyActionLoading = false }
+        if isStudying {
+            await stopStudying()
+        } else {
+            await startStudying()
+        }
+    }
+
+    private func startStudying() async {
+        // Start the local timer immediately (the device is the source of truth).
+        let now = Date()
+        LocalStudyStore.localStartedAt = now
+        isStudying = true
+        studyStartedAt = now
+
+        // Report to the server (idempotent). If offline/failed, flag it for
+        // delayed sending on the next reconnect.
         do {
-            if isStudying {
-                let session = try await APIClient.stopStudy()
-                isStudying = false
-                studyStartedAt = nil
-                // Offer to post the just-finished session; prefill with elapsed minutes.
-                let elapsed = Int(((session.endedAt ?? Date()).timeIntervalSince(session.startedAt)) / 60)
-                composeInitialMinutes = max(1, elapsed)
-                showComposePost = true
-            } else {
-                let session = try await APIClient.startStudy()
-                isStudying = true
-                studyStartedAt = session.startedAt
-            }
-        } catch APIError.conflict {
-            studyError = "Already studying"
-        } catch APIError.notFound {
-            studyError = "No active session"
+            try await APIClient.startStudy()
+            LocalStudyStore.startedOffline = false
         } catch {
-            studyError = error.localizedDescription
+            LocalStudyStore.startedOffline = true
+        }
+    }
+
+    private func stopStudying() async {
+        // Local timer is the truth; capture elapsed before clearing.
+        let start = LocalStudyStore.localStartedAt ?? studyStartedAt
+        LocalStudyStore.clear()
+        isStudying = false
+        studyStartedAt = nil
+
+        // Clear the server flag when online. When offline we do nothing; the
+        // server flag is reconciled (and can be turned off manually) on reconnect.
+        if network.isOnline {
+            try? await APIClient.stopStudy()
+        }
+
+        // Offer to post the just-finished session; prefill with elapsed minutes.
+        if let start {
+            let elapsed = Int(Date().timeIntervalSince(start) / 60)
+            composeInitialMinutes = max(1, elapsed)
+            showComposePost = true
         }
     }
 

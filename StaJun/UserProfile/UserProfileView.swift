@@ -114,22 +114,38 @@ struct UserProfileView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(posts) { post in
-                        PostRow(post: post)
-                            .swipeActions(edge: .trailing) {
-                                if isOwnProfile {
-                                    Button(role: .destructive) {
-                                        Task { await deletePost(post) }
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                            }
-                            .onAppear {
-                                if post.id == posts.last?.id { loadMorePosts() }
-                            }
+                        postRow(post)
                     }
                 }
             }
+        }
+    }
+
+    /// A post row on the profile. Own posts get a long-press menu to delete.
+    @ViewBuilder
+    private func postRow(_ post: Post) -> some View {
+        let base = PostRow(post: post)
+            .onAppear {
+                if post.id == posts.last?.id { loadMorePosts() }
+            }
+        if isOwnProfile {
+            base
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) {
+                        Task { await deletePost(post) }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+                .contextMenu {
+                    Button(role: .destructive) {
+                        Task { await deletePost(post) }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+        } else {
+            base
         }
     }
 

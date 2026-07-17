@@ -41,12 +41,6 @@ struct UserWithStudyStatus: Codable, Identifiable {
 
 // MARK: - Study Session
 
-struct StudySession: Codable {
-    let id: String
-    let startedAt: Date
-    let endedAt: Date?
-}
-
 struct MyStudyStatus: Codable {
     let isStudying: Bool
     let startedAt: Date?
