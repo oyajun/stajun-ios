@@ -2,9 +2,9 @@ import Foundation
 
 enum Config {
     #if DEBUG
-    static let baseURL = URL(string: "http://10.75.250.206:3000")!
+    static let baseURL = URL(string: "https://stajun.netlify.app")!
     #else
-    static let baseURL = URL(string: "https://YOUR_PRODUCTION_URL_HERE")!
+    static let baseURL = URL(string: "https://stajun.netlify.app")!
     #endif
 
     /// Home feed polling interval (seconds)
