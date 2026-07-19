@@ -69,30 +69,19 @@ struct HomeView: View {
                 if feedUsers.isEmpty {
                     feedUsers = FeedCache.load()
                 }
-                let syncedOfflineStart = await syncOfflineStartToServerIfNeeded()
-                if !syncedOfflineStart {
-                    await refreshStudyState()
-                }
+                await refreshStudyState()
                 await loadFeed()
                 await startPolling()
             }
             .onChange(of: network.isOnline) { _, online in
                 if online {
-                    Task {
-                        let syncedOfflineStart = await syncOfflineStartToServerIfNeeded()
-                        if !syncedOfflineStart {
-                            await refreshStudyState()
-                        }
-                    }
+                    Task { await refreshStudyState() }
                 }
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
                     Task {
-                        let syncedOfflineStart = await syncOfflineStartToServerIfNeeded()
-                        if !syncedOfflineStart {
-                            await refreshStudyState()
-                        }
+                        await refreshStudyState()
                         await loadFeed()
                     }
                 }
@@ -194,12 +183,16 @@ struct HomeView: View {
     /// Reconcile the study state against the server. The server flag is the shared
     /// "studying" signal across devices; the device's local timer is what we measure
     /// with (seeded from the server for sessions started on another device).
+    ///
+    /// The local session always wins over the server, so quitting and relaunching
+    /// the app never loses a running timer. The server can only *add* a session we
+    /// don't have, or end one it knew about.
     private func refreshStudyState() async {
         guard !isRefreshingStudyState else { return }
         isRefreshingStudyState = true
         defer { isRefreshingStudyState = false }
 
-        // Offline: trust the local session (if any); it keeps ticking smoothly.
+        // Offline (or server unreachable): trust the local session; it keeps ticking.
         guard network.isOnline else {
             applyLocalSession()
             return
@@ -214,44 +207,42 @@ struct HomeView: View {
             return
         }
 
-        if LocalStudyStore.startedOffline, let local = LocalStudyStore.localStartedAt {
-            // Sessions started offline stay local. Refreshing must not send a new
-            // server start, because that would move the session's apparent start time.
+        if let local = LocalStudyStore.localStartedAt {
+            // Studying locally: the local timer stays the measured one either way.
             isStudying = true
             studyStartedAt = local
+
+            if status.isStudying {
+                // Already shared; nothing to announce.
+                LocalStudyStore.startedOffline = false
+            } else if LocalStudyStore.startedOffline {
+                // Began offline and was never announced. Publish it now — the
+                // local start time is untouched, so the timer doesn't jump.
+                do {
+                    try await APIClient.startStudy()
+                    LocalStudyStore.startedOffline = false
+                } catch {
+                    // Still unreachable; retried on the next refresh.
+                }
+            } else {
+                // The server knew about this session and it's gone: ended on
+                // another device, or past the server's 24h cutoff. Stop locally.
+                LocalStudyStore.clear()
+                isStudying = false
+                studyStartedAt = nil
+            }
         } else if status.isStudying {
-            // Keep our local timer if we have one; otherwise seed it from the
-            // server's approximate start time (handoff for another device's session).
-            let start = LocalStudyStore.localStartedAt ?? status.startedAt ?? Date()
+            // Not studying locally but the server says we are (started on another
+            // device): adopt it, seeding the timer from the server's start time.
+            let start = status.startedAt ?? Date()
             LocalStudyStore.localStartedAt = start
+            LocalStudyStore.startedOffline = false
             isStudying = true
             studyStartedAt = start
         } else {
-            // Ended elsewhere (or past the server's 24h cutoff): clear local state.
-            LocalStudyStore.clear()
+            // Neither side is studying.
             isStudying = false
             studyStartedAt = nil
-        }
-    }
-
-    /// Tell the server about a session that began offline without changing the
-    /// local start time used by the timer.
-    @discardableResult
-    private func syncOfflineStartToServerIfNeeded() async -> Bool {
-        guard network.isOnline,
-              LocalStudyStore.startedOffline,
-              let local = LocalStudyStore.localStartedAt
-        else { return false }
-
-        isStudying = true
-        studyStartedAt = local
-
-        do {
-            try await APIClient.startStudy()
-            LocalStudyStore.startedOffline = false
-            return true
-        } catch {
-            return false
         }
     }
 
