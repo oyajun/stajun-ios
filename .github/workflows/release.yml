@@ -1,0 +1,72 @@
+name: Release IPA
+
+# v1.0 のようなタグを push すると走る
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 初回実行時、ランナーにどの Xcode が入っているか確認するためのログ。
+      # iOS 26.5 SDK を含む Xcode が無ければ、下の xcode-select 行で明示指定する。
+      - name: 利用可能な Xcode を表示
+        run: ls /Applications | grep -i xcode
+      # - run: sudo xcode-select -s /Applications/Xcode_26.5.app
+
+      - name: 署名なし IPA をビルド
+        run: |
+          chmod +x scripts/build-ipa.sh
+          ./scripts/build-ipa.sh
+
+      - name: メタデータを取得
+        id: meta
+        run: |
+          IPA="build/StaJun.ipa"
+          PLIST="build/StaJun.xcarchive/Products/Applications/StaJun.app/Info.plist"
+          PB=/usr/libexec/PlistBuddy
+          {
+            echo "size=$(stat -f%z "$IPA")"
+            echo "version=$($PB -c 'Print :CFBundleShortVersionString' "$PLIST")"
+            echo "build=$($PB -c 'Print :CFBundleVersion' "$PLIST")"
+            echo "min_os=$($PB -c 'Print :MinimumOSVersion' "$PLIST")"
+            echo "date=$(date -u +%Y-%m-%d)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Release を作成して IPA を添付
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/StaJun.ipa
+          generate_release_notes: true
+
+      - name: source.json を更新して main に commit
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          jq --arg v "${{ steps.meta.outputs.version }}" \
+             --arg b "${{ steps.meta.outputs.build }}" \
+             --arg d "${{ steps.meta.outputs.date }}" \
+             --arg m "${{ steps.meta.outputs.min_os }}" \
+             --argjson s "${{ steps.meta.outputs.size }}" \
+             --arg u "https://github.com/${{ github.repository }}/releases/download/$TAG/StaJun.ipa" \
+             '.apps[0].versions |= ([{
+                version: $v, buildVersion: $b, date: $d,
+                localizedDescription: (.[0].localizedDescription // ""),
+                downloadURL: $u, size: $s, minOSVersion: $m
+              }] + (map(select(.version != $v or .buildVersion != $b))))' \
+             source.json > source.json.tmp
+          mv source.json.tmp source.json
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add source.json
+          git diff --staged --quiet || git commit -m "source.json を $TAG に更新"
+          git push origin HEAD:main
