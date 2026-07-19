@@ -16,6 +16,15 @@
       "screenshots": [],
       "versions": [
         {
+          "version": "0.0.3",
+          "buildVersion": "3",
+          "date": "2026-07-19",
+          "localizedDescription": "初回リリース",
+          "downloadURL": "https://github.com/oyajun/stajun-ios/releases/download/v0.0.3/StaJun.ipa",
+          "size": 262940,
+          "minOSVersion": "26.5"
+        },
+        {
           "version": "1.0",
           "buildVersion": "1",
           "date": "2026-07-19",
