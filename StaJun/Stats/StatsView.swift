@@ -16,7 +16,7 @@ struct StatsView: View {
             }
             .navigationTitle("")
             .task {
-                await model.loadSummary()
+                await model.loadAll()
             }
             .task(id: model.pageKey) {
                 await model.loadCurrentPage()
@@ -39,10 +39,108 @@ struct StatsView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 summarySection
+                heatmapSection
                 chartCard
             }
             .padding()
         }
+    }
+
+    // MARK: - Heatmap
+
+    private let heatCellSize: CGFloat = 12
+    private let heatCellSpacing: CGFloat = 3
+
+    @ViewBuilder
+    private var heatmapSection: some View {
+        if model.isLoadingHeatmap && model.heatmapWeeks.isEmpty {
+            ProgressView()
+                .frame(maxWidth: .infinity)
+                .frame(height: 120)
+                .padding()
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        } else if !model.heatmapWeeks.isEmpty {
+            heatmapCard
+        }
+    }
+
+    private var heatmapCard: some View {
+        HStack(alignment: .bottom, spacing: heatCellSpacing) {
+            weekdayLabels
+            ScrollView(.horizontal, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 4) {
+                    monthLabels
+                    HStack(alignment: .top, spacing: heatCellSpacing) {
+                        ForEach(model.heatmapWeeks) { week in
+                            VStack(spacing: heatCellSpacing) {
+                                ForEach(0..<7, id: \.self) { i in
+                                    heatCell(week.days[i])
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .defaultScrollAnchor(.trailing)
+        }
+        .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    /// Left-hand row labels: Monday first, every other day labeled.
+    private var weekdayLabels: some View {
+        VStack(alignment: .trailing, spacing: heatCellSpacing) {
+            ForEach(Array(["Mon", "", "Wed", "", "Fri", "", "Sun"].enumerated()), id: \.offset) { _, label in
+                Text(label)
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+                    .frame(height: heatCellSize)
+            }
+        }
+    }
+
+    /// Month numbers above the column containing the 1st of each month.
+    private var monthLabels: some View {
+        HStack(spacing: heatCellSpacing) {
+            ForEach(model.heatmapWeeks) { week in
+                Text(monthLabel(for: week))
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+                    .frame(width: heatCellSize, height: 10, alignment: .leading)
+            }
+        }
+    }
+
+    private func monthLabel(for week: HeatmapWeek) -> String {
+        let cal = ChartUnit.calendar
+        for day in week.days {
+            if let day, cal.component(.day, from: day.date) == 1 {
+                return "\(cal.component(.month, from: day.date))"
+            }
+        }
+        return ""
+    }
+
+    @ViewBuilder
+    private func heatCell(_ day: HeatmapDay?) -> some View {
+        if let day {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(heatColor(minutes: day.minutes))
+                .frame(width: heatCellSize, height: heatCellSize)
+        } else {
+            Color.clear
+                .frame(width: heatCellSize, height: heatCellSize)
+        }
+    }
+
+    private func heatColor(minutes: Int) -> Color {
+        guard minutes > 0 else { return Color(.systemGray5) }
+        let ratio = Double(minutes) / Double(max(model.heatmapMaxMinutes, 1))
+        if ratio > 0.75 { return .green }
+        if ratio > 0.5  { return .green.opacity(0.7) }
+        if ratio > 0.25 { return .green.opacity(0.45) }
+        return .green.opacity(0.25)
     }
 
     // MARK: - Summary
@@ -50,12 +148,15 @@ struct StatsView: View {
     @ViewBuilder
     private var summarySection: some View {
         if let stats = model.stats {
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                StatCard(title: "Total",  minutes: stats.totalMinutes)
-                StatCard(title: "Month",  minutes: stats.monthMinutes)
-                StatCard(title: "Week",   minutes: stats.weekMinutes)
-                StatCard(title: "Today",  minutes: stats.todayMinutes)
+            HStack(spacing: 0) {
+                StatItem(title: "Total",  minutes: stats.totalMinutes)
+                StatItem(title: "Month",  minutes: stats.monthMinutes)
+                StatItem(title: "Week",   minutes: stats.weekMinutes)
+                StatItem(title: "Today",  minutes: stats.todayMinutes)
             }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 8)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         }
     }
 
@@ -211,25 +312,23 @@ struct StatsView: View {
     }
 }
 
-// MARK: - StatCard
+// MARK: - StatItem
 
-private struct StatCard: View {
+private struct StatItem: View {
     let title: String
     let minutes: Int
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 2) {
             Text(title)
-                .font(.subheadline)
+                .font(.caption2)
                 .foregroundStyle(.secondary)
             Text(formatMinutes(minutes))
-                .font(.title2.weight(.semibold))
-                .minimumScaleFactor(0.7)
+                .font(.subheadline.weight(.semibold))
+                .minimumScaleFactor(0.6)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 }
 

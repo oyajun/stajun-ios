@@ -8,6 +8,19 @@ struct StatsChartItem: Identifiable, Equatable {
     let minutes: Int
 }
 
+/// One day of the annual heatmap.
+struct HeatmapDay: Identifiable, Equatable {
+    let id: String   // "yyyy-MM-dd"
+    let date: Date
+    let minutes: Int
+}
+
+/// One column of the annual heatmap: a Monday-to-Sunday week.
+struct HeatmapWeek: Identifiable, Equatable {
+    let id: String            // week start "yyyy-MM-dd"
+    let days: [HeatmapDay?]   // always 7 entries, Monday first; nil = outside range
+}
+
 /// State for the Stats screen: summary numbers plus a paged study-time chart.
 ///
 /// The chart shows one fixed-size page of buckets at a time (e.g. 7 days,
@@ -28,6 +41,12 @@ final class StatsModel {
     private(set) var stats: StatsResponse?
     private(set) var isLoadingSummary = false
     private(set) var errorMessage: String?
+
+    // MARK: - Heatmap (annual view)
+
+    private(set) var heatmapWeeks: [HeatmapWeek] = []
+    private(set) var heatmapMaxMinutes = 0
+    private(set) var isLoadingHeatmap = false
 
     // MARK: - Chart paging
 
@@ -73,11 +92,57 @@ final class StatsModel {
 
     // MARK: - Loading
 
+    /// Loads the summary and heatmap concurrently.
+    func loadAll() async {
+        async let summary: Void = loadSummary()
+        async let heatmap: Void = loadHeatmap()
+        _ = await (summary, heatmap)
+    }
+
     func loadSummary() async {
         isLoadingSummary = true
         defer { isLoadingSummary = false }
         do {
             stats = try await APIClient.getStats()
+            errorMessage = nil
+        } catch {
+            report(error)
+        }
+    }
+
+    /// Loads the past 365 days and lays them out as Monday-first week columns.
+    func loadHeatmap() async {
+        isLoadingHeatmap = true
+        defer { isLoadingHeatmap = false }
+        let cal = ChartUnit.calendar
+        let today = cal.startOfDay(for: Date())
+        let start = cal.date(byAdding: .day, value: -364, to: today) ?? today
+        do {
+            let response = try await APIClient.getStatsSeries(
+                unit: "day",
+                from: Self.dayString(start),
+                to: Self.dayString(today)
+            )
+            let minutesByStart = Dictionary(
+                response.buckets.map { ($0.start, $0.minutes) },
+                uniquingKeysWith: { first, _ in first }
+            )
+
+            var weeks: [HeatmapWeek] = []
+            var weekStart = ChartUnit.week.startOfBucket(for: start)
+            while weekStart <= today {
+                let days: [HeatmapDay?] = (0..<7).map { offset in
+                    guard let day = cal.date(byAdding: .day, value: offset, to: weekStart),
+                          day >= start, day <= today else { return nil }
+                    let id = Self.dayString(day)
+                    return HeatmapDay(id: id, date: day, minutes: minutesByStart[id] ?? 0)
+                }
+                weeks.append(HeatmapWeek(id: Self.dayString(weekStart), days: days))
+                guard let next = cal.date(byAdding: .day, value: 7, to: weekStart) else { break }
+                weekStart = next
+            }
+            heatmapWeeks = weeks
+            heatmapMaxMinutes = weeks.flatMap(\.days).compactMap { $0?.minutes }.max() ?? 0
             errorMessage = nil
         } catch {
             report(error)
@@ -112,10 +177,10 @@ final class StatsModel {
         }
     }
 
-    /// Pull-to-refresh: drop all cached pages and refetch summary + visible page.
+    /// Pull-to-refresh: drop all cached pages and refetch summary + heatmap + visible page.
     func refresh() async {
         pages.removeAll()
-        await loadSummary()
+        await loadAll()
         await loadCurrentPage()
     }
 
