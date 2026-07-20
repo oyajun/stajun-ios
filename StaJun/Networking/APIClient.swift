@@ -290,4 +290,30 @@ enum APIClient {
         }
         return "/api/v1/posts?" + query.joined(separator: "&")
     }
+
+    // MARK: - Stats
+
+    /// Summary stats for a user (total, today, week, month).
+    static func getStats(userId: String = "me") async throws -> StatsResponse {
+        return try await perform(path: "/api/v1/stats?userId=\(userId)&tz=\(tzOffset())", method: "GET", as: StatsResponse.self)
+    }
+
+    /// Time-series stats bucketed by day/week/month/year.
+    static func getStatsSeries(userId: String = "me", unit: String, from: String, to: String) async throws -> StatsSeriesResponse {
+        return try await perform(
+            path: "/api/v1/stats/series?userId=\(userId)&tz=\(tzOffset())&unit=\(unit)&from=\(from)&to=\(to)",
+            method: "GET",
+            as: StatsSeriesResponse.self
+        )
+    }
+
+    /// Returns the device's UTC offset percent-encoded for query strings (e.g. "%2B09:00").
+    /// + must be encoded as %2B because bare + is decoded as a space by URL parsers.
+    private static func tzOffset() -> String {
+        let seconds = TimeZone.current.secondsFromGMT()
+        let hours = abs(seconds) / 3600
+        let minutes = (abs(seconds) % 3600) / 60
+        let sign = seconds >= 0 ? "%2B" : "-"
+        return String(format: "%@%02d:%02d", sign, hours, minutes)
+    }
 }

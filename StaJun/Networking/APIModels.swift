@@ -122,6 +122,36 @@ struct UpdateProfileRequest: Encodable {
     let iconBackgroundColor: String?
 }
 
+// MARK: - Stats
+
+struct StatsResponse: Decodable {
+    let userId: String
+    let totalMinutes: Int
+    let todayMinutes: Int
+    let weekMinutes: Int
+    let monthMinutes: Int
+    let today: String
+    let weekStart: String
+    let monthStart: String
+    let firstPostDate: String?
+}
+
+struct StatsSeriesResponse: Decodable {
+    let userId: String
+    let unit: String
+    let from: String
+    let to: String
+    let totalMinutes: Int
+    let buckets: [StatsBucket]
+}
+
+struct StatsBucket: Decodable, Identifiable {
+    let start: String
+    let end: String
+    let minutes: Int
+    var id: String { start }
+}
+
 // MARK: - Error
 
 struct APIErrorResponse: Decodable {

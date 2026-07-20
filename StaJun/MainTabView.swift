@@ -12,6 +12,9 @@ struct MainTabView: View {
             Tab("Timeline", systemImage: "list.bullet.rectangle", value: .timeline) {
                 PostTimelineView()
             }
+            Tab("Stats", systemImage: "chart.bar", value: .stats) {
+                StatsView()
+            }
             Tab(value: .search, role: .search) {
                 SearchView()
             }
@@ -25,6 +28,7 @@ struct MainTabView: View {
 private enum MainTab: Hashable {
     case home
     case timeline
+    case stats
     case search
     case settings
 }
