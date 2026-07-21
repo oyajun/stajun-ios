@@ -78,6 +78,16 @@ struct UserProfileView: View {
             }
             .listRowBackground(Color.clear)
 
+            // Followers / Following
+            Section {
+                NavigationLink(destination: FollowListView(userId: userId, listType: .followers)) {
+                    Text("Followers")
+                }
+                NavigationLink(destination: FollowListView(userId: userId, listType: .following)) {
+                    Text("Following")
+                }
+            }
+
             // Follow button (for other users)
             if !isOwnProfile {
                 Section {

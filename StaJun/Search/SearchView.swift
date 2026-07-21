@@ -29,7 +29,13 @@ struct SearchView: View {
                         NavigationLink {
                             UserProfileView(userId: user.id)
                         } label: {
-                            SearchUserRow(user: user, onFollowToggle: { toggleFollow(user: user) })
+                            UserRow(
+                                iconEmoji: user.iconEmoji,
+                                iconBackgroundColor: user.iconBackgroundColor,
+                                username: user.username,
+                                isFollowing: user.isFollowing,
+                                onFollowToggle: { toggleFollow(user: user) }
+                            )
                         }
                         .onAppear {
                             if user.id == results.last?.id {
@@ -127,35 +133,6 @@ struct SearchView: View {
             } catch {
                 // Ignore errors (no UI rollback needed)
             }
-        }
-    }
-}
-
-// MARK: - Search User Row
-
-struct SearchUserRow: View {
-    let user: UserWithFollowStatus
-    let onFollowToggle: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            UserIconView(
-                emoji: user.iconEmoji,
-                backgroundColor: user.iconBackgroundColor,
-                size: 44
-            )
-            Text(user.username)
-                .font(.body)
-            Spacer()
-            Button {
-                onFollowToggle()
-            } label: {
-                Text(user.isFollowing ? "Following" : "Follow")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-            }
-            .buttonStyle(.bordered)
-            .tint(user.isFollowing ? .secondary : .accentColor)
         }
     }
 }
