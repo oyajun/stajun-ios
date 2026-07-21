@@ -5,8 +5,8 @@ struct HomeView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.scenePhase) private var scenePhase
 
-    // Study status
-    @State private var isStudying = false
+    // Study status — initialise from local store so the border appears immediately on launch
+    @State private var isStudying = LocalStudyStore.localStartedAt != nil
     @State private var studyStartedAt: Date?
     @State private var studyActionLoading = false
     @State private var studyError: String?
@@ -75,6 +75,9 @@ struct HomeView: View {
                 await refreshStudyState()
                 await loadFeed()
                 await startPolling()
+            }
+            .onChange(of: isStudying) { _, newValue in
+                appState.isStudying = newValue
             }
             .onChange(of: network.isOnline) { _, online in
                 if online {

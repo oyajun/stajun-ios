@@ -34,6 +34,10 @@ enum IconPresets {
         "#FFAB40", "#69F0AE", "#CE93D8", "#80DEEA",
         "#FF8A65", "#4DB6AC", "#7986CB", "#F06292",
     ]
+
+    static let rainbowColors: [Color] = [
+        .red, .orange, .yellow, .green, .cyan, .blue, .purple, .pink, .red
+    ]
 }
 
 // MARK: - UserIconView
@@ -44,7 +48,7 @@ struct UserIconView: View {
     var size: CGFloat = 44
     var isStudying: Bool = false
 
-    @State private var pulse = false
+    @State private var rotation: Double = 0
 
     private var bgColor: Color {
         Color(hex: backgroundColor) ?? .orange
@@ -53,14 +57,20 @@ struct UserIconView: View {
     var body: some View {
         ZStack {
             if isStudying {
+                // Soft glow only — no crisp rim
                 Circle()
-                    .fill(Color.yellow.opacity(0.35))
-                    .frame(width: size * 1.4, height: size * 1.4)
-                    .scaleEffect(pulse ? 1.15 : 1.0)
-                    .animation(
-                        .easeInOut(duration: 1.2).repeatForever(autoreverses: true),
-                        value: pulse
+                    .stroke(
+                        AngularGradient(
+                            colors: IconPresets.rainbowColors,
+                            center: .center,
+                            startAngle: .degrees(rotation),
+                            endAngle: .degrees(rotation + 360)
+                        ),
+                        lineWidth: size * 0.22
                     )
+                    .frame(width: size * 1.15, height: size * 1.15)
+                    .blur(radius: size * 0.12)
+                    .opacity(0.55)
             }
 
             Circle()
@@ -71,9 +81,17 @@ struct UserIconView: View {
                 .font(.system(size: size * 0.48))
         }
         .frame(width: size * 1.4, height: size * 1.4)
-        .onAppear { if isStudying { pulse = true } }
+        .onAppear {
+            if isStudying { startRotation() }
+        }
         .onChange(of: isStudying) { _, studying in
-            pulse = studying
+            if studying { startRotation() }
+        }
+    }
+
+    private func startRotation() {
+        withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {
+            rotation = 360
         }
     }
 }

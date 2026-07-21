@@ -18,6 +18,10 @@ final class AppState {
     var authState: AuthState = .checking
     var currentUser: UserProfile?
 
+    /// Whether the user is currently studying — initialised from LocalStudyStore so
+    /// the border overlay is correct immediately on launch before HomeView appears.
+    var isStudying: Bool = LocalStudyStore.localStartedAt != nil
+
     /// Signed-in email, persisted in Keychain so it can be reused for re-authentication (e.g. account deletion)
     var userEmail: String? {
         get { KeychainHelper.email }
@@ -107,6 +111,7 @@ final class AppState {
         FeedCache.clear()
         ProfileCache.clear()
         currentUser = nil
+        isStudying = false
         authState = .unauthenticated
     }
 
@@ -117,6 +122,7 @@ final class AppState {
         FeedCache.clear()
         ProfileCache.clear()
         currentUser = nil
+        isStudying = false
         authState = .unauthenticated
     }
 }
