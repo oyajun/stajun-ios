@@ -27,6 +27,9 @@ struct HomeView: View {
     @State private var showComposePost = false
     @State private var composeInitialMinutes = 0
 
+    // Own profile navigation
+    @State private var showOwnProfile = false
+
     var body: some View {
         NavigationStack {
             List {
@@ -94,6 +97,11 @@ struct HomeView: View {
             .sheet(isPresented: $showComposePost) {
                 ComposePostView(initialMinutes: composeInitialMinutes)
             }
+            .navigationDestination(isPresented: $showOwnProfile) {
+                if let userId = appState.currentUser?.id {
+                    UserProfileView(userId: userId)
+                }
+            }
         }
     }
 
@@ -101,42 +109,64 @@ struct HomeView: View {
 
     @ViewBuilder
     private var studyCard: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Image(systemName: "timer")
-                    .foregroundStyle(isStudying ? .orange : .secondary)
-                Text(isStudying ? elapsedString(from: studyStartedAt ?? now, to: now) : "--:--")
-                    .font(.title3.monospacedDigit().bold())
-                    .foregroundStyle(isStudying ? .orange : .secondary)
-                Spacer()
-                Text(isStudying ? "Studying" : "Not Studying")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
+        HStack(alignment: .bottom, spacing: 40) {
+            // Left: own icon + name (fluffy animation tied to local isStudying)
             Button {
-                Task { await toggleStudy() }
+                showOwnProfile = true
             } label: {
-                Group {
-                    if studyActionLoading {
-                        ProgressView()
-                            .tint(isStudying ? .white : .white)
-                    } else {
-                        Text(isStudying ? "Stop Studying" : "Start Studying")
-                            .fontWeight(.semibold)
-                    }
+                VStack(spacing: 0) {
+                    UserIconView(
+                        emoji: appState.currentUser?.iconEmoji ?? "📚",
+                        backgroundColor: appState.currentUser?.iconBackgroundColor ?? "#FFD54F",
+                        size: 52,
+                        isStudying: isStudying
+                    )
+                    Spacer(minLength: 0)
+                    Text(appState.currentUser?.username ?? "")
+                        .font(.caption)
+                        .foregroundStyle(.primary)
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(isStudying ? .red : .accentColor)
-            .disabled(studyActionLoading)
+            .buttonStyle(.plain)
 
-            if let studyError {
-                Text(studyError)
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
+            // Right: timer + button
+            VStack(spacing: 12) {
+                HStack {
+                    Image(systemName: "timer")
+                        .foregroundStyle(isStudying ? .orange : .secondary)
+                    Text(isStudying ? elapsedString(from: studyStartedAt ?? now, to: now) : "--:--")
+                        .font(.title3.monospacedDigit().bold())
+                        .foregroundStyle(isStudying ? .orange : .secondary)
+                    Spacer()
+                    Text(isStudying ? "Studying" : "Not Studying")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    Task { await toggleStudy() }
+                } label: {
+                    Group {
+                        if studyActionLoading {
+                            ProgressView()
+                                .tint(isStudying ? .white : .white)
+                        } else {
+                            Text(isStudying ? "Stop Studying" : "Start Studying")
+                                .fontWeight(.semibold)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(isStudying ? .red : .accentColor)
+                .disabled(studyActionLoading)
+
+                if let studyError {
+                    Text(studyError)
+                        .font(.subheadline)
+                        .foregroundStyle(.red)
+                }
             }
         }
     }
