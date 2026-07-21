@@ -284,11 +284,9 @@ struct HomeView: View {
     }
 
     private func toggleStudy() async {
-        studyActionLoading = true
         studyError = nil
-        defer { studyActionLoading = false }
         if isStudying {
-            await stopStudying()
+            stopStudying()
         } else {
             await startStudying()
         }
@@ -311,24 +309,23 @@ struct HomeView: View {
         }
     }
 
-    private func stopStudying() async {
+    private func stopStudying() {
         // Local timer is the truth; capture elapsed before clearing.
         let start = LocalStudyStore.localStartedAt ?? studyStartedAt
         LocalStudyStore.clear()
         isStudying = false
         studyStartedAt = nil
 
-        // Clear the server flag when online. When offline we do nothing; the
-        // server flag is reconciled (and can be turned off manually) on reconnect.
-        if network.isOnline {
-            try? await APIClient.stopStudy()
-        }
-
-        // Offer to post the just-finished session; prefill with elapsed minutes.
+        // Show the post composer immediately before the server call completes.
         if let start {
             let elapsed = Int(Date().timeIntervalSince(start) / 60)
             composeInitialMinutes = max(1, elapsed)
             showComposePost = true
+        }
+
+        // Notify the server in the background; offline case is reconciled on reconnect.
+        if network.isOnline {
+            Task { try? await APIClient.stopStudy() }
         }
     }
 
