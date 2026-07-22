@@ -112,7 +112,7 @@ struct HomeView: View {
                 // Post rows (swipe-to-delete + long-press context menu)
                 ForEach(posts) { post in
                     timelinePostRow(post)
-                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                        .listRowInsets(EdgeInsets(top: 0, leading: 32, bottom: 0, trailing: 32))
                 }
 
                 if isLoadingMorePosts {

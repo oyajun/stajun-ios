@@ -83,7 +83,7 @@ struct PostRow: View {
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 10)
     }
 
     /// Makes content tappable (navigating to the author) when a handler is provided.
