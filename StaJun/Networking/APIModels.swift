@@ -54,10 +54,6 @@ struct HomeFeedResponse: Codable {
 
 // MARK: - Following
 
-struct FollowingResponse: Codable {
-    let users: [UserProfile]
-}
-
 struct FollowActionResponse: Codable {
     let isFollowing: Bool
 }
