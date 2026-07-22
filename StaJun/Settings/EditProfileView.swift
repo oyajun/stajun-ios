@@ -4,7 +4,7 @@ struct EditProfileView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
 
-    @State private var username = ""
+    @State private var name = ""
     @State private var selectedEmoji = ""
     @State private var selectedColor = ""
 
@@ -24,9 +24,9 @@ struct EditProfileView: View {
                             backgroundColor: selectedColor,
                             size: 80
                         )
-                        Text(username.isEmpty ? "Username" : username)
+                        Text(name.isEmpty ? "Name" : name)
                             .font(.headline)
-                            .foregroundStyle(username.isEmpty ? .secondary : .primary)
+                            .foregroundStyle(name.isEmpty ? .secondary : .primary)
                     }
                     Spacer()
                 }
@@ -35,8 +35,8 @@ struct EditProfileView: View {
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
 
-                Section("Username") {
-                    TextField("Username", text: $username)
+                Section("Name") {
+                    TextField("Name", text: $name)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                 }
@@ -71,7 +71,7 @@ struct EditProfileView: View {
                 }
             }
             .onAppear {
-                username = currentUser?.username ?? ""
+                name = currentUser?.name ?? ""
                 selectedEmoji = currentUser?.iconEmoji ?? (IconPresets.emojis.first ?? "📚")
                 selectedColor = currentUser?.iconBackgroundColor ?? (IconPresets.colors.first ?? "#FFD54F")
             }
@@ -83,9 +83,9 @@ struct EditProfileView: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
-            let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
             let updated = try await APIClient.updateProfile(
-                username: trimmed.isEmpty ? nil : trimmed,
+                name: trimmed.isEmpty ? nil : trimmed,
                 iconEmoji: selectedEmoji.isEmpty ? nil : selectedEmoji,
                 iconBackgroundColor: selectedColor.isEmpty ? nil : selectedColor
             )

@@ -32,7 +32,7 @@ struct SearchView: View {
                             UserRow(
                                 iconEmoji: user.iconEmoji,
                                 iconBackgroundColor: user.iconBackgroundColor,
-                                username: user.username,
+                                name: user.name,
                                 isFollowing: user.isFollowing,
                                 onFollowToggle: { toggleFollow(user: user) }
                             )

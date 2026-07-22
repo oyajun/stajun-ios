@@ -5,7 +5,7 @@ import SwiftUI
 struct UserRow: View {
     let iconEmoji: String
     let iconBackgroundColor: String
-    let username: String
+    let name: String
     let isFollowing: Bool
     let onFollowToggle: (() -> Void)?
 
@@ -16,7 +16,7 @@ struct UserRow: View {
                 backgroundColor: iconBackgroundColor,
                 size: 44
             )
-            Text(username)
+            Text(name)
                 .font(.body)
             Spacer()
             if let onFollowToggle {

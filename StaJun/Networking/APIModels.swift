@@ -16,14 +16,14 @@ struct VerifyOTPRequest: Encodable {
 
 struct UserProfile: Codable, Identifiable, Equatable {
     let id: String
-    let username: String
+    let name: String
     let iconEmoji: String
     let iconBackgroundColor: String
 }
 
 struct UserWithFollowStatus: Codable, Identifiable {
     let id: String
-    let username: String
+    let name: String
     let iconEmoji: String
     let iconBackgroundColor: String
     var isFollowing: Bool
@@ -31,7 +31,7 @@ struct UserWithFollowStatus: Codable, Identifiable {
 
 struct UserWithStudyStatus: Codable, Identifiable {
     let id: String
-    let username: String
+    let name: String
     let iconEmoji: String
     let iconBackgroundColor: String
     var isFollowing: Bool?
@@ -107,13 +107,13 @@ struct Pagination: Codable {
 // MARK: - Profile
 
 struct CreateProfileRequest: Encodable {
-    let username: String
+    let name: String
     let iconEmoji: String
     let iconBackgroundColor: String
 }
 
 struct UpdateProfileRequest: Encodable {
-    let username: String?
+    let name: String?
     let iconEmoji: String?
     let iconBackgroundColor: String?
 }

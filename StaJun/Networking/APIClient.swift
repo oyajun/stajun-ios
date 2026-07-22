@@ -168,14 +168,14 @@ enum APIClient {
     }
 
     /// Create profile (onboarding)
-    static func createProfile(username: String, iconEmoji: String, iconBackgroundColor: String) async throws -> UserProfile {
-        let body = CreateProfileRequest(username: username, iconEmoji: iconEmoji, iconBackgroundColor: iconBackgroundColor)
+    static func createProfile(name: String, iconEmoji: String, iconBackgroundColor: String) async throws -> UserProfile {
+        let body = CreateProfileRequest(name: name, iconEmoji: iconEmoji, iconBackgroundColor: iconBackgroundColor)
         return try await perform(path: "/api/v1/users/me", method: "POST", body: body, as: UserProfile.self)
     }
 
     /// Update profile (partial update)
-    static func updateProfile(username: String? = nil, iconEmoji: String? = nil, iconBackgroundColor: String? = nil) async throws -> UserProfile {
-        let body = UpdateProfileRequest(username: username, iconEmoji: iconEmoji, iconBackgroundColor: iconBackgroundColor)
+    static func updateProfile(name: String? = nil, iconEmoji: String? = nil, iconBackgroundColor: String? = nil) async throws -> UserProfile {
+        let body = UpdateProfileRequest(name: name, iconEmoji: iconEmoji, iconBackgroundColor: iconBackgroundColor)
         return try await perform(path: "/api/v1/users/me", method: "PATCH", body: body, as: UserProfile.self)
     }
 

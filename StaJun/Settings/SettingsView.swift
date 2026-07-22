@@ -21,7 +21,7 @@ struct SettingsView: View {
                             backgroundColor: currentUser?.iconBackgroundColor ?? "#FFD54F",
                             size: 72
                         )
-                        Text(currentUser?.username ?? "")
+                        Text(currentUser?.name ?? "")
                             .font(.headline)
                         Button("Edit Profile") {
                             showEditProfile = true

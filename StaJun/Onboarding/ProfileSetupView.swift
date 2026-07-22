@@ -3,14 +3,14 @@ import SwiftUI
 struct ProfileSetupView: View {
     @Environment(AppState.self) private var appState
 
-    @State private var username = ""
+    @State private var name = ""
     @State private var selectedEmoji = IconPresets.emojis.first ?? "📚"
     @State private var selectedColor = IconPresets.colors.first ?? "#FFD54F"
     @State private var isLoading = false
     @State private var errorMessage: String?
 
     private var isValid: Bool {
-        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         return !trimmed.isEmpty && trimmed.count <= 30
     }
 
@@ -27,18 +27,18 @@ struct ProfileSetupView: View {
                                 backgroundColor: selectedColor,
                                 size: 80
                             )
-                            Text(username.isEmpty ? "Username" : username)
+                            Text(name.isEmpty ? "Name" : name)
                                 .font(.headline)
-                                .foregroundStyle(username.isEmpty ? .secondary : .primary)
+                                .foregroundStyle(name.isEmpty ? .secondary : .primary)
                         }
                         Spacer()
                     }
                     .padding(.vertical, 8)
                 }
 
-                // Username
-                Section("Username") {
-                    TextField("e.g., Alex", text: $username)
+                // Name
+                Section("Name") {
+                    TextField("e.g., Alex", text: $name)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                 }
@@ -86,7 +86,7 @@ struct ProfileSetupView: View {
         defer { isLoading = false }
         do {
             let profile = try await APIClient.createProfile(
-                username: username.trimmingCharacters(in: .whitespacesAndNewlines),
+                name: name.trimmingCharacters(in: .whitespacesAndNewlines),
                 iconEmoji: selectedEmoji,
                 iconBackgroundColor: selectedColor
             )

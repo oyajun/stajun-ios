@@ -207,7 +207,7 @@ struct HomeView: View {
                         isStudying: isStudying
                     )
                     Spacer(minLength: 0)
-                    Text(appState.currentUser?.username ?? "")
+                    Text(appState.currentUser?.name ?? "")
                         .font(.caption)
                         .foregroundStyle(.primary)
                 }
@@ -302,7 +302,7 @@ struct HomeView: View {
                                     size: 52,
                                     isStudying: user.isStudying
                                 )
-                                Text(user.username)
+                                Text(user.name)
                                     .font(.caption)
                                     .foregroundStyle(.primary)
                                     .lineLimit(1)

@@ -32,7 +32,7 @@ struct UserProfileView: View {
                 ContentUnavailableView("User Not Found", systemImage: "person.slash")
             }
         }
-        .navigationTitle(user?.username ?? "")
+        .navigationTitle(user?.name ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $followListTab) { tab in
             FollowListView(userId: userId, initialTab: tab)
@@ -88,7 +88,7 @@ struct UserProfileView: View {
             )
 
             VStack(spacing: 6) {
-                Text(user.username)
+                Text(user.name)
                     .font(.title2.bold())
 
                 if user.isStudying, let since = user.studyingSince {

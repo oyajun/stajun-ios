@@ -59,7 +59,7 @@ struct PostRow: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
                     authorLink {
-                        Text(post.user.username)
+                        Text(post.user.name)
                             .font(.subheadline.bold())
                             .lineLimit(1)
                     }
@@ -110,7 +110,7 @@ struct PostRow: View {
             minutes: 95,
             comment: "英文法おわり",
             createdAt: .now.addingTimeInterval(-3600),
-            user: UserProfile(id: "u1", username: "hanako", iconEmoji: "🐣", iconBackgroundColor: "#B3E5FC")
+            user: UserProfile(id: "u1", name: "hanako", iconEmoji: "🐣", iconBackgroundColor: "#B3E5FC")
         ))
     }
 }
