@@ -5,17 +5,31 @@ struct HomeView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.scenePhase) private var scenePhase
 
+    // Navigation
+    @State private var path = NavigationPath()
+
     // Study status — initialise from local store so the border appears immediately on launch
     @State private var isStudying = LocalStudyStore.localStartedAt != nil
     @State private var studyStartedAt: Date?
     @State private var studyActionLoading = false
     @State private var studyError: String?
 
-    // Feed
+    // Feed (following users study status)
     @State private var feedUsers: [UserWithStudyStatus] = []
     @State private var feedError: String?
     @State private var isRefreshingStudyState = false
     @State private var isLoadingFeed = false
+
+    // Timeline posts
+    private let pageSize = 20
+    @State private var posts: [Post] = []
+    @State private var postNextCursor: String?
+    @State private var isLoadingPosts = false
+    @State private var isLoadingMorePosts = false
+    @State private var hasLoadedPosts = false
+    @State private var postsError: String?
+    @State private var postScope: PostScope = .following
+    @State private var showCompose = false
 
     // Timer (elapsed time display)
     @State private var now = Date()
@@ -27,42 +41,94 @@ struct HomeView: View {
     @State private var showComposePost = false
     @State private var composeInitialMinutes = 0
 
-    // Own profile navigation
-    @State private var showOwnProfile = false
+    private enum PostScope: Hashable {
+        case following, mine
+        var title: String {
+            switch self {
+            case .following: return "Following"
+            case .mine: return "Mine"
+            }
+        }
+    }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    // Offline banner
-                    if !network.isOnline {
-                        offlineBanner
-                            .padding(.horizontal, 32)
-                            .padding(.top, 8)
-                            .transition(.move(edge: .top).combined(with: .opacity))
+        NavigationStack(path: $path) {
+            List {
+                // Offline banner
+                if !network.isOnline {
+                    offlineBanner
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 32, bottom: 0, trailing: 32))
+                }
+
+                // Study start/stop card
+                studyCard
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 20, leading: 32, bottom: 24, trailing: 32))
+
+                // Following users (loads independently)
+                followingContent
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets())
+
+                // Scope picker + compose button (inline)
+                HStack {
+                    Picker("Scope", selection: $postScope) {
+                        Text(PostScope.following.title).tag(PostScope.following)
+                        Text(PostScope.mine.title).tag(PostScope.mine)
                     }
+                    .pickerStyle(.segmented)
 
-                    // Study start/stop card
-                    studyCard
-                        .padding(.horizontal, 32)
-                        .padding(.top, 20)
-                        .padding(.bottom, 24)
-
-                    Divider()
-                        .padding(.horizontal, 32)
-
-                    // Following users horizontal scroll
-                    if feedUsers.isEmpty {
-                        emptyFeedSection
-                    } else {
-                        followingSection
+                    Button {
+                        showCompose = true
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                            .font(.body)
                     }
+                    .buttonStyle(.glass)
+                    .padding(.leading, 4)
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 16, leading: 32, bottom: 8, trailing: 32))
+
+                // Posts: loading / empty states
+                if !hasLoadedPosts || (isLoadingPosts && posts.isEmpty) {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .padding(.vertical, 48)
+                } else if posts.isEmpty {
+                    emptyPostsSection
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets())
+                }
+
+                // Post rows (swipe-to-delete + long-press context menu)
+                ForEach(posts) { post in
+                    timelinePostRow(post)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                }
+
+                if isLoadingMorePosts {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .padding(.vertical, 16)
                 }
             }
+            .listStyle(.plain)
             .animation(.easeInOut, value: network.isOnline)
             .refreshable {
                 await refreshStudyState()
                 await loadFeed()
+                await loadPosts()
             }
             .task {
                 // Show last-known feed immediately (works offline)
@@ -71,6 +137,7 @@ struct HomeView: View {
                 }
                 await refreshStudyState()
                 await loadFeed()
+                await loadPosts()
                 await startPolling()
             }
             .onChange(of: isStudying) { _, newValue in
@@ -89,17 +156,33 @@ struct HomeView: View {
                     }
                 }
             }
+            .onChange(of: postScope) { _, _ in
+                Task { await loadPosts(reset: true) }
+            }
             .onReceive(
                 Timer.publish(every: 1, on: .main, in: .common).autoconnect()
             ) { _ in
                 now = Date()
             }
+            .navigationDestination(for: String.self) { userId in
+                UserProfileView(userId: userId)
+            }
             .sheet(isPresented: $showComposePost) {
                 ComposePostView(initialMinutes: composeInitialMinutes)
             }
-            .navigationDestination(isPresented: $showOwnProfile) {
-                if let userId = appState.currentUser?.id {
-                    UserProfileView(userId: userId)
+            .sheet(isPresented: $showCompose) {
+                ComposePostView { newPost in
+                    prependPost(newPost)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if let postsError, !posts.isEmpty {
+                    Text(postsError)
+                        .font(.subheadline)
+                        .foregroundStyle(.white)
+                        .padding(12)
+                        .background(.red, in: RoundedRectangle(cornerRadius: 10))
+                        .padding()
                 }
             }
         }
@@ -112,7 +195,9 @@ struct HomeView: View {
         HStack(alignment: .bottom, spacing: 40) {
             // Left: own icon + name (fluffy animation tied to local isStudying)
             Button {
-                showOwnProfile = true
+                if let userId = appState.currentUser?.id {
+                    path.append(userId)
+                }
             } label: {
                 VStack(spacing: 0) {
                     UserIconView(
@@ -149,7 +234,7 @@ struct HomeView: View {
                     Group {
                         if studyActionLoading {
                             ProgressView()
-                                .tint(isStudying ? .white : .white)
+                                .tint(.white)
                         } else {
                             Text(isStudying ? "Stop Studying" : "Start Studying")
                                 .fontWeight(.semibold)
@@ -158,7 +243,7 @@ struct HomeView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 .tint(isStudying ? .red : .accentColor)
                 .disabled(studyActionLoading)
 
@@ -187,20 +272,29 @@ struct HomeView: View {
         .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
     }
 
+    // MARK: - Following Content
+
+    @ViewBuilder
+    private var followingContent: some View {
+        if isLoadingFeed && feedUsers.isEmpty {
+            ProgressView()
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 32)
+        } else if feedUsers.isEmpty {
+            emptyFeedSection
+        } else {
+            followingSection
+        }
+    }
+
     // MARK: - Following Section
 
     private var followingSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Following")
-                .font(.headline)
-                .padding(.horizontal, 32)
-
+        VStack(alignment: .leading, spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 16) {
                     ForEach(feedUsers) { user in
-                        NavigationLink {
-                            UserProfileView(userId: user.id)
-                        } label: {
+                        NavigationLink(value: user.id) {
                             VStack(spacing: 2) {
                                 UserIconView(
                                     emoji: user.iconEmoji,
@@ -228,40 +322,85 @@ struct HomeView: View {
                     }
                 }
                 .padding(.leading, 32)
-                .padding(.top, 4)
-                .padding(.bottom, 16)
+                .padding(.top, 6)
+                .padding(.bottom, 8)
             }
         }
-        .padding(.top, 20)
+        .padding(.top, 10)
+        .padding(.bottom, 4)
     }
 
     // MARK: - Empty Feed
 
     private var emptyFeedSection: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 6) {
             Image(systemName: "person.2")
-                .font(.largeTitle)
+                .font(.title2)
                 .foregroundStyle(.secondary)
             Text("No Following Users")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, minHeight: 117)
+    }
+
+    // MARK: - Empty Posts
+
+    private var emptyPostsSection: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "square.and.pencil")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+            Text("No Posts Yet")
                 .font(.body)
                 .foregroundStyle(.secondary)
-            Text("Find users in the Search tab")
+            Text(postScope == .following
+                 ? "Posts from you and people you follow will appear here."
+                 : "Your posts will appear here.")
                 .font(.subheadline)
                 .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 48)
     }
 
-    // MARK: - Actions
+    // MARK: - Timeline Post Row
+
+    @ViewBuilder
+    private func timelinePostRow(_ post: Post) -> some View {
+        let base = PostRow(post: post, onTapAuthor: { path.append(post.userId) })
+            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+            .onAppear {
+                if post.id == posts.last?.id { loadMorePosts() }
+            }
+        if post.userId == appState.currentUser?.id {
+            base
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) {
+                        Task { await deletePost(post) }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+                .contextMenu {
+                    Button(role: .destructive) {
+                        Task { await deletePost(post) }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+        } else {
+            base
+        }
+    }
+
+    // MARK: - Study Actions
 
     /// Reconcile the study state against the server. The server flag is the shared
     /// "studying" signal across devices; the device's local timer is what we measure
     /// with (seeded from the server for sessions started on another device).
-    ///
-    /// The local session always wins over the server, so quitting and relaunching
-    /// the app never loses a running timer. The server can only *add* a session we
-    /// don't have, or end one it knew about.
     private func refreshStudyState() async {
         guard !isRefreshingStudyState else { return }
         isRefreshingStudyState = true
@@ -291,37 +430,30 @@ struct HomeView: View {
                 // Already shared; nothing to announce.
                 LocalStudyStore.startedOffline = false
             } else if LocalStudyStore.startedOffline {
-                // Began offline and was never announced. Publish it now — the
-                // local start time is untouched, so the timer doesn't jump.
+                // Began offline and was never announced. Publish it now.
                 do {
                     try await APIClient.startStudy()
                     LocalStudyStore.startedOffline = false
-                } catch {
-                    // Still unreachable; retried on the next refresh.
-                }
+                } catch { }
             } else {
-                // The server knew about this session and it's gone: ended on
-                // another device, or past the server's 24h cutoff. Stop locally.
+                // The server knew about this session and it's gone: ended on another device.
                 LocalStudyStore.clear()
                 isStudying = false
                 studyStartedAt = nil
             }
         } else if status.isStudying {
-            // Not studying locally but the server says we are (started on another
-            // device): adopt it, seeding the timer from the server's start time.
+            // Not studying locally but the server says we are (started on another device).
             let start = status.startedAt ?? Date()
             LocalStudyStore.localStartedAt = start
             LocalStudyStore.startedOffline = false
             isStudying = true
             studyStartedAt = start
         } else {
-            // Neither side is studying.
             isStudying = false
             studyStartedAt = nil
         }
     }
 
-    /// Reflect the local session (used when offline / server unreachable).
     private func applyLocalSession() {
         if let local = LocalStudyStore.localStartedAt {
             isStudying = true
@@ -343,7 +475,6 @@ struct HomeView: View {
             feedUsers = response.users
             FeedCache.save(response.users)
         } catch APIError.networkError {
-            // Offline: keep showing cached feed, banner already indicates offline
             feedError = nil
         } catch {
             feedError = error.localizedDescription
@@ -368,14 +499,11 @@ struct HomeView: View {
     }
 
     private func startStudying() async {
-        // Start the local timer immediately (the device is the source of truth).
         let now = Date()
         LocalStudyStore.localStartedAt = now
         isStudying = true
         studyStartedAt = now
 
-        // Report to the server (idempotent). If offline/failed, flag it for
-        // delayed sending on the next reconnect.
         do {
             try await APIClient.startStudy()
             LocalStudyStore.startedOffline = false
@@ -385,22 +513,89 @@ struct HomeView: View {
     }
 
     private func stopStudying() {
-        // Local timer is the truth; capture elapsed before clearing.
         let start = LocalStudyStore.localStartedAt ?? studyStartedAt
         LocalStudyStore.clear()
         isStudying = false
         studyStartedAt = nil
 
-        // Show the post composer immediately before the server call completes.
         if let start {
             let elapsed = Int(Date().timeIntervalSince(start) / 60)
             composeInitialMinutes = max(1, elapsed)
             showComposePost = true
         }
 
-        // Notify the server in the background; offline case is reconciled on reconnect.
         if network.isOnline {
             Task { try? await APIClient.stopStudy() }
+        }
+    }
+
+    // MARK: - Post Actions
+
+    private func loadPosts(reset: Bool = false) async {
+        if reset {
+            posts = []
+            postNextCursor = nil
+        }
+        guard !isLoadingPosts else { return }
+        isLoadingPosts = true
+        postsError = nil
+        defer {
+            isLoadingPosts = false
+            hasLoadedPosts = true
+        }
+        do {
+            let response = try await fetchPosts(cursor: nil)
+            posts = response.posts
+            postNextCursor = response.nextCursor
+        } catch {
+            postsError = error.localizedDescription
+        }
+    }
+
+    private func fetchPosts(cursor: String?) async throws -> PostsResponse {
+        switch postScope {
+        case .following:
+            return try await APIClient.getTimeline(cursor: cursor, limit: pageSize)
+        case .mine:
+            return try await APIClient.getUserPosts(userId: "me", cursor: cursor, limit: pageSize)
+        }
+    }
+
+    private func loadMorePosts() {
+        guard let cursor = postNextCursor, !isLoadingMorePosts, !isLoadingPosts else { return }
+        Task {
+            isLoadingMorePosts = true
+            defer { isLoadingMorePosts = false }
+            do {
+                let response = try await fetchPosts(cursor: cursor)
+                posts.append(contentsOf: response.posts)
+                postNextCursor = response.nextCursor
+            } catch { }
+        }
+    }
+
+    private func prependPost(_ studyPost: StudyPost) {
+        guard let me = appState.currentUser else {
+            Task { await loadPosts() }
+            return
+        }
+        let post = Post(
+            id: studyPost.id,
+            userId: me.id,
+            minutes: studyPost.minutes,
+            comment: studyPost.comment,
+            createdAt: studyPost.createdAt,
+            user: me
+        )
+        posts.insert(post, at: 0)
+    }
+
+    private func deletePost(_ post: Post) async {
+        do {
+            try await APIClient.deletePost(id: post.id)
+            posts.removeAll { $0.id == post.id }
+        } catch {
+            postsError = error.localizedDescription
         }
     }
 

@@ -9,9 +9,6 @@ struct MainTabView: View {
             Tab("Home", systemImage: "house", value: .home) {
                 HomeView()
             }
-            Tab("Timeline", systemImage: "list.bullet.rectangle", value: .timeline) {
-                PostTimelineView()
-            }
             Tab("Stats", systemImage: "chart.bar", value: .stats) {
                 StatsView()
             }
@@ -80,7 +77,6 @@ private struct StudyingBorderOverlay: View {
 
 private enum MainTab: Hashable {
     case home
-    case timeline
     case stats
     case search
     case settings
