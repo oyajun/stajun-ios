@@ -32,33 +32,30 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                // Offline banner
-                if !network.isOnline {
-                    offlineBanner
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 0, trailing: 16))
-                        .listRowSeparator(.hidden)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Offline banner
+                    if !network.isOnline {
+                        offlineBanner
+                            .padding(.horizontal, 32)
+                            .padding(.top, 8)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
 
-                // Study start/stop card (Liquid Glass)
-                studyCard
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
+                    // Study start/stop card
+                    studyCard
+                        .padding(.horizontal, 32)
+                        .padding(.top, 20)
+                        .padding(.bottom, 24)
 
-                // Following users list
-                if feedUsers.isEmpty {
-                    emptyFeedSection
-                } else {
-                    Section("Following") {
-                        ForEach(feedUsers) { user in
-                            NavigationLink {
-                                UserProfileView(userId: user.id)
-                            } label: {
-                                FeedUserRow(user: user, now: now)
-                            }
-                        }
+                    Divider()
+                        .padding(.horizontal, 32)
+
+                    // Following users horizontal scroll
+                    if feedUsers.isEmpty {
+                        emptyFeedSection
+                    } else {
+                        followingSection
                     }
                 }
             }
@@ -190,25 +187,70 @@ struct HomeView: View {
         .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
     }
 
+    // MARK: - Following Section
+
+    private var followingSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Following")
+                .font(.headline)
+                .padding(.horizontal, 32)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 16) {
+                    ForEach(feedUsers) { user in
+                        NavigationLink {
+                            UserProfileView(userId: user.id)
+                        } label: {
+                            VStack(spacing: 2) {
+                                UserIconView(
+                                    emoji: user.iconEmoji,
+                                    backgroundColor: user.iconBackgroundColor,
+                                    size: 52,
+                                    isStudying: user.isStudying
+                                )
+                                Text(user.username)
+                                    .font(.caption)
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                if user.isStudying, let since = user.studyingSince {
+                                    Text(elapsedString(from: since, to: now))
+                                        .font(.caption2)
+                                        .monospacedDigit()
+                                        .foregroundStyle(.orange)
+                                } else {
+                                    Text(" ")
+                                        .font(.caption2)
+                                }
+                            }
+                            .frame(width: 80)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.leading, 32)
+                .padding(.top, 4)
+                .padding(.bottom, 16)
+            }
+        }
+        .padding(.top, 20)
+    }
+
     // MARK: - Empty Feed
 
     private var emptyFeedSection: some View {
-        Section {
-            VStack(spacing: 12) {
-                Image(systemName: "person.2")
-                    .font(.largeTitle)
-                    .foregroundStyle(.secondary)
-                Text("No Following Users")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                Text("Find users in the Search tab")
-                    .font(.subheadline)
-                    .foregroundStyle(.tertiary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 32)
+        VStack(spacing: 12) {
+            Image(systemName: "person.2")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+            Text("No Following Users")
+                .font(.body)
+                .foregroundStyle(.secondary)
+            Text("Find users in the Search tab")
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
         }
-        .listRowBackground(Color.clear)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 48)
     }
 
     // MARK: - Actions
@@ -366,55 +408,6 @@ struct HomeView: View {
 
     private func elapsedString(from start: Date, to current: Date) -> String {
         let seconds = Int(current.timeIntervalSince(start))
-        let h = seconds / 3600
-        let m = (seconds % 3600) / 60
-        let s = seconds % 60
-        if h > 0 {
-            return String(format: "%d:%02d:%02d", h, m, s)
-        } else {
-            return String(format: "%02d:%02d", m, s)
-        }
-    }
-}
-
-// MARK: - Feed Row
-
-struct FeedUserRow: View {
-    let user: UserWithStudyStatus
-    let now: Date
-
-    var body: some View {
-        HStack(spacing: 12) {
-            UserIconView(
-                emoji: user.iconEmoji,
-                backgroundColor: user.iconBackgroundColor,
-                size: 44,
-                isStudying: user.isStudying
-            )
-            VStack(alignment: .leading, spacing: 2) {
-                Text(user.username)
-                    .font(.body)
-                if user.isStudying {
-                    HStack(spacing: 4) {
-                        Text("Studying")
-                        if let since = user.studyingSince {
-                            Text("· \(studyingDurationString(since: since))")
-                        }
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(.orange)
-                } else {
-                    Text("Not Studying")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer()
-        }
-    }
-
-    private func studyingDurationString(since: Date) -> String {
-        let seconds = max(0, Int(now.timeIntervalSince(since)))
         let h = seconds / 3600
         let m = (seconds % 3600) / 60
         let s = seconds % 60
