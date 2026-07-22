@@ -322,12 +322,9 @@ struct HomeView: View {
                     }
                 }
                 .padding(.leading, 32)
-                .padding(.top, 6)
-                .padding(.bottom, 8)
+                .padding(.top, 8)
             }
         }
-        .padding(.top, 10)
-        .padding(.bottom, 4)
     }
 
     // MARK: - Empty Feed
