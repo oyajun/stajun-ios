@@ -10,10 +10,10 @@ struct UserProfileView: View {
     @State private var errorMessage: String?
     @State private var isFollowLoading = false
 
-    // Posts by this user (public)
     @State private var posts: [Post] = []
     @State private var postsCursor: String?
     @State private var isLoadingPosts = false
+    @State private var hasLoadedPosts = false
 
     private var isOwnProfile: Bool {
         appState.currentUser?.id == userId
@@ -41,100 +41,108 @@ struct UserProfileView: View {
     @ViewBuilder
     private func userContent(_ user: UserWithStudyStatus) -> some View {
         List {
-            // Icon and status
-            Section {
-                HStack {
-                    Spacer()
-                    VStack(spacing: 12) {
-                        UserIconView(
-                            emoji: user.iconEmoji,
-                            backgroundColor: user.iconBackgroundColor,
-                            size: 80,
-                            isStudying: user.isStudying
-                        )
-                        Text(user.username)
-                            .font(.title2.bold())
+            // Profile header
+            profileHeader(user)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 24, leading: 32, bottom: 24, trailing: 32))
 
-                        if user.isStudying {
-                            Label("Studying", systemImage: "book.fill")
-                                .font(.body)
-                                .foregroundStyle(.orange)
-                            if let since = user.studyingSince {
-                                TimelineView(.periodic(from: .now, by: 1)) { context in
-                                    Text(studyingDurationString(since: since, now: context.date))
-                                        .font(.title3.monospacedDigit().bold())
-                                        .foregroundStyle(.orange)
-                                }
-                            }
-                        } else {
-                            Text("Not Studying")
-                                .font(.body)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer()
-                }
-                .padding(.vertical, 8)
-            }
-            .listRowBackground(Color.clear)
-
-            // Followers / Following
-            Section {
-                NavigationLink(destination: FollowListView(userId: userId, listType: .followers)) {
-                    Text("Followers")
-                }
-                NavigationLink(destination: FollowListView(userId: userId, listType: .following)) {
-                    Text("Following")
-                }
-            }
-
-            // Follow button (for other users)
-            if !isOwnProfile {
-                Section {
-                    Button {
-                        Task { await toggleFollow() }
-                    } label: {
-                        HStack {
-                            Spacer()
-                            if isFollowLoading {
-                                ProgressView()
-                            } else {
-                                Text(user.isFollowing ?? false ? "Following" : "Follow")
-                                    .fontWeight(.medium)
-                            }
-                            Spacer()
-                        }
-                    }
-                    .tint(user.isFollowing ?? false ? .secondary : .accentColor)
-                    .disabled(isFollowLoading)
-                }
-            }
-
-            if let errorMessage {
-                Section {
-                    Text(errorMessage).foregroundStyle(.red).font(.subheadline)
-                }
-            }
-
-            // Posts by this user
-            Section("Posts") {
-                if posts.isEmpty {
-                    Text(isLoadingPosts ? "Loading…" : "No posts yet")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(posts) { post in
-                        postRow(post)
-                    }
+            // Posts
+            if !hasLoadedPosts || (isLoadingPosts && posts.isEmpty) {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .padding(.vertical, 48)
+            } else if posts.isEmpty {
+                ContentUnavailableView("No Posts Yet", systemImage: "square.and.pencil")
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            } else {
+                ForEach(posts) { post in
+                    postRow(post)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 32, bottom: 0, trailing: 32))
                 }
             }
         }
+        .listStyle(.plain)
+        .refreshable {
+            await load()
+            await loadPosts()
+        }
     }
 
-    /// A post row on the profile. Own posts get a long-press menu to delete.
+    @ViewBuilder
+    private func profileHeader(_ user: UserWithStudyStatus) -> some View {
+        VStack(spacing: 16) {
+            UserIconView(
+                emoji: user.iconEmoji,
+                backgroundColor: user.iconBackgroundColor,
+                size: 80,
+                isStudying: user.isStudying
+            )
+
+            VStack(spacing: 6) {
+                Text(user.username)
+                    .font(.title2.bold())
+
+                if user.isStudying, let since = user.studyingSince {
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        Text(studyingDurationString(since: since, now: context.date))
+                            .font(.title3.monospacedDigit().bold())
+                            .foregroundStyle(.orange)
+                    }
+                }
+            }
+
+            HStack(spacing: 40) {
+                NavigationLink(destination: FollowListView(userId: userId, listType: .followers)) {
+                    Text("Followers")
+                        .font(.subheadline)
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink(destination: FollowListView(userId: userId, listType: .following)) {
+                    Text("Following")
+                        .font(.subheadline)
+                }
+                .buttonStyle(.plain)
+            }
+
+            if !isOwnProfile {
+                Button {
+                    Task { await toggleFollow() }
+                } label: {
+                    Group {
+                        if isFollowLoading {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Text(user.isFollowing ?? false ? "Following" : "Follow")
+                                .fontWeight(.semibold)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 36)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(user.isFollowing ?? false ? .secondary : .accentColor)
+                .disabled(isFollowLoading)
+            }
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.subheadline)
+                    .foregroundStyle(.red)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     @ViewBuilder
     private func postRow(_ post: Post) -> some View {
         let base = PostRow(post: post)
+            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
             .onAppear {
                 if post.id == posts.last?.id { loadMorePosts() }
             }
@@ -186,7 +194,10 @@ struct UserProfileView: View {
 
     private func loadPosts() async {
         isLoadingPosts = true
-        defer { isLoadingPosts = false }
+        defer {
+            isLoadingPosts = false
+            hasLoadedPosts = true
+        }
         do {
             let response = try await APIClient.getUserPosts(userId: userId)
             posts = response.posts
