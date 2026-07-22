@@ -10,6 +10,8 @@ struct UserProfileView: View {
     @State private var errorMessage: String?
     @State private var isFollowLoading = false
 
+    @State private var followListTab: FollowListType?
+
     @State private var posts: [Post] = []
     @State private var postsCursor: String?
     @State private var isLoadingPosts = false
@@ -32,6 +34,9 @@ struct UserProfileView: View {
         }
         .navigationTitle(user?.username ?? "")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(item: $followListTab) { tab in
+            FollowListView(userId: userId, initialTab: tab)
+        }
         .task {
             await load()
             await loadPosts()
@@ -95,18 +100,14 @@ struct UserProfileView: View {
                 }
             }
 
-            HStack(spacing: 40) {
-                NavigationLink(destination: FollowListView(userId: userId, listType: .followers)) {
-                    Text("Followers")
-                        .font(.subheadline)
-                }
-                .buttonStyle(.plain)
+            HStack(spacing: 16) {
+                Button("Following") { followListTab = .following }
+                    .buttonStyle(.bordered)
+                    .font(.subheadline.weight(.medium))
 
-                NavigationLink(destination: FollowListView(userId: userId, listType: .following)) {
-                    Text("Following")
-                        .font(.subheadline)
-                }
-                .buttonStyle(.plain)
+                Button("Followers") { followListTab = .followers }
+                    .buttonStyle(.bordered)
+                    .font(.subheadline.weight(.medium))
             }
 
             if !isOwnProfile {

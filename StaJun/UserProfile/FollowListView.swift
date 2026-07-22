@@ -1,36 +1,62 @@
 import SwiftUI
 
-enum FollowListType {
-    case followers
+enum FollowListType: String, Identifiable {
     case following
+    case followers
 
-    var title: String {
-        switch self {
-        case .followers: return "Followers"
-        case .following: return "Following"
-        }
-    }
+    var id: String { rawValue }
 }
 
 struct FollowListView: View {
     let userId: String
-    let listType: FollowListType
+    var initialTab: FollowListType = .following
 
     @Environment(AppState.self) private var appState
 
-    @State private var users: [UserWithStudyStatus] = []
-    @State private var isLoading = true
+    @State private var selectedTab: FollowListType
+    @State private var followingUsers: [UserWithStudyStatus] = []
+    @State private var followersUsers: [UserWithStudyStatus] = []
+    @State private var isLoadingFollowing = true
+    @State private var isLoadingFollowers = true
     @State private var errorMessage: String?
 
+    init(userId: String, initialTab: FollowListType = .following) {
+        self.userId = userId
+        self.initialTab = initialTab
+        _selectedTab = State(initialValue: initialTab)
+    }
+
+    private var currentUsers: [UserWithStudyStatus] {
+        selectedTab == .following ? followingUsers : followersUsers
+    }
+
+    private var isLoadingCurrent: Bool {
+        selectedTab == .following ? isLoadingFollowing : isLoadingFollowers
+    }
+
     var body: some View {
-        Group {
-            if isLoading {
+        List {
+            Picker("", selection: $selectedTab) {
+                Text("Following").tag(FollowListType.following)
+                Text("Followers").tag(FollowListType.followers)
+            }
+            .pickerStyle(.segmented)
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+
+            if isLoadingCurrent {
                 ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if users.isEmpty {
+                    .frame(maxWidth: .infinity)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .padding(.vertical, 48)
+            } else if currentUsers.isEmpty {
                 ContentUnavailableView("No users yet", systemImage: "person.2")
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
             } else {
-                List(users) { user in
+                ForEach(currentUsers) { user in
                     NavigationLink(destination: UserProfileView(userId: user.id)) {
                         UserRow(
                             iconEmoji: user.iconEmoji,
@@ -45,9 +71,11 @@ struct FollowListView: View {
                 }
             }
         }
-        .navigationTitle(listType.title)
+        .listStyle(.plain)
+        .navigationTitle("Connections")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
+        .task { await loadFollowing() }
+        .task { await loadFollowers() }
         .overlay(alignment: .bottom) {
             if let errorMessage {
                 Text(errorMessage)
@@ -61,31 +89,41 @@ struct FollowListView: View {
         }
     }
 
-    private func load() async {
-        isLoading = true
-        defer { isLoading = false }
+    private func loadFollowing() async {
+        isLoadingFollowing = true
+        defer { isLoadingFollowing = false }
         do {
-            switch listType {
-            case .followers:
-                users = try await APIClient.getFollowers(userId: userId).users
-            case .following:
-                users = try await APIClient.getFollowing(userId: userId).users
-            }
+            followingUsers = try await APIClient.getFollowing(userId: userId).users
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func loadFollowers() async {
+        isLoadingFollowers = true
+        defer { isLoadingFollowers = false }
+        do {
+            followersUsers = try await APIClient.getFollowers(userId: userId).users
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
     private func toggleFollow(user: UserWithStudyStatus) {
-        guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
         Task {
             do {
-                if user.isFollowing ?? false {
+                let wasFollowing = user.isFollowing ?? false
+                if wasFollowing {
                     try await APIClient.unfollow(userId: user.id)
-                    users[index].isFollowing = false
                 } else {
                     _ = try await APIClient.follow(userId: user.id)
-                    users[index].isFollowing = true
+                }
+                let newValue = !wasFollowing
+                if let i = followingUsers.firstIndex(where: { $0.id == user.id }) {
+                    followingUsers[i].isFollowing = newValue
+                }
+                if let i = followersUsers.firstIndex(where: { $0.id == user.id }) {
+                    followersUsers[i].isFollowing = newValue
                 }
             } catch {
                 // Ignore errors
@@ -96,7 +134,7 @@ struct FollowListView: View {
 
 #Preview {
     NavigationStack {
-        FollowListView(userId: "preview-user-id", listType: .followers)
+        FollowListView(userId: "preview-user-id")
             .environment(AppState())
     }
 }
