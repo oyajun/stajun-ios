@@ -1,0 +1,63 @@
+{
+  "fill" : "automatic",
+  "groups" : [
+    {
+      "blend-mode" : "normal",
+      "blur-material" : 0.5,
+      "layers" : [
+        {
+          "blend-mode" : "normal",
+          "hidden" : false,
+          "image-name" : "stajun-icon_3 Layer 2.png",
+          "name" : "stajun-icon_3 Layer 2",
+          "position" : {
+            "scale" : 0.7,
+            "translation-in-points" : [
+              18.2578125,
+              -14.7421875
+            ]
+          }
+        },
+        {
+          "fill" : "none",
+          "glass" : true,
+          "image-name" : "stajun-icon_2 Layer 2.png",
+          "name" : "stajun-icon_2 Layer 2",
+          "position" : {
+            "scale" : 0.7,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "image-name" : "stajun-icon_1 Layer 2.png",
+          "name" : "stajun-icon_1 Layer 2",
+          "position" : {
+            "scale" : 0.7,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.2
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.2
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
