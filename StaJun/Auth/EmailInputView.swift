@@ -17,14 +17,6 @@ struct EmailInputView: View {
             VStack(spacing: 32) {
                 Spacer()
 
-                // Logo and title
-                VStack(spacing: 8) {
-                    Text("StaJun")
-                        .font(.largeTitle.bold())
-                    Text("What are you studying now?")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
 
                 // Email input
                 VStack(alignment: .leading, spacing: 8) {
