@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		BF6531733007AA2900699A40 /* StaJun.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StaJun.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF6531733007AA2900699A40 /* JunJun.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JunJun.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		BF6531753007AA2900699A40 /* StaJun */ = {
+		BF6531753007AA2900699A40 /* JunJun */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = StaJun;
+			path = JunJun;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,7 +32,7 @@
 		BF65316A3007AA2900699A40 = {
 			isa = PBXGroup;
 			children = (
-				BF6531753007AA2900699A40 /* StaJun */,
+				BF6531753007AA2900699A40 /* JunJun */,
 				BF6531743007AA2900699A40 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -40,7 +40,7 @@
 		BF6531743007AA2900699A40 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				BF6531733007AA2900699A40 /* StaJun.app */,
+				BF6531733007AA2900699A40 /* JunJun.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,9 +48,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		BF6531723007AA2900699A40 /* StaJun */ = {
+		BF6531723007AA2900699A40 /* JunJun */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BF6531803007AA2A00699A40 /* Build configuration list for PBXNativeTarget "StaJun" */;
+			buildConfigurationList = BF6531803007AA2A00699A40 /* Build configuration list for PBXNativeTarget "JunJun" */;
 			buildPhases = (
 				BF65316F3007AA2900699A40 /* Sources */,
 				BF6531703007AA2900699A40 /* Frameworks */,
@@ -61,13 +61,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				BF6531753007AA2900699A40 /* StaJun */,
+				BF6531753007AA2900699A40 /* JunJun */,
 			);
-			name = StaJun;
+			name = JunJun;
 			packageProductDependencies = (
 			);
 			productName = StaJun;
-			productReference = BF6531733007AA2900699A40 /* StaJun.app */;
+			productReference = BF6531733007AA2900699A40 /* JunJun.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -99,7 +99,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				BF6531723007AA2900699A40 /* StaJun */,
+				BF6531723007AA2900699A40 /* JunJun */,
 			);
 		};
 /* End PBXProject section */
@@ -344,7 +344,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		BF6531803007AA2A00699A40 /* Build configuration list for PBXNativeTarget "StaJun" */ = {
+		BF6531803007AA2A00699A40 /* Build configuration list for PBXNativeTarget "JunJun" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				BF6531813007AA2A00699A40 /* Debug */,

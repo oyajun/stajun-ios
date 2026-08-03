@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct StaJunApp: App {
+struct JunJunApp: App {
     @State private var appState = AppState()
 
     var body: some Scene {
