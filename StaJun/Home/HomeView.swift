@@ -30,6 +30,7 @@ struct HomeView: View {
     @State private var postsError: String?
     @State private var postScope: PostScope = .following
     @State private var showCompose = false
+    @State private var showReportSuccessAlert = false
 
     // Timer (elapsed time display)
     @State private var now = Date()
@@ -174,6 +175,11 @@ struct HomeView: View {
                 ComposePostView { newPost in
                     prependPost(newPost)
                 }
+            }
+            .alert("Report Submitted", isPresented: $showReportSuccessAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Thank you for reporting this post.")
             }
             .overlay(alignment: .bottom) {
                 if let postsError, !posts.isEmpty {
@@ -390,6 +396,13 @@ struct HomeView: View {
                 }
         } else {
             base
+                .contextMenu {
+                    Button(role: .destructive) {
+                        Task { await reportPost(post) }
+                    } label: {
+                        Label("Report", systemImage: "exclamationmark.bubble")
+                    }
+                }
         }
     }
 
@@ -591,6 +604,15 @@ struct HomeView: View {
         do {
             try await APIClient.deletePost(id: post.id)
             posts.removeAll { $0.id == post.id }
+        } catch {
+            postsError = error.localizedDescription
+        }
+    }
+
+    private func reportPost(_ post: Post) async {
+        do {
+            try await APIClient.reportPost(id: post.id)
+            showReportSuccessAlert = true
         } catch {
             postsError = error.localizedDescription
         }

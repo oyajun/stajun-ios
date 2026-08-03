@@ -279,6 +279,11 @@ enum APIClient {
         try await perform(path: "/api/v1/posts/\(id)", method: "DELETE", as: EmptyResponse.self)
     }
 
+    /// Report a post.
+    static func reportPost(id: String) async throws {
+        try await perform(path: "/api/v1/posts/\(id)/report", method: "POST", as: EmptyResponse.self)
+    }
+
     /// Build a GET /api/v1/posts path with optional userId filter and cursor.
     private static func postsPath(userId: String?, cursor: String?, limit: Int) -> String {
         var query = ["limit=\(limit)"]

@@ -16,6 +16,7 @@ struct UserProfileView: View {
     @State private var postsCursor: String?
     @State private var isLoadingPosts = false
     @State private var hasLoadedPosts = false
+    @State private var showReportSuccessAlert = false
 
     private var isOwnProfile: Bool {
         appState.currentUser?.id == userId
@@ -40,6 +41,11 @@ struct UserProfileView: View {
         .task {
             await load()
             await loadPosts()
+        }
+        .alert("Report Submitted", isPresented: $showReportSuccessAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Thank you for reporting this post.")
         }
     }
 
@@ -165,6 +171,13 @@ struct UserProfileView: View {
                 }
         } else {
             base
+                .contextMenu {
+                    Button(role: .destructive) {
+                        Task { await reportPost(post) }
+                    } label: {
+                        Label("Report", systemImage: "exclamationmark.bubble")
+                    }
+                }
         }
     }
 
@@ -227,6 +240,15 @@ struct UserProfileView: View {
         do {
             try await APIClient.deletePost(id: post.id)
             posts.removeAll { $0.id == post.id }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func reportPost(_ post: Post) async {
+        do {
+            try await APIClient.reportPost(id: post.id)
+            showReportSuccessAlert = true
         } catch {
             errorMessage = error.localizedDescription
         }
