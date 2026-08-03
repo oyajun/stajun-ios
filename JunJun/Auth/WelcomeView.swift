@@ -23,7 +23,7 @@ struct WelcomeView: View {
                     Button {
                         appState.authState = .anonymousOnboarding
                     } label: {
-                        Text("新しく始める")
+                        Text("Get Started")
                             .fontWeight(.semibold)
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
@@ -33,7 +33,7 @@ struct WelcomeView: View {
                     Button {
                         appState.authState = .emailLogin
                     } label: {
-                        Text("アカウントをお持ちの方はログイン")
+                        Text("Log in if you already have an account")
                             .fontWeight(.semibold)
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)

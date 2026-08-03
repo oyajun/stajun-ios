@@ -29,10 +29,20 @@ final class AppState {
             KeychainHelper.email = userEmail
         }
     }
+    
+    /// True if the app has passed its hardcoded expiration date
+    var requiresUpdate: Bool = false
 
     init() {
         self.userEmail = KeychainHelper.email
+        checkExpiration()
         Task { await checkExistingSession() }
+    }
+    
+    private func checkExpiration() {
+        if let expirationDate = Config.expirationDate, Date() > expirationDate {
+            requiresUpdate = true
+        }
     }
 
     /// On startup: Verify token on server if it exists in Keychain
