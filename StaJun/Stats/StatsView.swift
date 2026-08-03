@@ -165,7 +165,7 @@ struct StatsView: View {
     private var chartCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Picker("Period", selection: $model.unit) {
-                ForEach(ChartUnit.allCases, id: \.self) { Text($0.label).tag($0) }
+                ForEach(ChartUnit.allCases, id: \.self) { Text(LocalizedStringKey($0.label)).tag($0) }
             }
             .pickerStyle(.segmented)
 
@@ -304,18 +304,19 @@ struct StatsView: View {
         }
     }
 
-    private func yAxisLabel(_ minutes: Int) -> String {
+    private func yAxisLabel(_ minutes: Int) -> LocalizedStringKey {
         if minutes == 0 { return "0" }
         if minutes < 60 { return "\(minutes)m" }
         if minutes.isMultiple(of: 60) { return "\(minutes / 60)h" }
-        return String(format: "%.1fh", Double(minutes) / 60)
+        let h = Double(minutes) / 60
+        return "\(h, specifier: "%.1f")h"
     }
 }
 
 // MARK: - StatItem
 
 private struct StatItem: View {
-    let title: String
+    let title: LocalizedStringKey
     let minutes: Int
 
     var body: some View {
@@ -333,7 +334,7 @@ private struct StatItem: View {
 }
 
 /// "1h 30m" style duration used by the summary cards and the page total.
-private func formatMinutes(_ minutes: Int) -> String {
+private func formatMinutes(_ minutes: Int) -> LocalizedStringKey {
     guard minutes > 0 else { return "0m" }
     let h = minutes / 60
     let m = minutes % 60

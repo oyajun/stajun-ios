@@ -13,7 +13,7 @@ struct PostRow: View {
     /// show that glow, so trim the halo inset to align the icon's circle with the name.
     private var iconGlowInset: CGFloat { iconSize * 0.2 }
 
-    private var durationText: String {
+    private var durationText: LocalizedStringKey {
         let h = post.minutes / 60
         let m = post.minutes % 60
         if h > 0 && m > 0 { return "\(h)h \(m)m" }

@@ -26,7 +26,7 @@ struct ComposePostView: View {
 
     private var totalMinutes: Int { hours * 60 + mins }
 
-    private var durationText: String { "\(hours)h \(mins)m" }
+    private var durationText: LocalizedStringKey { "\(hours)h \(mins)m" }
 
     private var isValid: Bool {
         (1...1440).contains(totalMinutes) && comment.count <= maxCommentLength

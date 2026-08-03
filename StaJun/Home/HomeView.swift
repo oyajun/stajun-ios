@@ -78,8 +78,8 @@ struct HomeView: View {
                 // Scope picker + compose button (inline)
                 HStack {
                     Picker("Scope", selection: $postScope) {
-                        Text(PostScope.following.title).tag(PostScope.following)
-                        Text(PostScope.mine.title).tag(PostScope.mine)
+                        Text(LocalizedStringKey(PostScope.following.title)).tag(PostScope.following)
+                        Text(LocalizedStringKey(PostScope.mine.title)).tag(PostScope.mine)
                     }
                     .pickerStyle(.segmented)
 
