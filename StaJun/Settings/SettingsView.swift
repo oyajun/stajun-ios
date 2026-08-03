@@ -37,7 +37,7 @@ struct SettingsView: View {
                 .listRowBackground(Color.clear)
 
                 // Account
-                Section("Account") {
+                Section {
                     HStack {
                         Text("Email")
                             .foregroundStyle(.secondary)
@@ -60,6 +60,16 @@ struct SettingsView: View {
                     
                     NavigationLink("Blocked Users") {
                         BlockedUsersView()
+                    }
+                } header: {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Account")
+                        if currentUser?.isAnonymous == true {
+                            Text("By registering an email address, you can log in from other devices, and you can easily log back in if your current device is lost or damaged.")
+                                .textCase(.none)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
 
