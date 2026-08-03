@@ -162,3 +162,11 @@ struct APIErrorDetail: Decodable {
 // MARK: - Internal
 
 struct EmptyResponse: Decodable {}
+
+// MARK: - Block
+
+struct BlockedUsersResponse: Codable {
+    let users: [UserWithFollowStatus]
+    let pagination: Pagination
+}
+

@@ -18,6 +18,9 @@ struct UserProfileView: View {
     @State private var hasLoadedPosts = false
     @State private var showReportSuccessAlert = false
 
+    @State private var isBlocked = false
+    @State private var showBlockConfirmation = false
+
     private var isOwnProfile: Bool {
         appState.currentUser?.id == userId
     }
@@ -35,6 +38,25 @@ struct UserProfileView: View {
         }
         .navigationTitle(user?.name ?? "")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if !isOwnProfile {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        if isBlocked {
+                            Button("Unblock", role: .destructive) {
+                                Task { await unblock() }
+                            }
+                        } else {
+                            Button("Block", role: .destructive) {
+                                showBlockConfirmation = true
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                }
+            }
+        }
         .navigationDestination(item: $followListTab) { tab in
             FollowListView(userId: userId, initialTab: tab)
         }
@@ -46,6 +68,14 @@ struct UserProfileView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text("Thank you for reporting this post.")
+        }
+        .alert("Block User", isPresented: $showBlockConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Block", role: .destructive) {
+                Task { await block() }
+            }
+        } message: {
+            Text("Are you sure you want to block this user?")
         }
     }
 
@@ -59,7 +89,18 @@ struct UserProfileView: View {
                 .listRowInsets(EdgeInsets(top: 24, leading: 32, bottom: 24, trailing: 32))
 
             // Posts
-            if !hasLoadedPosts || (isLoadingPosts && posts.isEmpty) {
+            if isBlocked {
+                VStack(spacing: 16) {
+                    ContentUnavailableView("Blocked", systemImage: "person.crop.circle.badge.xmark", description: Text("You have blocked this user."))
+                    Button("Unblock") {
+                        Task { await unblock() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .padding(.vertical, 48)
+            } else if !hasLoadedPosts || (isLoadingPosts && posts.isEmpty) {
                 ProgressView()
                     .frame(maxWidth: .infinity)
                     .listRowBackground(Color.clear)
@@ -79,7 +120,9 @@ struct UserProfileView: View {
         .listStyle(.plain)
         .refreshable {
             await load()
-            await loadPosts()
+            if !isBlocked {
+                await loadPosts()
+            }
         }
     }
 
@@ -201,6 +244,10 @@ struct UserProfileView: View {
         defer { isLoading = false }
         do {
             user = try await APIClient.getUser(id: userId)
+            let blockedResp = try? await APIClient.getBlockedUsers(limit: 50, offset: 0)
+            if let resp = blockedResp {
+                isBlocked = resp.users.contains { $0.id == userId }
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -266,6 +313,26 @@ struct UserProfileView: View {
                 _ = try await APIClient.follow(userId: userId)
                 user?.isFollowing = true
             }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func block() async {
+        do {
+            try await APIClient.blockUser(userId: userId)
+            isBlocked = true
+            user?.isFollowing = false
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func unblock() async {
+        do {
+            try await APIClient.unblockUser(userId: userId)
+            isBlocked = false
+            await loadPosts()
         } catch {
             errorMessage = error.localizedDescription
         }

@@ -219,6 +219,23 @@ enum APIClient {
         try await perform(path: "/api/v1/followers/\(userId)", method: "GET", as: HomeFeedResponse.self)
     }
 
+    // MARK: - Block
+
+    /// Block a user
+    static func blockUser(userId: String) async throws {
+        try await perform(path: "/api/v1/block/\(userId)", method: "PUT", as: EmptyResponse.self)
+    }
+
+    /// Unblock a user
+    static func unblockUser(userId: String) async throws {
+        try await perform(path: "/api/v1/block/\(userId)", method: "DELETE", as: EmptyResponse.self)
+    }
+
+    /// Get list of blocked users
+    static func getBlockedUsers(limit: Int = 20, offset: Int = 0) async throws -> BlockedUsersResponse {
+        try await perform(path: "/api/v1/blocks?limit=\(limit)&offset=\(offset)", method: "GET", as: BlockedUsersResponse.self)
+    }
+
     // MARK: - Study Sessions
 
     /// Get my current study status

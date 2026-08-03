@@ -47,6 +47,10 @@ struct SettingsView: View {
                                 .font(.subheadline)
                         }
                     }
+                    
+                    NavigationLink("Blocked Users") {
+                        BlockedUsersView()
+                    }
                 }
 
                 // Sign out and delete
