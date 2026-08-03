@@ -38,18 +38,22 @@ struct SettingsView: View {
 
                 // Account
                 Section("Account") {
-                    if let email = appState.userEmail {
-                        HStack {
-                            Text("Email")
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Button {
-                                showChangeEmail = true
-                            } label: {
+                    HStack {
+                        Text("Email")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button {
+                            showChangeEmail = true
+                        } label: {
+                            if let email = appState.userEmail {
                                 Text(email)
                                     .lineLimit(1)
                                     .font(.subheadline)
                                     .foregroundStyle(.primary)
+                            } else {
+                                Text("Register Email")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.blue)
                             }
                         }
                     }
