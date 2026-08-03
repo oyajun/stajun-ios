@@ -110,7 +110,7 @@ struct PostRow: View {
             minutes: 95,
             comment: "英文法おわり",
             createdAt: .now.addingTimeInterval(-3600),
-            user: UserProfile(id: "u1", name: "hanako", iconEmoji: "🐣", iconBackgroundColor: "#B3E5FC")
+            user: UserProfile(id: "u1", name: "hanako", iconEmoji: "🐣", iconBackgroundColor: "#B3E5FC", isAnonymous: false)
         ))
     }
 }

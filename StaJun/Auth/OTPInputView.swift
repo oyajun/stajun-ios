@@ -93,7 +93,7 @@ struct OTPInputView: View {
                     .disabled(isResending)
 
                     Button {
-                        appState.authState = .unauthenticated
+                        appState.authState = .emailLogin
                     } label: {
                         Text("Change Email Address")
                             .font(.subheadline)

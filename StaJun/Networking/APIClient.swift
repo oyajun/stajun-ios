@@ -4,7 +4,6 @@ import Foundation
 
 enum APIError: Error, LocalizedError {
     case unauthorized
-    case onboardingRequired
     case sessionNotFresh
     case forbidden(code: String, message: String)
     case notFound
@@ -19,8 +18,6 @@ enum APIError: Error, LocalizedError {
         switch self {
         case .unauthorized:
             return "Login is required."
-        case .onboardingRequired:
-            return "Profile setup is required."
         case .sessionNotFresh:
             return "Session has expired. Please re-authenticate."
         case .forbidden(_, let msg):
@@ -114,14 +111,28 @@ enum APIClient {
         }
 
         if http.statusCode >= 400 {
-            let parsed = try? decoder.decode(APIErrorResponse.self, from: data)
-            let code = parsed?.error.code ?? "UNKNOWN"
-            let message = parsed?.error.message ?? "An error occurred."
+            var code = "UNKNOWN"
+            var message = "An error occurred."
+            
+            // Try app standard format first
+            if let parsed = try? decoder.decode(APIErrorResponse.self, from: data) {
+                code = parsed.error.code
+                message = parsed.error.message
+            } else if let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                // Try better-auth default format
+                if let msg = dict["message"] as? String {
+                    message = msg
+                }
+                if let c = dict["code"] as? String {
+                    code = c
+                } else if let err = dict["error"] as? String {
+                    code = err
+                }
+            }
             switch http.statusCode {
             case 401: throw APIError.unauthorized
             case 403:
                 switch code {
-                case "ONBOARDING_REQUIRED": throw APIError.onboardingRequired
                 case "SESSION_NOT_FRESH": throw APIError.sessionNotFresh
                 default: throw APIError.forbidden(code: code, message: message)
                 }
@@ -146,13 +157,28 @@ enum APIClient {
     // MARK: - Auth
 
     /// Send OTP email
-    static func sendOTP(email: String) async throws {
-        try await perform(path: "/api/auth/email-otp/send-verification-otp", method: "POST", body: SendOTPRequest(email: email), as: EmptyResponse.self)
+    static func sendOTP(email: String, type: String = "sign-in") async throws {
+        try await perform(path: "/api/auth/email-otp/send-verification-otp", method: "POST", body: SendOTPRequest(email: email, type: type), as: EmptyResponse.self)
     }
 
     /// Sign in with OTP (set-auth-token auto-saved to Keychain)
     static func signIn(email: String, otp: String) async throws {
         try await perform(path: "/api/auth/sign-in/email-otp", method: "POST", body: VerifyOTPRequest(email: email, otp: otp), as: EmptyResponse.self)
+    }
+
+    /// Sign in anonymously (set-auth-token auto-saved to Keychain)
+    static func signInAnonymous() async throws {
+        try await perform(path: "/api/auth/sign-in/anonymous", method: "POST", body: EmptyRequest(), as: EmptyResponse.self)
+    }
+
+    /// Request Email Change (sends OTP to new email)
+    static func requestEmailChange(newEmail: String) async throws {
+        try await perform(path: "/api/auth/email-otp/request-email-change", method: "POST", body: RequestEmailChangeRequest(newEmail: newEmail), as: EmptyResponse.self)
+    }
+
+    /// Change Email with OTP
+    static func changeEmail(newEmail: String, otp: String) async throws {
+        try await perform(path: "/api/auth/email-otp/change-email", method: "POST", body: ChangeEmailRequest(newEmail: newEmail, otp: otp), as: EmptyResponse.self)
     }
 
     /// Sign out (caller must delete token from Keychain)
@@ -167,12 +193,6 @@ enum APIClient {
         try await perform(path: "/api/v1/users/me", method: "GET", as: UserProfile.self)
     }
 
-    /// Create profile (onboarding)
-    static func createProfile(name: String, iconEmoji: String, iconBackgroundColor: String) async throws -> UserProfile {
-        let body = CreateProfileRequest(name: name, iconEmoji: iconEmoji, iconBackgroundColor: iconBackgroundColor)
-        return try await perform(path: "/api/v1/users/me", method: "POST", body: body, as: UserProfile.self)
-    }
-
     /// Update profile (partial update)
     static func updateProfile(name: String? = nil, iconEmoji: String? = nil, iconBackgroundColor: String? = nil) async throws -> UserProfile {
         let body = UpdateProfileRequest(name: name, iconEmoji: iconEmoji, iconBackgroundColor: iconBackgroundColor)
@@ -182,6 +202,11 @@ enum APIClient {
     /// Delete account (fresh session required)
     static func deleteAccount() async throws {
         try await perform(path: "/api/v1/users/me", method: "DELETE", as: EmptyResponse.self)
+    }
+
+    /// Delete anonymous account
+    static func deleteAnonymousAccount() async throws {
+        try await perform(path: "/api/auth/delete-anonymous-user", method: "POST", body: EmptyRequest(), as: EmptyResponse.self)
     }
 
     // MARK: - Users

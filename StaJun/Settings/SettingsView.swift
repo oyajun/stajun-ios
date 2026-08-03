@@ -7,6 +7,7 @@ struct SettingsView: View {
     @State private var showSignOutConfirmation = false
     @State private var showEditProfile = false
     @State private var showDeleteAccount = false
+    @State private var showChangeEmail = false
 
     private var currentUser: UserProfile? { appState.currentUser }
 
@@ -42,9 +43,14 @@ struct SettingsView: View {
                             Text("Email")
                                 .foregroundStyle(.secondary)
                             Spacer()
-                            Text(email)
-                                .lineLimit(1)
-                                .font(.subheadline)
+                            Button {
+                                showChangeEmail = true
+                            } label: {
+                                Text(email)
+                                    .lineLimit(1)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.primary)
+                            }
                         }
                     }
                     
@@ -55,11 +61,13 @@ struct SettingsView: View {
 
                 // Sign out and delete
                 Section {
-                    Button("Sign Out") {
-                        showSignOutConfirmation = true
+                    if currentUser?.isAnonymous != true {
+                        Button("Sign Out") {
+                            showSignOutConfirmation = true
+                        }
+                        .foregroundStyle(.red)
+                        .disabled(isSigningOut)
                     }
-                    .foregroundStyle(.red)
-                    .disabled(isSigningOut)
 
                     Button("Delete Account…") {
                         showDeleteAccount = true
@@ -70,6 +78,9 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .sheet(isPresented: $showEditProfile) {
                 EditProfileView()
+            }
+            .sheet(isPresented: $showChangeEmail) {
+                ChangeEmailView()
             }
             .sheet(isPresented: $showDeleteAccount) {
                 DeleteAccountView()

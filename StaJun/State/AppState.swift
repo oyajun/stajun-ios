@@ -5,9 +5,10 @@ import SwiftUI
 
 enum AuthState: Equatable {
     case checking              // Verifying token on startup
-    case unauthenticated       // Unauthenticated (SC-01)
+    case welcome               // Shows the new welcome view
+    case emailLogin            // Email input for existing users
     case awaitingOTP(email: String) // Waiting for OTP input (SC-02)
-    case onboarding            // Authenticated but profile not registered (SC-03)
+    case anonymousOnboarding   // Profile setup for new anonymous user
     case authenticated         // Authenticated + onboarding complete
 }
 
@@ -24,18 +25,20 @@ final class AppState {
 
     /// Signed-in email, persisted in Keychain so it can be reused for re-authentication (e.g. account deletion)
     var userEmail: String? {
-        get { KeychainHelper.email }
-        set { KeychainHelper.email = newValue }
+        didSet {
+            KeychainHelper.email = userEmail
+        }
     }
 
     init() {
+        self.userEmail = KeychainHelper.email
         Task { await checkExistingSession() }
     }
 
     /// On startup: Verify token on server if it exists in Keychain
     private func checkExistingSession() async {
         guard KeychainHelper.token != nil else {
-            authState = .unauthenticated
+            authState = .welcome
             return
         }
 
@@ -56,9 +59,7 @@ final class AppState {
             KeychainHelper.token = nil
             ProfileCache.clear()
             currentUser = nil
-            authState = .unauthenticated
-        } catch APIError.onboardingRequired {
-            authState = .onboarding
+            authState = .welcome
         } catch {
             // Server unreachable / network error / server error:
             // a token exists but we can't verify it right now. Keep the user
@@ -82,13 +83,9 @@ final class AppState {
         try await APIClient.signIn(email: email, otp: otp)
         // Token already saved to Keychain in signIn
         userEmail = email
-        do {
-            let profile = try await APIClient.getMyProfile()
-            currentUser = profile
-            authState = .authenticated
-        } catch APIError.onboardingRequired {
-            authState = .onboarding
-        }
+        let profile = try await APIClient.getMyProfile()
+        currentUser = profile
+        authState = .authenticated
     }
 
     /// Complete onboarding
@@ -96,6 +93,13 @@ final class AppState {
         currentUser = profile
         ProfileCache.save(profile)
         authState = .authenticated
+    }
+
+    /// Create an anonymous profile
+    func createAnonymousProfile(name: String, iconEmoji: String, iconBackgroundColor: String) async throws {
+        try await APIClient.signInAnonymous()
+        let profile = try await APIClient.updateProfile(name: name, iconEmoji: iconEmoji, iconBackgroundColor: iconBackgroundColor)
+        completeOnboarding(profile: profile)
     }
 
     /// Update profile
@@ -112,17 +116,17 @@ final class AppState {
         ProfileCache.clear()
         currentUser = nil
         isStudying = false
-        authState = .unauthenticated
+        authState = .welcome
     }
 
     /// Clean up after account deletion
     func clearAfterAccountDeletion() {
         KeychainHelper.token = nil
-        KeychainHelper.email = nil
+        userEmail = nil
         FeedCache.clear()
         ProfileCache.clear()
         currentUser = nil
         isStudying = false
-        authState = .unauthenticated
+        authState = .welcome
     }
 }

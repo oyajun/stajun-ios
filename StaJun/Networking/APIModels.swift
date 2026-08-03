@@ -4,12 +4,21 @@ import Foundation
 
 struct SendOTPRequest: Encodable {
     let email: String
-    let type: String = "sign-in"
+    var type: String = "sign-in"
 }
 
 struct VerifyOTPRequest: Encodable {
     let email: String
     let otp: String
+}
+
+struct ChangeEmailRequest: Encodable {
+    let newEmail: String
+    let otp: String
+}
+
+struct RequestEmailChangeRequest: Encodable {
+    let newEmail: String
 }
 
 // MARK: - User
@@ -19,6 +28,7 @@ struct UserProfile: Codable, Identifiable, Equatable {
     let name: String
     let iconEmoji: String
     let iconBackgroundColor: String
+    let isAnonymous: Bool?
 }
 
 struct UserWithFollowStatus: Codable, Identifiable {
@@ -106,12 +116,6 @@ struct Pagination: Codable {
 
 // MARK: - Profile
 
-struct CreateProfileRequest: Encodable {
-    let name: String
-    let iconEmoji: String
-    let iconBackgroundColor: String
-}
-
 struct UpdateProfileRequest: Encodable {
     let name: String?
     let iconEmoji: String?
@@ -161,6 +165,7 @@ struct APIErrorDetail: Decodable {
 
 // MARK: - Internal
 
+struct EmptyRequest: Encodable {}
 struct EmptyResponse: Decodable {}
 
 // MARK: - Block

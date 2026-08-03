@@ -10,14 +10,17 @@ struct ContentView: View {
             ProgressView("Loading…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-        case .unauthenticated:
+        case .welcome:
+            WelcomeView()
+
+        case .emailLogin:
             EmailInputView()
 
         case .awaitingOTP(let email):
             OTPInputView(email: email)
 
-        case .onboarding:
-            ProfileSetupView()
+        case .anonymousOnboarding:
+            ProfileSetupView(isAnonymous: true)
 
         case .authenticated:
             MainTabView()

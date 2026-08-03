@@ -3,6 +3,8 @@ import SwiftUI
 struct ProfileSetupView: View {
     @Environment(AppState.self) private var appState
 
+    var isAnonymous: Bool = false
+
     @State private var name = ""
     @State private var selectedEmoji = IconPresets.emojis.first ?? "📚"
     @State private var selectedColor = IconPresets.colors.first ?? "#FFD54F"
@@ -65,6 +67,18 @@ struct ProfileSetupView: View {
             .navigationTitle("Create Profile")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        Task {
+                            if isAnonymous {
+                                appState.authState = .welcome
+                            } else {
+                                await appState.signOut()
+                            }
+                        }
+                    }
+                    .disabled(isLoading)
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         Task { await submit() }
@@ -85,12 +99,21 @@ struct ProfileSetupView: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
-            let profile = try await APIClient.createProfile(
-                name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                iconEmoji: selectedEmoji,
-                iconBackgroundColor: selectedColor
-            )
-            appState.completeOnboarding(profile: profile)
+            let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            if isAnonymous {
+                try await appState.createAnonymousProfile(
+                    name: trimmedName,
+                    iconEmoji: selectedEmoji,
+                    iconBackgroundColor: selectedColor
+                )
+            } else {
+                let profile = try await APIClient.updateProfile(
+                    name: trimmedName,
+                    iconEmoji: selectedEmoji,
+                    iconBackgroundColor: selectedColor
+                )
+                appState.completeOnboarding(profile: profile)
+            }
         } catch {
             errorMessage = error.localizedDescription
         }

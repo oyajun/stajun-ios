@@ -82,7 +82,15 @@ struct EmailInputView: View {
                 Spacer()
             }
             .navigationTitle("")
-            .navigationBarHidden(true)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        appState.authState = .welcome
+                    }
+                    .disabled(isLoading)
+                }
+            }
         }
     }
 

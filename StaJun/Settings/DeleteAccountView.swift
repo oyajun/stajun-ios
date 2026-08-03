@@ -24,7 +24,11 @@ struct DeleteAccountView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if email == nil {
+                if appState.currentUser?.isAnonymous == true {
+                    Form {
+                        anonymousDeleteSection
+                    }
+                } else if email == nil {
                     noEmailView
                 } else {
                     Form {
@@ -145,6 +149,28 @@ struct DeleteAccountView: View {
         }
     }
 
+    @ViewBuilder
+    private var anonymousDeleteSection: some View {
+        if step == .deleting {
+            deletingSection
+        } else {
+            Section {
+                Button("Delete Account") {
+                    Task { await deleteAnonymousUser() }
+                }
+                .foregroundStyle(.red)
+                .disabled(isLoading)
+            } footer: {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("This cannot be undone. All follow relationships and study records will be deleted.")
+                    if let errorMessage {
+                        Text(errorMessage).foregroundStyle(.red)
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - Actions
 
     private func sendOTP(email: String) async {
@@ -174,6 +200,21 @@ struct DeleteAccountView: View {
             dismiss()
         } catch {
             step = .verifyOTP
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteAnonymousUser() async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+        do {
+            step = .deleting
+            try await APIClient.deleteAnonymousAccount()
+            appState.clearAfterAccountDeletion()
+            dismiss()
+        } catch {
+            step = .confirm
             errorMessage = error.localizedDescription
         }
     }
