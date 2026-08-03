@@ -10,7 +10,7 @@ struct WelcomeView: View {
 
                 // Logo and title
                 VStack(spacing: 8) {
-                    Text("StaJun")
+                    Text("JunJun")
                         .font(.largeTitle.bold())
                     Text("What are you studying now?")
                         .font(.subheadline)
