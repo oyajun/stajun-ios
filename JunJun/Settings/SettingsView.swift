@@ -88,6 +88,21 @@ struct SettingsView: View {
                     }
                     .foregroundStyle(.red)
                 }
+                
+                // About
+                Section {
+                    Link(destination: Config.termsOfServiceURL) {
+                        Text("Terms of Service")
+                    }
+                    .foregroundStyle(.primary)
+                    
+                    Link(destination: Config.privacyPolicyURL) {
+                        Text("Privacy Policy")
+                    }
+                    .foregroundStyle(.primary)
+                } header: {
+                    Text("About")
+                }
             }
             .navigationTitle("Settings")
             .sheet(isPresented: $showEditProfile) {

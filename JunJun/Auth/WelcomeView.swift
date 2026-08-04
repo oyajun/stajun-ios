@@ -42,6 +42,18 @@ struct WelcomeView: View {
                     .tint(.primary)
                 }
                 .padding(.horizontal)
+                
+                HStack(spacing: 16) {
+                    Link(destination: Config.termsOfServiceURL) {
+                        Text("Terms of Service")
+                    }
+                    Link(destination: Config.privacyPolicyURL) {
+                        Text("Privacy Policy")
+                    }
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .padding(.top, 8)
 
                 Spacer()
                     .frame(height: 16)

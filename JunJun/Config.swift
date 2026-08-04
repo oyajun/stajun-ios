@@ -2,10 +2,10 @@ import Foundation
 
 enum Config {
     #if DEBUG
-    static let baseURL = URL(string: "https://stajun.netlify.app")!
+    static let baseURL = URL(string: "https://junjun.oyajun.com")!
     //static let baseURL = URL(string: "http://192.168.0.219:3000")!
     #else
-    static let baseURL = URL(string: "https://stajun.netlify.app")!
+    static let baseURL = URL(string: "https://junjun.oyajun.com")!
     #endif
 
     /// Home feed polling interval (seconds)
@@ -16,4 +16,19 @@ enum Config {
     
     /// App Store URL for the update dialog
     static let appStoreURL = URL(string: "itms-apps://itunes.apple.com/")
+    
+    static func documentURL(for path: String) -> URL {
+        let lang = Locale.current.language.languageCode?.identifier ?? "en"
+        let supportedLangs = ["ja", "en", "ko"]
+        let currentLang = supportedLangs.contains(lang) ? lang : "en"
+        return baseURL.appendingPathComponent("\(currentLang)/\(path)")
+    }
+    
+    static var privacyPolicyURL: URL {
+        documentURL(for: "privacy-policy")
+    }
+    
+    static var termsOfServiceURL: URL {
+        documentURL(for: "terms-of-service")
+    }
 }
