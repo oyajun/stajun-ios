@@ -50,6 +50,9 @@ struct WelcomeView: View {
                     Link(destination: Config.privacyPolicyURL) {
                         Text("Privacy Policy")
                     }
+                    Link(destination: Config.supportURL) {
+                        Text("Support")
+                    }
                 }
                 .font(.footnote)
                 .foregroundStyle(.secondary)

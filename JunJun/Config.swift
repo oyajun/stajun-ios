@@ -31,4 +31,8 @@ enum Config {
     static var termsOfServiceURL: URL {
         documentURL(for: "terms-of-service")
     }
+    
+    static var supportURL: URL {
+        documentURL(for: "support")
+    }
 }

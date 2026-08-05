@@ -91,18 +91,71 @@ struct SettingsView: View {
                 
                 // About
                 Section {
+                    HStack {
+                        Text("Version")
+                        Spacer()
+                        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+                            Text(verbatim: version)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Link(destination: Config.supportURL) {
+                        HStack {
+                            Text("Support")
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .foregroundStyle(.primary)
+
                     Link(destination: Config.termsOfServiceURL) {
-                        Text("Terms of Service")
+                        HStack {
+                            Text("Terms of Service")
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .foregroundStyle(.tertiary)
+                        }
                     }
                     .foregroundStyle(.primary)
                     
                     Link(destination: Config.privacyPolicyURL) {
-                        Text("Privacy Policy")
+                        HStack {
+                            Text("Privacy Policy")
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .foregroundStyle(.tertiary)
+                        }
                     }
                     .foregroundStyle(.primary)
                 } header: {
                     Text("About")
                 }
+                
+                // Developer
+                Section {
+                    Link(destination: URL(string: "https://oyajun.com")!) {
+                        HStack {
+                            Text(verbatim: "小山田純(oyajun)")
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                } header: {
+                    Text("Developer")
+                }
+                
+                Text(verbatim: "from Japan 🇯🇵")
+                    .font(.body)
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+                    .padding(.top, 8)
+                    .padding(.bottom, 32)
             }
             .navigationTitle("Settings")
             .sheet(isPresented: $showEditProfile) {
