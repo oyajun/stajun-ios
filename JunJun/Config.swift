@@ -12,7 +12,7 @@ enum Config {
     static let feedPollingInterval: TimeInterval = 60
     
     /// App expiration date. Change this string to configure the expiration date.
-    static let expirationDate: Date? = ISO8601DateFormatter().date(from: "2026-08-31T23:59:59Z")
+    static let expirationDate: Date? = ISO8601DateFormatter().date(from: "2026-09-31T23:59:59Z")
     
     /// App Store URL for the update dialog
     static let appStoreURL = URL(string: "itms-apps://itunes.apple.com/")
