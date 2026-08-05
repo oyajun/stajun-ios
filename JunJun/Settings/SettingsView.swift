@@ -94,8 +94,9 @@ struct SettingsView: View {
                     HStack {
                         Text("Version")
                         Spacer()
-                        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
-                            Text(verbatim: version)
+                        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                           let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
+                            Text(verbatim: "\(version) (\(build))")
                                 .foregroundStyle(.secondary)
                         }
                     }
