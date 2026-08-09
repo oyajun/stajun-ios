@@ -63,6 +63,7 @@ struct SearchView: View {
             }
             .navigationTitle("Search")
             .searchable(text: $query, prompt: "Search Users")
+            .textInputAutocapitalization(.never)
             .onChange(of: query) { _, newValue in
                 scheduleSearch(query: newValue)
             }

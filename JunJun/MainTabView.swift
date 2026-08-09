@@ -12,7 +12,7 @@ struct MainTabView: View {
             Tab("Stats", systemImage: "chart.bar", value: .stats) {
                 StatsView()
             }
-            Tab(value: .search, role: .search) {
+            Tab("Search", systemImage: "magnifyingglass", value: .search) {
                 SearchView()
             }
             Tab("Settings", systemImage: "gearshape", value: .settings) {
