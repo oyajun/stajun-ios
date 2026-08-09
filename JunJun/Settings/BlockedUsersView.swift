@@ -2,61 +2,89 @@ import SwiftUI
 
 struct BlockedUsersView: View {
     @State private var users: [UserWithFollowStatus] = []
+    @State private var unblockedUserIds: Set<String> = []
     @State private var isLoading = true
+    @State private var isLoadingMore = false
     @State private var errorMessage: String?
     @State private var hasMore = false
     @State private var offset = 0
     private let limit = 20
 
     var body: some View {
-        Group {
+        List {
             if isLoading && users.isEmpty {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let errorMessage = errorMessage, users.isEmpty {
-                ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(errorMessage))
+                HStack {
+                    Spacer()
+                    ProgressView()
+                    Spacer()
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             } else if users.isEmpty {
                 ContentUnavailableView("No Blocked Users", systemImage: "person.crop.circle.badge.xmark")
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
             } else {
-                List {
-                    ForEach(users) { user in
+                ForEach(users) { user in
+                    NavigationLink {
+                        UserProfileView(userId: user.id)
+                    } label: {
                         HStack(spacing: 12) {
                             UserIconView(
                                 emoji: user.iconEmoji,
                                 backgroundColor: user.iconBackgroundColor,
-                                size: 40
+                                size: 44
                             )
                             Text(user.name)
-                                .font(.body.weight(.medium))
+                                .font(.body)
                             Spacer()
-                            Button("Unblock") {
-                                Task { await unblockUser(user) }
-                            }
-                            .buttonStyle(.bordered)
-                            .tint(.red)
-                        }
-                        .padding(.vertical, 4)
-                        .onAppear {
-                            if user.id == users.last?.id {
-                                loadMore()
+                            if unblockedUserIds.contains(user.id) {
+                                Button {
+                                    toggleFollow(user: user)
+                                } label: {
+                                    Text(user.isFollowing ? "Following" : "Follow")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(user.isFollowing ? .secondary : .accentColor)
+                            } else {
+                                Button("Unblock") {
+                                    Task { await unblockUser(user) }
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(.red)
                             }
                         }
                     }
-                    if hasMore {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                            Spacer()
+                    .onAppear {
+                        if user.id == users.last?.id {
+                            loadMore()
                         }
-                        .padding()
-                        .listRowSeparator(.hidden)
                     }
                 }
-                .listStyle(.plain)
-                .refreshable {
-                    await loadInitial()
+
+                if isLoadingMore {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
             }
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.subheadline)
+                    .foregroundStyle(.red)
+                    .listRowBackground(Color.clear)
+            }
+        }
+        .listStyle(.plain)
+        .refreshable {
+            await loadInitial()
         }
         .navigationTitle("Blocked Users")
         .navigationBarTitleDisplayMode(.inline)
@@ -70,6 +98,7 @@ struct BlockedUsersView: View {
     private func loadInitial() async {
         isLoading = true
         errorMessage = nil
+        unblockedUserIds.removeAll()
         do {
             let response = try await APIClient.getBlockedUsers(limit: limit, offset: 0)
             users = response.users
@@ -84,9 +113,10 @@ struct BlockedUsersView: View {
     }
 
     private func loadMore() {
-        guard hasMore, !isLoading else { return }
+        guard hasMore, !isLoadingMore, !isLoading else { return }
         Task {
-            isLoading = true
+            isLoadingMore = true
+            defer { isLoadingMore = false }
             do {
                 let response = try await APIClient.getBlockedUsers(limit: limit, offset: offset)
                 users.append(contentsOf: response.users)
@@ -95,17 +125,35 @@ struct BlockedUsersView: View {
             } catch {
                 // Ignore pagination errors silently
             }
-            isLoading = false
         }
     }
 
     private func unblockUser(_ user: UserWithFollowStatus) async {
         do {
             try await APIClient.unblockUser(userId: user.id)
-            users.removeAll { $0.id == user.id }
+            unblockedUserIds.insert(user.id)
         } catch {
             if !error.isCancellation {
                 errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func toggleFollow(user: UserWithFollowStatus) {
+        guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
+        Task {
+            do {
+                if user.isFollowing {
+                    try await APIClient.unfollow(userId: user.id)
+                    users[index].isFollowing = false
+                } else {
+                    _ = try await APIClient.follow(userId: user.id)
+                    users[index].isFollowing = true
+                }
+            } catch {
+                if !error.isCancellation {
+                    errorMessage = error.localizedDescription
+                }
             }
         }
     }
@@ -116,3 +164,5 @@ struct BlockedUsersView: View {
         BlockedUsersView()
     }
 }
+
+
