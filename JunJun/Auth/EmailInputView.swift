@@ -99,6 +99,13 @@ struct EmailInputView: View {
                     }
                 }
             }
+            .onAppear {
+                if mode == .login && email.isEmpty {
+                    if let savedEmail = appState.userEmail ?? KeychainHelper.email {
+                        email = savedEmail
+                    }
+                }
+            }
         }
 
     private var titleText: LocalizedStringKey {

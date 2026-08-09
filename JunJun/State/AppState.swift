@@ -118,12 +118,16 @@ final class AppState {
     func createAnonymousProfile(name: String, iconEmoji: String, iconBackgroundColor: String) async throws {
         try await APIClient.signInAnonymous()
         let profile = try await APIClient.updateProfile(name: name, iconEmoji: iconEmoji, iconBackgroundColor: iconBackgroundColor)
+        userEmail = nil
         completeOnboarding(profile: profile)
     }
 
     /// Update profile
     func updateCurrentUser(_ profile: UserProfile) {
         currentUser = profile
+        if let email = profile.email {
+            userEmail = email
+        }
         ProfileCache.save(profile)
     }
 

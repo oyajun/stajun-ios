@@ -29,6 +29,16 @@ struct UserProfile: Codable, Identifiable, Equatable {
     let iconEmoji: String
     let iconBackgroundColor: String
     let isAnonymous: Bool?
+    let email: String?
+
+    init(id: String, name: String, iconEmoji: String, iconBackgroundColor: String, isAnonymous: Bool? = nil, email: String? = nil) {
+        self.id = id
+        self.name = name
+        self.iconEmoji = iconEmoji
+        self.iconBackgroundColor = iconBackgroundColor
+        self.isAnonymous = isAnonymous
+        self.email = email
+    }
 }
 
 struct UserWithFollowStatus: Codable, Identifiable {

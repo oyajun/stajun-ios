@@ -128,6 +128,17 @@ struct OTPInputView: View {
             case .changeEmail:
                 try await APIClient.changeEmail(newEmail: email, otp: otp)
                 appState.userEmail = email
+                if let current = appState.currentUser {
+                    let updated = UserProfile(
+                        id: current.id,
+                        name: current.name,
+                        iconEmoji: current.iconEmoji,
+                        iconBackgroundColor: current.iconBackgroundColor,
+                        isAnonymous: false,
+                        email: email
+                    )
+                    appState.updateCurrentUser(updated)
+                }
                 onSuccess?()
             case .deleteAccount:
                 try await APIClient.signIn(email: email, otp: otp)
