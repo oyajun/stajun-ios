@@ -1,25 +1,12 @@
 import Foundation
 import SwiftUI
 
-// MARK: - AuthFlowMode
-
-enum AuthFlowMode: Equatable {
-    case login
-    case registerEmail
-    case changeEmail
-    case deleteAccount
-}
-
 // MARK: - Auth State
 
-
 enum AuthState: Equatable {
-    case checking              // Verifying token on startup
-    case welcome               // Shows the new welcome view
-    case emailLogin            // Email input for existing users
-    case awaitingOTP(email: String) // Waiting for OTP input (SC-02)
-    case anonymousOnboarding   // Profile setup for new anonymous user
-    case authenticated         // Authenticated + onboarding complete
+    case checking         // Verifying token on startup
+    case unauthenticated  // User not logged in (shows Auth Flow)
+    case authenticated    // Authenticated + onboarding complete
 }
 
 // MARK: - AppState
@@ -58,7 +45,7 @@ final class AppState {
     /// On startup: Verify token on server if it exists in Keychain
     private func checkExistingSession() async {
         guard KeychainHelper.token != nil else {
-            authState = .welcome
+            authState = .unauthenticated
             return
         }
 
@@ -79,7 +66,7 @@ final class AppState {
             KeychainHelper.token = nil
             ProfileCache.clear()
             currentUser = nil
-            authState = .welcome
+            authState = .unauthenticated
         } catch {
             // Server unreachable / network error / server error:
             // a token exists but we can't verify it right now. Keep the user
@@ -90,22 +77,45 @@ final class AppState {
         }
     }
 
-    // MARK: - Actions
+    // MARK: - Auth Actions
 
-    /// Send OTP after email input and transition to awaitingOTP
-    func requestOTP(email: String) async throws {
-        try await APIClient.sendOTP(email: email)
-        authState = .awaitingOTP(email: email)
+    /// Send OTP for initial login, email registration, email change, or account deletion
+    func sendOTP(email: String, mode: AuthFlowMode) async throws {
+        switch mode {
+        case .login, .deleteAccount:
+            try await APIClient.sendOTP(email: email)
+        case .registerEmail, .changeEmail:
+            try await APIClient.requestEmailChange(newEmail: email)
+        }
     }
 
-    /// Verify OTP and check profile state after successful sign-in
-    func verifyOTP(email: String, otp: String) async throws {
-        try await APIClient.signIn(email: email, otp: otp)
-        // Token already saved to Keychain in signIn
-        userEmail = email
-        let profile = try await APIClient.getMyProfile()
-        currentUser = profile
-        authState = .authenticated
+    /// Verify OTP code and handle state updates per mode
+    func verifyOTP(email: String, otp: String, mode: AuthFlowMode) async throws {
+        switch mode {
+        case .login:
+            try await APIClient.signIn(email: email, otp: otp)
+            userEmail = email
+            let profile = try await APIClient.getMyProfile()
+            currentUser = profile
+            authState = .authenticated
+
+        case .registerEmail, .changeEmail:
+            try await APIClient.changeEmail(newEmail: email, otp: otp)
+            userEmail = email
+            let profile = try await APIClient.getMyProfile()
+            updateCurrentUser(profile)
+            authState = .authenticated
+
+        case .deleteAccount:
+            try await APIClient.signIn(email: email, otp: otp)
+            try await APIClient.deleteAccount()
+            clearAfterAccountDeletion()
+        }
+    }
+
+    /// Resend OTP code
+    func resendOTP(email: String, mode: AuthFlowMode) async throws {
+        try await sendOTP(email: email, mode: mode)
     }
 
     /// Complete onboarding
@@ -140,7 +150,7 @@ final class AppState {
         ProfileCache.clear()
         currentUser = nil
         isStudying = false
-        authState = .welcome
+        authState = .unauthenticated
     }
 
     /// Clean up after account deletion
@@ -151,6 +161,6 @@ final class AppState {
         ProfileCache.clear()
         currentUser = nil
         isStudying = false
-        authState = .welcome
+        authState = .unauthenticated
     }
 }

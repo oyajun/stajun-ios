@@ -31,7 +31,7 @@ struct WelcomeView: View {
                     .buttonStyle(.borderedProminent)
 
                     Button {
-                        authRouter?.path.append(.emailLogin)
+                        authRouter?.path.append(.loginEmail)
                     } label: {
                         Text("Log in if you already have an account")
                             .fontWeight(.semibold)

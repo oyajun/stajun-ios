@@ -6,8 +6,9 @@ class AuthRouter {
 }
 
 enum AuthRoute: Hashable {
-    case emailLogin
-    case awaitingOTP(email: String)
+    case loginEmail
+    case registerEmail
+    case awaitingOTP(email: String, mode: AuthFlowMode)
     case anonymousOnboarding
 }
 
@@ -19,10 +20,12 @@ struct AuthCoordinatorView: View {
             WelcomeView()
                 .navigationDestination(for: AuthRoute.self) { route in
                     switch route {
-                    case .emailLogin:
-                        EmailInputView()
-                    case .awaitingOTP(let email):
-                        OTPInputView(email: email)
+                    case .loginEmail:
+                        EmailInputView(mode: .login)
+                    case .registerEmail:
+                        EmailInputView(mode: .registerEmail)
+                    case .awaitingOTP(let email, let mode):
+                        OTPInputView(email: email, mode: mode)
                     case .anonymousOnboarding:
                         ProfileSetupView(isAnonymous: true)
                     }
@@ -43,7 +46,7 @@ struct ContentView: View {
                 ProgressView("Loading…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            case .welcome, .emailLogin, .awaitingOTP, .anonymousOnboarding:
+            case .unauthenticated:
                 AuthCoordinatorView()
 
             case .authenticated:

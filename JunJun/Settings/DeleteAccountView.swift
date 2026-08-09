@@ -191,7 +191,7 @@ struct DeleteAccountView: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
-            try await APIClient.sendOTP(email: email)
+            try await appState.sendOTP(email: email, mode: .deleteAccount)
             showOTP = true
         } catch {
             errorMessage = error.localizedDescription
