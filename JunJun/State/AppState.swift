@@ -1,7 +1,16 @@
 import Foundation
 import SwiftUI
 
+// MARK: - AuthFlowMode
+
+enum AuthFlowMode: Equatable {
+    case login
+    case changeEmail
+    case deleteAccount
+}
+
 // MARK: - Auth State
+
 
 enum AuthState: Equatable {
     case checking              // Verifying token on startup

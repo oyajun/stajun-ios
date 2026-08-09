@@ -4,18 +4,7 @@ struct DeleteAccountView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
 
-    // Step management
-    enum Step {
-        case confirm       // Initial warning
-        case verifyOTP     // Verify OTP
-        case deleting      // Deleting
-    }
-
-    @State private var step: Step = .confirm
-
-    // OTP
-    @State private var otp = ""
-
+    @State private var showOTP = false
     @State private var isLoading = false
     @State private var errorMessage: String?
 
@@ -25,40 +14,34 @@ struct DeleteAccountView: View {
         NavigationStack {
             Group {
                 if appState.currentUser?.isAnonymous == true {
-                    Form {
-                        anonymousDeleteSection
-                    }
+                    anonymousDeleteView
                 } else if email == nil {
                     noEmailView
                 } else {
-                    Form {
-                        switch step {
-                        case .confirm:
-                            confirmSection
-                        case .verifyOTP:
-                            otpSection
-                        case .deleting:
-                            deletingSection
-                        }
-                    }
+                    confirmView
                 }
             }
-            .navigationTitle("Delete Account")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .disabled(step == .deleting)
+            .navigationDestination(isPresented: $showOTP) {
+                if let email {
+                    OTPInputView(
+                        email: email,
+                        mode: .deleteAccount,
+                        onSuccess: {
+                            dismiss()
+                        },
+                        onCancel: {
+                            dismiss() // Cancels the whole modal
+                        }
+                    )
                 }
             }
         }
     }
-
+    
     // MARK: - No email fallback
 
     private var noEmailView: some View {
         VStack(spacing: 12) {
-            Spacer()
             Image(systemName: "exclamationmark.triangle")
                 .font(.largeTitle)
                 .foregroundStyle(.secondary)
@@ -68,105 +51,135 @@ struct DeleteAccountView: View {
                 .padding(.horizontal, 32)
             Spacer()
         }
+        .navigationTitle("Delete Account")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .fontWeight(.semibold)
+                }
+                .tint(.primary)
+            }
+        }
     }
 
     // MARK: - Sections
 
-    @ViewBuilder
-    private var confirmSection: some View {
-        Section {
-            Button("Send Authentication Code") {
-                if let email {
-                    Task { await sendOTP(email: email) }
-                }
+    private var confirmView: some View {
+        VStack(spacing: 32) {
+            VStack(spacing: 16) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 64))
+                    .foregroundStyle(.red)
+                Text("This cannot be undone.\nAll follow relationships and study records will be deleted.\nWe'll send an authentication code to your email to verify your identity.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
             }
-            .foregroundStyle(.red)
-            .disabled(isLoading)
-        } footer: {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("This cannot be undone. All follow relationships and study records will be deleted. We'll send an authentication code to your email to verify your identity.")
-                if let errorMessage {
-                    Text(errorMessage).foregroundStyle(.red)
-                }
-            }
-        }
-    }
 
-    @ViewBuilder
-    private var otpSection: some View {
-        Section {
-            TextField("000000", text: $otp)
-                #if os(iOS)
-                .keyboardType(.numberPad)
-                .textContentType(.oneTimeCode)
-                #endif
-                .font(.body.monospacedDigit())
-                .onChange(of: otp) { _, v in
-                    otp = String(v.filter(\.isNumber).prefix(6))
-                }
-        } header: {
-            Text("Authentication Code (6 digits)")
-        } footer: {
-            if let email {
-                Text("Enter the code sent to \(email).")
-            }
-        }
-
-        Section {
-            Button("Delete Account") {
-                Task { await verifyAndDelete() }
-            }
-            .foregroundStyle(.red)
-            .disabled(isLoading || otp.count != 6)
-
-            Button("Resend Code") {
-                if let email {
-                    Task { await sendOTP(email: email) }
-                }
-            }
-            .disabled(isLoading)
-        } footer: {
             if let errorMessage {
-                Text(errorMessage).foregroundStyle(.red)
+                Text(errorMessage)
+                    .font(.subheadline)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal)
             }
-        }
-    }
 
-    @ViewBuilder
-    private var deletingSection: some View {
-        Section {
-            HStack {
-                Spacer()
-                VStack(spacing: 12) {
-                    ProgressView()
-                    Text("Deleting…")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
+            Button {
+                if let email {
+                    Task { await sendOTP(email: email) }
                 }
-                Spacer()
-            }
-            .padding(.vertical, 32)
-        }
-    }
-
-    @ViewBuilder
-    private var anonymousDeleteSection: some View {
-        if step == .deleting {
-            deletingSection
-        } else {
-            Section {
-                Button("Delete Account") {
-                    Task { await deleteAnonymousUser() }
-                }
-                .foregroundStyle(.red)
-                .disabled(isLoading)
-            } footer: {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("This cannot be undone. All follow relationships and study records will be deleted.")
-                    if let errorMessage {
-                        Text(errorMessage).foregroundStyle(.red)
+            } label: {
+                Group {
+                    if isLoading {
+                        ProgressView().tint(.white)
+                    } else {
+                        Text("Delete Account")
+                            .fontWeight(.semibold)
                     }
                 }
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.red)
+            .disabled(isLoading)
+            .padding(.horizontal)
+            
+            Spacer()
+        }
+        .navigationTitle("Delete Account")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .fontWeight(.semibold)
+                }
+                .tint(.primary)
+                .disabled(isLoading)
+            }
+        }
+    }
+
+    private var anonymousDeleteView: some View {
+        VStack(spacing: 32) {
+            VStack(spacing: 16) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 64))
+                    .foregroundStyle(.red)
+                Text("This cannot be undone.\nAll follow relationships and study records will be deleted.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.subheadline)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal)
+            }
+
+            Button {
+                Task { await deleteAnonymousUser() }
+            } label: {
+                Group {
+                    if isLoading {
+                        ProgressView().tint(.white)
+                    } else {
+                        Text("Delete Account")
+                            .fontWeight(.semibold)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.red)
+            .disabled(isLoading)
+            .padding(.horizontal)
+            
+            Spacer()
+        }
+        .navigationTitle("Delete Account")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .fontWeight(.semibold)
+                }
+                .tint(.primary)
+                .disabled(isLoading)
             }
         }
     }
@@ -179,27 +192,8 @@ struct DeleteAccountView: View {
         defer { isLoading = false }
         do {
             try await APIClient.sendOTP(email: email)
-            step = .verifyOTP
+            showOTP = true
         } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    private func verifyAndDelete() async {
-        guard let email else { return }
-        isLoading = true
-        errorMessage = nil
-        defer { isLoading = false }
-        do {
-            // Re-authenticate with OTP to refresh session
-            try await APIClient.signIn(email: email, otp: otp)
-            // Delete account
-            step = .deleting
-            try await APIClient.deleteAccount()
-            appState.clearAfterAccountDeletion()
-            dismiss()
-        } catch {
-            step = .verifyOTP
             errorMessage = error.localizedDescription
         }
     }
@@ -209,12 +203,10 @@ struct DeleteAccountView: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
-            step = .deleting
             try await APIClient.deleteAnonymousAccount()
             appState.clearAfterAccountDeletion()
             dismiss()
         } catch {
-            step = .confirm
             errorMessage = error.localizedDescription
         }
     }

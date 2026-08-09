@@ -17,8 +17,7 @@ struct ProfileSetupView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
+        Form {
                 // Preview
                 Section {
                     HStack {
@@ -67,18 +66,6 @@ struct ProfileSetupView: View {
             .navigationTitle("Create Profile")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        Task {
-                            if isAnonymous {
-                                appState.authState = .welcome
-                            } else {
-                                await appState.signOut()
-                            }
-                        }
-                    }
-                    .disabled(isLoading)
-                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         Task { await submit() }
@@ -88,7 +75,6 @@ struct ProfileSetupView: View {
                         if isLoading {
                             ProgressView().scaleEffect(0.8)
                         }
-                    }
                 }
             }
         }

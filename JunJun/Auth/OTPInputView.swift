@@ -2,8 +2,12 @@ import SwiftUI
 
 struct OTPInputView: View {
     let email: String
+    var mode: AuthFlowMode = .login
+    var onSuccess: (() -> Void)? = nil
+    var onCancel: (() -> Void)? = nil
 
     @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
 
     @State private var otp = ""
     @State private var isLoading = false
@@ -13,15 +17,10 @@ struct OTPInputView: View {
     private var isValidOTP: Bool { otp.count == 6 && otp.allSatisfy(\.isNumber) }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 32) {
-                Spacer()
-
-                VStack(spacing: 8) {
+        VStack(spacing: 32) {
+            VStack(spacing: 8) {
                     Text("📨")
                         .font(.system(size: 64))
-                    Text("Enter Authentication Code")
-                        .font(.title2.bold())
                     Text("Enter the code sent to \(email)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -57,7 +56,6 @@ struct OTPInputView: View {
                         .padding(.horizontal)
                 }
 
-                // Verification button
                 Button {
                     Task { await verify() }
                 } label: {
@@ -65,7 +63,13 @@ struct OTPInputView: View {
                         if isLoading {
                             ProgressView().tint(.white)
                         } else {
-                            Text("Verify")
+                            let verifyText: LocalizedStringKey = {
+                                switch mode {
+                                case .login, .changeEmail: return "Verify"
+                                case .deleteAccount: return "Delete Account"
+                                }
+                            }()
+                            Text(verifyText)
                                 .fontWeight(.semibold)
                         }
                     }
@@ -73,6 +77,7 @@ struct OTPInputView: View {
                     .frame(height: 50)
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(mode == .deleteAccount ? .red : nil)
                 .disabled(!isValidOTP || isLoading)
                 .padding(.horizontal)
 
@@ -91,30 +96,45 @@ struct OTPInputView: View {
                     .buttonStyle(.plain)
                     .foregroundStyle(Color.accentColor)
                     .disabled(isResending)
-
-                    Button {
-                        appState.authState = .emailLogin
-                    } label: {
-                        Text("Change Email Address")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
                 }
 
                 Spacer()
             }
-            .navigationTitle("")
-            .navigationBarHidden(true)
+            .navigationTitle("Enter Authentication Code")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if mode != .login {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .fontWeight(.semibold)
+                        }
+                        .tint(.primary)
+                    }
+                }
+            }
         }
-    }
 
     private func verify() async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
         do {
-            try await appState.verifyOTP(email: email, otp: otp)
+            switch mode {
+            case .login:
+                try await appState.verifyOTP(email: email, otp: otp)
+            case .changeEmail:
+                try await APIClient.changeEmail(newEmail: email, otp: otp)
+                appState.userEmail = email
+                onSuccess?()
+            case .deleteAccount:
+                try await APIClient.signIn(email: email, otp: otp)
+                try await APIClient.deleteAccount()
+                appState.clearAfterAccountDeletion()
+                onSuccess?()
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -125,7 +145,12 @@ struct OTPInputView: View {
         errorMessage = nil
         defer { isResending = false }
         do {
-            try await appState.requestOTP(email: email)
+            switch mode {
+            case .login, .deleteAccount:
+                try await appState.requestOTP(email: email)
+            case .changeEmail:
+                try await APIClient.requestEmailChange(newEmail: email)
+            }
         } catch {
             errorMessage = error.localizedDescription
         }

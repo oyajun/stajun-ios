@@ -1,5 +1,37 @@
 import SwiftUI
 
+@Observable
+class AuthRouter {
+    var path: [AuthRoute] = []
+}
+
+enum AuthRoute: Hashable {
+    case emailLogin
+    case awaitingOTP(email: String)
+    case anonymousOnboarding
+}
+
+struct AuthCoordinatorView: View {
+    @State private var router = AuthRouter()
+
+    var body: some View {
+        NavigationStack(path: $router.path) {
+            WelcomeView()
+                .navigationDestination(for: AuthRoute.self) { route in
+                    switch route {
+                    case .emailLogin:
+                        EmailInputView()
+                    case .awaitingOTP(let email):
+                        OTPInputView(email: email)
+                    case .anonymousOnboarding:
+                        ProfileSetupView(isAnonymous: true)
+                    }
+                }
+        }
+        .environment(router)
+    }
+}
+
 struct ContentView: View {
     @Environment(AppState.self) private var appState
 
@@ -11,17 +43,8 @@ struct ContentView: View {
                 ProgressView("Loading…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            case .welcome:
-                WelcomeView()
-
-            case .emailLogin:
-                EmailInputView()
-
-            case .awaitingOTP(let email):
-                OTPInputView(email: email)
-
-            case .anonymousOnboarding:
-                ProfileSetupView(isAnonymous: true)
+            case .welcome, .emailLogin, .awaitingOTP, .anonymousOnboarding:
+                AuthCoordinatorView()
 
             case .authenticated:
                 MainTabView()

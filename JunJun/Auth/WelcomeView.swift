@@ -2,10 +2,10 @@ import SwiftUI
 
 struct WelcomeView: View {
     @Environment(AppState.self) private var appState
+    @Environment(AuthRouter.self) private var authRouter: AuthRouter?
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 32) {
+        VStack(spacing: 32) {
                 Spacer()
 
                 // Logo and title
@@ -21,7 +21,7 @@ struct WelcomeView: View {
 
                 VStack(spacing: 16) {
                     Button {
-                        appState.authState = .anonymousOnboarding
+                        authRouter?.path.append(.anonymousOnboarding)
                     } label: {
                         Text("Get Started")
                             .fontWeight(.semibold)
@@ -31,7 +31,7 @@ struct WelcomeView: View {
                     .buttonStyle(.borderedProminent)
 
                     Button {
-                        appState.authState = .emailLogin
+                        authRouter?.path.append(.emailLogin)
                     } label: {
                         Text("Log in if you already have an account")
                             .fontWeight(.semibold)
@@ -60,9 +60,6 @@ struct WelcomeView: View {
 
                 Spacer()
                     .frame(height: 16)
-            }
-            .navigationTitle("")
-            .navigationBarHidden(true)
         }
     }
 }

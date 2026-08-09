@@ -2,6 +2,11 @@ import SwiftUI
 
 struct EmailInputView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+    @Environment(AuthRouter.self) private var authRouter: AuthRouter?
+
+    var mode: AuthFlowMode = .login
+    var onSuccess: ((String) -> Void)? = nil
 
     @State private var email = ""
     @State private var isLoading = false
@@ -13,10 +18,15 @@ struct EmailInputView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 32) {
-                Spacer()
-
+        VStack(spacing: 32) {
+            // Header
+            VStack(spacing: 8) {
+                    Text("We will send a one-time passcode to your email.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal)
 
                 // Email input
                 VStack(alignment: .leading, spacing: 8) {
@@ -60,7 +70,7 @@ struct EmailInputView: View {
                             ProgressView()
                                 .tint(.white)
                         } else {
-                            Text("Send Authentication Code")
+                            Text(submitButtonText)
                                 .fontWeight(.semibold)
                         }
                     }
@@ -73,16 +83,37 @@ struct EmailInputView: View {
 
                 Spacer()
             }
-            .navigationTitle("")
+            .navigationTitle(titleText)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        appState.authState = .welcome
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if mode != .login {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .fontWeight(.semibold)
+                        }
+                        .tint(.primary)
+                        .disabled(isLoading)
                     }
-                    .disabled(isLoading)
                 }
             }
+        }
+
+    private var titleText: LocalizedStringKey {
+        switch mode {
+        case .login: return "What's your email?"
+        case .changeEmail: return "New Email"
+        case .deleteAccount: return "Confirm Email"
+        }
+    }
+    
+    private var submitButtonText: LocalizedStringKey {
+        switch mode {
+        case .login: return "Send Authentication Code"
+        case .changeEmail: return "Send Authentication Code"
+        case .deleteAccount: return "Send Authentication Code"
         }
     }
 
@@ -91,7 +122,13 @@ struct EmailInputView: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
-            try await appState.requestOTP(email: email)
+            if mode == .login {
+                try await APIClient.sendOTP(email: email)
+                authRouter?.path.append(.awaitingOTP(email: email))
+            } else {
+                try await APIClient.requestEmailChange(newEmail: email)
+                onSuccess?(email)
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
