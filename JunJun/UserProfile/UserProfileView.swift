@@ -61,6 +61,30 @@ struct UserProfileView: View {
             FollowListView(userId: userId, initialTab: tab)
         }
         .task {
+            if user == nil {
+                if let cached = UserProfileCache.load(userId: userId) {
+                    user = cached
+                    isLoading = false
+                } else if isOwnProfile, let me = appState.currentUser {
+                    user = UserWithStudyStatus(
+                        id: me.id,
+                        name: me.name,
+                        iconEmoji: me.iconEmoji,
+                        iconBackgroundColor: me.iconBackgroundColor,
+                        isFollowing: nil,
+                        isStudying: appState.isStudying,
+                        studyingSince: nil
+                    )
+                    isLoading = false
+                }
+            }
+            if posts.isEmpty {
+                let cachedPosts = PostsCache.load(scopeKey: "user_\(userId)")
+                if !cachedPosts.isEmpty {
+                    posts = cachedPosts
+                    hasLoadedPosts = true
+                }
+            }
             await load()
             await loadPosts()
         }
@@ -100,7 +124,7 @@ struct UserProfileView: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
                 .padding(.vertical, 48)
-            } else if !hasLoadedPosts || (isLoadingPosts && posts.isEmpty) {
+            } else if !hasLoadedPosts && posts.isEmpty {
                 ProgressView()
                     .frame(maxWidth: .infinity)
                     .listRowBackground(Color.clear)
@@ -239,11 +263,15 @@ struct UserProfileView: View {
     // MARK: - Actions
 
     private func load() async {
-        isLoading = true
+        if user == nil {
+            isLoading = true
+        }
         errorMessage = nil
         defer { isLoading = false }
         do {
-            user = try await APIClient.getUser(id: userId)
+            let fetched = try await APIClient.getUser(id: userId)
+            user = fetched
+            UserProfileCache.save(fetched, userId: userId)
             let blockedResp = try? await APIClient.getBlockedUsers(limit: 50, offset: 0)
             if let resp = blockedResp {
                 isBlocked = resp.users.contains { $0.id == userId }
@@ -265,6 +293,7 @@ struct UserProfileView: View {
             let response = try await APIClient.getUserPosts(userId: userId)
             posts = response.posts
             postsCursor = response.nextCursor
+            PostsCache.save(response.posts, scopeKey: "user_\(userId)")
         } catch {
             // Non-fatal: profile still shows without posts.
         }

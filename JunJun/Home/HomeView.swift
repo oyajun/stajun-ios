@@ -19,18 +19,47 @@ struct HomeView: View {
     @State private var feedError: String?
     @State private var isRefreshingStudyState = false
     @State private var isLoadingFeed = false
+    @State private var hasLoadedFeed = false
 
-    // Timeline posts
+    // Timeline posts (Following & Mine completely separated)
     private let pageSize = 20
-    @State private var posts: [Post] = []
-    @State private var postNextCursor: String?
-    @State private var isLoadingPosts = false
-    @State private var isLoadingMorePosts = false
-    @State private var hasLoadedPosts = false
+    @State private var followingPosts: [Post] = []
+    @State private var followingNextCursor: String?
+    @State private var isLoadingFollowingPosts = false
+    @State private var isLoadingMoreFollowingPosts = false
+    @State private var hasLoadedFollowingPosts = false
+
+    @State private var myPosts: [Post] = []
+    @State private var myNextCursor: String?
+    @State private var isLoadingMyPosts = false
+    @State private var isLoadingMoreMyPosts = false
+    @State private var hasLoadedMyPosts = false
+
     @State private var postsError: String?
     @State private var postScope: PostScope = .following
     @State private var showCompose = false
     @State private var showReportSuccessAlert = false
+
+    private var currentPosts: [Post] {
+        switch postScope {
+        case .following: return followingPosts
+        case .mine:      return myPosts
+        }
+    }
+
+    private var hasLoadedCurrentPosts: Bool {
+        switch postScope {
+        case .following: return hasLoadedFollowingPosts
+        case .mine:      return hasLoadedMyPosts
+        }
+    }
+
+    private var isLoadingMoreCurrentPosts: Bool {
+        switch postScope {
+        case .following: return isLoadingMoreFollowingPosts
+        case .mine:      return isLoadingMoreMyPosts
+        }
+    }
 
     // Timer (elapsed time display)
     @State private var now = Date()
@@ -48,6 +77,12 @@ struct HomeView: View {
             switch self {
             case .following: return "Following"
             case .mine: return "Mine"
+            }
+        }
+        var cacheKey: String {
+            switch self {
+            case .following: return "following"
+            case .mine: return "mine"
             }
         }
     }
@@ -97,26 +132,26 @@ struct HomeView: View {
                 .listRowInsets(EdgeInsets(top: 16, leading: 32, bottom: 8, trailing: 32))
 
                 // Posts: loading / empty states
-                if !hasLoadedPosts || (isLoadingPosts && posts.isEmpty) {
+                if !hasLoadedCurrentPosts && currentPosts.isEmpty {
                     ProgressView()
                         .frame(maxWidth: .infinity)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .padding(.vertical, 48)
-                } else if posts.isEmpty {
+                } else if currentPosts.isEmpty {
                     emptyPostsSection
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets())
+                } else {
+                    // Post rows (swipe-to-delete + long-press context menu)
+                    ForEach(currentPosts) { post in
+                        timelinePostRow(post)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 32, bottom: 0, trailing: 32))
+                    }
                 }
 
-                // Post rows (swipe-to-delete + long-press context menu)
-                ForEach(posts) { post in
-                    timelinePostRow(post)
-                        .listRowInsets(EdgeInsets(top: 0, leading: 32, bottom: 0, trailing: 32))
-                }
-
-                if isLoadingMorePosts {
+                if isLoadingMoreCurrentPosts {
                     ProgressView()
                         .frame(maxWidth: .infinity)
                         .listRowBackground(Color.clear)
@@ -129,16 +164,36 @@ struct HomeView: View {
             .refreshable {
                 await refreshStudyState()
                 await loadFeed()
-                await loadPosts()
+                await loadFollowingPosts()
+                await loadMyPosts()
             }
             .task {
-                // Show last-known feed immediately (works offline)
+                // Show last-known feed and posts immediately (works offline)
                 if feedUsers.isEmpty {
-                    feedUsers = FeedCache.load()
+                    let cachedFeed = FeedCache.load()
+                    if !cachedFeed.isEmpty {
+                        feedUsers = cachedFeed
+                        hasLoadedFeed = true
+                    }
+                }
+                if followingPosts.isEmpty {
+                    let cached = PostsCache.load(scopeKey: "following")
+                    if !cached.isEmpty {
+                        followingPosts = cached
+                        hasLoadedFollowingPosts = true
+                    }
+                }
+                if myPosts.isEmpty {
+                    let cached = PostsCache.load(scopeKey: "mine")
+                    if !cached.isEmpty {
+                        myPosts = cached
+                        hasLoadedMyPosts = true
+                    }
                 }
                 await refreshStudyState()
                 await loadFeed()
-                await loadPosts()
+                await loadFollowingPosts()
+                await loadMyPosts()
                 await startPolling()
             }
             .onChange(of: isStudying) { _, newValue in
@@ -157,9 +212,6 @@ struct HomeView: View {
                     }
                 }
             }
-            .onChange(of: postScope) { _, _ in
-                Task { await loadPosts(reset: true) }
-            }
             .onReceive(
                 Timer.publish(every: 1, on: .main, in: .common).autoconnect()
             ) { _ in
@@ -169,11 +221,23 @@ struct HomeView: View {
                 UserProfileView(userId: userId)
             }
             .sheet(isPresented: $showComposePost) {
-                ComposePostView(initialMinutes: composeInitialMinutes)
+                ComposePostView(initialMinutes: composeInitialMinutes) { newPost in
+                    prependPost(newPost)
+                    Task {
+                        await loadFollowingPosts()
+                        await loadMyPosts()
+                        await loadFeed()
+                    }
+                }
             }
             .sheet(isPresented: $showCompose) {
                 ComposePostView { newPost in
                     prependPost(newPost)
+                    Task {
+                        await loadFollowingPosts()
+                        await loadMyPosts()
+                        await loadFeed()
+                    }
                 }
             }
             .alert("Report Submitted", isPresented: $showReportSuccessAlert) {
@@ -182,7 +246,7 @@ struct HomeView: View {
                 Text("Thank you for reporting this post.")
             }
             .overlay(alignment: .bottom) {
-                if let postsError, !posts.isEmpty {
+                if let postsError, !currentPosts.isEmpty {
                     Text(postsError)
                         .font(.subheadline)
                         .foregroundStyle(.white)
@@ -282,7 +346,7 @@ struct HomeView: View {
 
     @ViewBuilder
     private var followingContent: some View {
-        if isLoadingFeed && feedUsers.isEmpty {
+        if !hasLoadedFeed && feedUsers.isEmpty {
             ProgressView()
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 32)
@@ -376,7 +440,7 @@ struct HomeView: View {
         let base = PostRow(post: post, onTapAuthor: { path.append(post.userId) })
             .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
             .onAppear {
-                if post.id == posts.last?.id { loadMorePosts() }
+                if post.id == currentPosts.last?.id { loadMoreCurrentPosts() }
             }
         if post.userId == appState.currentUser?.id {
             base
@@ -477,7 +541,10 @@ struct HomeView: View {
     private func loadFeed() async {
         guard !isLoadingFeed else { return }
         isLoadingFeed = true
-        defer { isLoadingFeed = false }
+        defer {
+            isLoadingFeed = false
+            hasLoadedFeed = true
+        }
 
         do {
             feedError = nil
@@ -543,22 +610,19 @@ struct HomeView: View {
 
     // MARK: - Post Actions
 
-    private func loadPosts(reset: Bool = false) async {
-        if reset {
-            posts = []
-            postNextCursor = nil
-        }
-        guard !isLoadingPosts else { return }
-        isLoadingPosts = true
+    private func loadFollowingPosts() async {
+        guard !isLoadingFollowingPosts else { return }
+        isLoadingFollowingPosts = true
         postsError = nil
         defer {
-            isLoadingPosts = false
-            hasLoadedPosts = true
+            isLoadingFollowingPosts = false
+            hasLoadedFollowingPosts = true
         }
         do {
-            let response = try await fetchPosts(cursor: nil)
-            posts = response.posts
-            postNextCursor = response.nextCursor
+            let response = try await APIClient.getTimeline(cursor: nil, limit: pageSize)
+            followingPosts = response.posts
+            followingNextCursor = response.nextCursor
+            PostsCache.save(response.posts, scopeKey: "following")
         } catch {
             if !error.isCancellation {
                 postsError = error.localizedDescription
@@ -566,33 +630,55 @@ struct HomeView: View {
         }
     }
 
-    private func fetchPosts(cursor: String?) async throws -> PostsResponse {
-        switch postScope {
-        case .following:
-            return try await APIClient.getTimeline(cursor: cursor, limit: pageSize)
-        case .mine:
-            return try await APIClient.getUserPosts(userId: "me", cursor: cursor, limit: pageSize)
+    private func loadMyPosts() async {
+        guard !isLoadingMyPosts else { return }
+        isLoadingMyPosts = true
+        postsError = nil
+        defer {
+            isLoadingMyPosts = false
+            hasLoadedMyPosts = true
+        }
+        do {
+            let response = try await APIClient.getUserPosts(userId: "me", cursor: nil, limit: pageSize)
+            myPosts = response.posts
+            myNextCursor = response.nextCursor
+            PostsCache.save(response.posts, scopeKey: "mine")
+        } catch {
+            if !error.isCancellation {
+                postsError = error.localizedDescription
+            }
         }
     }
 
-    private func loadMorePosts() {
-        guard let cursor = postNextCursor, !isLoadingMorePosts, !isLoadingPosts else { return }
-        Task {
-            isLoadingMorePosts = true
-            defer { isLoadingMorePosts = false }
-            do {
-                let response = try await fetchPosts(cursor: cursor)
-                posts.append(contentsOf: response.posts)
-                postNextCursor = response.nextCursor
-            } catch { }
+    private func loadMoreCurrentPosts() {
+        switch postScope {
+        case .following:
+            guard let cursor = followingNextCursor, !isLoadingMoreFollowingPosts, !isLoadingFollowingPosts else { return }
+            Task {
+                isLoadingMoreFollowingPosts = true
+                defer { isLoadingMoreFollowingPosts = false }
+                do {
+                    let response = try await APIClient.getTimeline(cursor: cursor, limit: pageSize)
+                    followingPosts.append(contentsOf: response.posts)
+                    followingNextCursor = response.nextCursor
+                } catch { }
+            }
+        case .mine:
+            guard let cursor = myNextCursor, !isLoadingMoreMyPosts, !isLoadingMyPosts else { return }
+            Task {
+                isLoadingMoreMyPosts = true
+                defer { isLoadingMoreMyPosts = false }
+                do {
+                    let response = try await APIClient.getUserPosts(userId: "me", cursor: cursor, limit: pageSize)
+                    myPosts.append(contentsOf: response.posts)
+                    myNextCursor = response.nextCursor
+                } catch { }
+            }
         }
     }
 
     private func prependPost(_ studyPost: StudyPost) {
-        guard let me = appState.currentUser else {
-            Task { await loadPosts() }
-            return
-        }
+        guard let me = appState.currentUser else { return }
         let post = Post(
             id: studyPost.id,
             userId: me.id,
@@ -601,13 +687,21 @@ struct HomeView: View {
             createdAt: studyPost.createdAt,
             user: me
         )
-        posts.insert(post, at: 0)
+        myPosts.insert(post, at: 0)
+        PostsCache.save(myPosts, scopeKey: "mine")
+
+        followingPosts.insert(post, at: 0)
+        PostsCache.save(followingPosts, scopeKey: "following")
     }
 
     private func deletePost(_ post: Post) async {
         do {
             try await APIClient.deletePost(id: post.id)
-            posts.removeAll { $0.id == post.id }
+            myPosts.removeAll { $0.id == post.id }
+            PostsCache.save(myPosts, scopeKey: "mine")
+
+            followingPosts.removeAll { $0.id == post.id }
+            PostsCache.save(followingPosts, scopeKey: "following")
         } catch {
             if !error.isCancellation {
                 postsError = error.localizedDescription

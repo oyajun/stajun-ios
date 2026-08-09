@@ -2,21 +2,21 @@ import Foundation
 import Observation
 
 /// One bar of the chart. `id` is the bucket start date string ("yyyy-MM-dd").
-struct StatsChartItem: Identifiable, Equatable {
+struct StatsChartItem: Identifiable, Equatable, Codable {
     let id: String
     let date: Date
     let minutes: Int
 }
 
 /// One day of the annual heatmap.
-struct HeatmapDay: Identifiable, Equatable {
+struct HeatmapDay: Identifiable, Equatable, Codable {
     let id: String   // "yyyy-MM-dd"
     let date: Date
     let minutes: Int
 }
 
 /// One column of the annual heatmap: a Monday-to-Sunday week.
-struct HeatmapWeek: Identifiable, Equatable {
+struct HeatmapWeek: Identifiable, Equatable, Codable {
     let id: String            // week start "yyyy-MM-dd"
     let days: [HeatmapDay?]   // always 7 entries, Monday first; nil = outside range
 }
@@ -47,6 +47,24 @@ final class StatsModel {
     private(set) var heatmapWeeks: [HeatmapWeek] = []
     private(set) var heatmapMaxMinutes = 0
     private(set) var isLoadingHeatmap = false
+
+    init() {
+        if let cachedSummary = StatsCache.loadSummary() {
+            self.stats = cachedSummary
+        }
+        if let cachedHeatmap = StatsCache.loadHeatmap() {
+            self.heatmapWeeks = cachedHeatmap.weeks
+            self.heatmapMaxMinutes = cachedHeatmap.maxMinutes
+        }
+        let cachedPages = StatsCache.loadChartPages()
+        for (keyStr, items) in cachedPages {
+            let parts = keyStr.split(separator: ":")
+            if parts.count == 2, let unit = ChartUnit(rawValue: String(parts[0])) {
+                let key = PageKey(unit: unit, start: String(parts[1]))
+                self.pages[key] = items
+            }
+        }
+    }
 
     // MARK: - Chart paging
 
@@ -103,7 +121,9 @@ final class StatsModel {
         isLoadingSummary = true
         defer { isLoadingSummary = false }
         do {
-            stats = try await APIClient.getStats()
+            let res = try await APIClient.getStats()
+            stats = res
+            StatsCache.saveSummary(res)
             errorMessage = nil
         } catch {
             report(error)
@@ -142,7 +162,9 @@ final class StatsModel {
                 weekStart = next
             }
             heatmapWeeks = weeks
-            heatmapMaxMinutes = weeks.flatMap(\.days).compactMap { $0?.minutes }.max() ?? 0
+            let maxMin = weeks.flatMap(\.days).compactMap { $0?.minutes }.max() ?? 0
+            heatmapMaxMinutes = maxMin
+            StatsCache.saveHeatmap(weeks: weeks, maxMinutes: maxMin)
             errorMessage = nil
         } catch {
             report(error)
@@ -171,10 +193,19 @@ final class StatsModel {
                 let id = Self.dayString(date)
                 return StatsChartItem(id: id, date: date, minutes: minutesByStart[id] ?? 0)
             }
+            saveChartPagesToDisk()
             errorMessage = nil
         } catch {
             report(error)
         }
+    }
+
+    private func saveChartPagesToDisk() {
+        var dict: [String: [StatsChartItem]] = [:]
+        for (key, items) in pages {
+            dict["\(key.unit.rawValue):\(key.start)"] = items
+        }
+        StatsCache.saveChartPages(dict)
     }
 
     /// Pull-to-refresh: drop all cached pages and refetch summary + heatmap + visible page.

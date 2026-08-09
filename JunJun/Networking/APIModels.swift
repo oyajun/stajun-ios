@@ -134,7 +134,7 @@ struct UpdateProfileRequest: Encodable {
 
 // MARK: - Stats
 
-struct StatsResponse: Decodable {
+struct StatsResponse: Codable {
     let userId: String
     let totalMinutes: Int
     let todayMinutes: Int
@@ -146,7 +146,7 @@ struct StatsResponse: Decodable {
     let firstPostDate: String?
 }
 
-struct StatsSeriesResponse: Decodable {
+struct StatsSeriesResponse: Codable {
     let userId: String
     let unit: String
     let from: String
@@ -155,7 +155,7 @@ struct StatsSeriesResponse: Decodable {
     let buckets: [StatsBucket]
 }
 
-struct StatsBucket: Decodable, Identifiable {
+struct StatsBucket: Codable, Identifiable {
     let start: String
     let end: String
     let minutes: Int

@@ -148,6 +148,9 @@ final class AppState {
         KeychainHelper.token = nil
         FeedCache.clear()
         ProfileCache.clear()
+        PostsCache.clear()
+        StatsCache.clear()
+        UserProfileCache.clear()
         currentUser = nil
         isStudying = false
         authState = .unauthenticated
@@ -159,6 +162,9 @@ final class AppState {
         userEmail = nil
         FeedCache.clear()
         ProfileCache.clear()
+        PostsCache.clear()
+        StatsCache.clear()
+        UserProfileCache.clear()
         currentUser = nil
         isStudying = false
         authState = .unauthenticated
