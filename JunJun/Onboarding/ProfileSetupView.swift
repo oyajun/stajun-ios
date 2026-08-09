@@ -101,7 +101,9 @@ struct ProfileSetupView: View {
                 appState.completeOnboarding(profile: profile)
             }
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }

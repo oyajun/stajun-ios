@@ -76,7 +76,9 @@ struct BlockedUsersView: View {
             hasMore = response.pagination.hasMore
             offset = response.pagination.offset + response.users.count
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
         isLoading = false
     }
@@ -102,7 +104,9 @@ struct BlockedUsersView: View {
             try await APIClient.unblockUser(userId: user.id)
             users.removeAll { $0.id == user.id }
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }

@@ -487,7 +487,9 @@ struct HomeView: View {
         } catch APIError.networkError {
             feedError = nil
         } catch {
-            feedError = error.localizedDescription
+            if !error.isCancellation {
+                feedError = error.localizedDescription
+            }
         }
     }
 
@@ -558,7 +560,9 @@ struct HomeView: View {
             posts = response.posts
             postNextCursor = response.nextCursor
         } catch {
-            postsError = error.localizedDescription
+            if !error.isCancellation {
+                postsError = error.localizedDescription
+            }
         }
     }
 
@@ -605,7 +609,9 @@ struct HomeView: View {
             try await APIClient.deletePost(id: post.id)
             posts.removeAll { $0.id == post.id }
         } catch {
-            postsError = error.localizedDescription
+            if !error.isCancellation {
+                postsError = error.localizedDescription
+            }
         }
     }
 
@@ -614,7 +620,9 @@ struct HomeView: View {
             try await APIClient.reportPost(id: post.id)
             showReportSuccessAlert = true
         } catch {
-            postsError = error.localizedDescription
+            if !error.isCancellation {
+                postsError = error.localizedDescription
+            }
         }
     }
 

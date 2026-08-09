@@ -124,7 +124,9 @@ struct ComposePostView: View {
             onPosted?(post)
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }

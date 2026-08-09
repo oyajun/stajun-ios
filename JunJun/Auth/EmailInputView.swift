@@ -167,7 +167,9 @@ struct EmailInputView: View {
             }
             onSuccess?(email)
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }

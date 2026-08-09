@@ -95,7 +95,9 @@ struct FollowListView: View {
         do {
             followingUsers = try await APIClient.getFollowing(userId: userId).users
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -105,7 +107,9 @@ struct FollowListView: View {
         do {
             followersUsers = try await APIClient.getFollowers(userId: userId).users
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 

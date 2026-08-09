@@ -95,7 +95,9 @@ struct SearchView: View {
             results = []
             hasMore = false
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 

@@ -155,7 +155,9 @@ struct OTPInputView: View {
             try await appState.verifyOTP(email: email, otp: otp, mode: mode)
             onSuccess?()
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -166,7 +168,9 @@ struct OTPInputView: View {
         do {
             try await appState.resendOTP(email: email, mode: mode)
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }

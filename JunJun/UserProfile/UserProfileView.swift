@@ -249,7 +249,9 @@ struct UserProfileView: View {
                 isBlocked = resp.users.contains { $0.id == userId }
             }
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -288,7 +290,9 @@ struct UserProfileView: View {
             try await APIClient.deletePost(id: post.id)
             posts.removeAll { $0.id == post.id }
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -297,7 +301,9 @@ struct UserProfileView: View {
             try await APIClient.reportPost(id: post.id)
             showReportSuccessAlert = true
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -314,7 +320,9 @@ struct UserProfileView: View {
                 user?.isFollowing = true
             }
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -324,7 +332,9 @@ struct UserProfileView: View {
             isBlocked = true
             user?.isFollowing = false
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -334,7 +344,9 @@ struct UserProfileView: View {
             isBlocked = false
             await loadPosts()
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }

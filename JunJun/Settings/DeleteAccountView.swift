@@ -194,7 +194,9 @@ struct DeleteAccountView: View {
             try await appState.sendOTP(email: email, mode: .deleteAccount)
             showOTP = true
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -207,7 +209,9 @@ struct DeleteAccountView: View {
             appState.clearAfterAccountDeletion()
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }

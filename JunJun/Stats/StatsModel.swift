@@ -223,18 +223,8 @@ final class StatsModel {
     }
 
     private func report(_ error: Error) {
-        if !Self.isCancellation(error) {
+        if !error.isCancellation {
             errorMessage = error.localizedDescription
         }
-    }
-
-    private static func isCancellation(_ error: Error) -> Bool {
-        if error is CancellationError { return true }
-        if let apiError = error as? APIError,
-           case .networkError(let underlying) = apiError {
-            return isCancellation(underlying)
-        }
-        let nsError = error as NSError
-        return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled
     }
 }

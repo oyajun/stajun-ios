@@ -40,6 +40,18 @@ enum APIError: Error, LocalizedError {
     }
 }
 
+extension Error {
+    /// Returns true if the error represents a task or network request cancellation.
+    var isCancellation: Bool {
+        if self is CancellationError { return true }
+        if let apiError = self as? APIError, case .networkError(let underlying) = apiError {
+            return underlying.isCancellation
+        }
+        let nsError = self as NSError
+        return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled
+    }
+}
+
 // MARK: - Client
 
 enum APIClient {
