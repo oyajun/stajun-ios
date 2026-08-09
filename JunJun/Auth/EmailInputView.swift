@@ -21,12 +21,12 @@ struct EmailInputView: View {
         VStack(spacing: 32) {
             // Header
             VStack(spacing: 8) {
-                    Text("We will send a one-time passcode to your email.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.horizontal)
+                Text(descriptionText)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal)
 
                 // Email input
                 VStack(alignment: .leading, spacing: 8) {
@@ -100,7 +100,7 @@ struct EmailInputView: View {
                 }
             }
             .onAppear {
-                if mode == .login && email.isEmpty {
+                if (mode == .login || mode == .registerEmail) && email.isEmpty {
                     if let savedEmail = appState.userEmail ?? KeychainHelper.email {
                         email = savedEmail
                     }
@@ -110,17 +110,26 @@ struct EmailInputView: View {
 
     private var titleText: LocalizedStringKey {
         switch mode {
-        case .login: return "What's your email?"
-        case .changeEmail: return "New Email"
+        case .login: return "Sign In"
+        case .registerEmail: return "Register Email Address"
+        case .changeEmail: return "Change Email Address"
         case .deleteAccount: return "Confirm Email"
+        }
+    }
+
+    private var descriptionText: LocalizedStringKey {
+        switch mode {
+        case .login: return "Please enter your registered email address."
+        case .registerEmail: return "Please enter the email address you want to register."
+        case .changeEmail: return "Please enter your new email address."
+        case .deleteAccount: return "We will send a one-time passcode to your email."
         }
     }
     
     private var submitButtonText: LocalizedStringKey {
         switch mode {
-        case .login: return "Send Authentication Code"
-        case .changeEmail: return "Send Authentication Code"
-        case .deleteAccount: return "Send Authentication Code"
+        case .login, .registerEmail, .changeEmail, .deleteAccount:
+            return "Send Authentication Code"
         }
     }
 
@@ -129,7 +138,7 @@ struct EmailInputView: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
-            if mode == .login {
+            if mode == .login || mode == .registerEmail {
                 try await APIClient.sendOTP(email: email)
                 authRouter?.path.append(.awaitingOTP(email: email))
             } else {

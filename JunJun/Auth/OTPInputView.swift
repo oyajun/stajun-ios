@@ -65,7 +65,7 @@ struct OTPInputView: View {
                         } else {
                             let verifyText: LocalizedStringKey = {
                                 switch mode {
-                                case .login, .changeEmail: return "Verify"
+                                case .login, .registerEmail, .changeEmail: return "Verify"
                                 case .deleteAccount: return "Delete Account"
                                 }
                             }()
@@ -123,7 +123,7 @@ struct OTPInputView: View {
         defer { isLoading = false }
         do {
             switch mode {
-            case .login:
+            case .login, .registerEmail:
                 try await appState.verifyOTP(email: email, otp: otp)
             case .changeEmail:
                 try await APIClient.changeEmail(newEmail: email, otp: otp)
@@ -157,7 +157,7 @@ struct OTPInputView: View {
         defer { isResending = false }
         do {
             switch mode {
-            case .login, .deleteAccount:
+            case .login, .registerEmail, .deleteAccount:
                 try await appState.requestOTP(email: email)
             case .changeEmail:
                 try await APIClient.requestEmailChange(newEmail: email)

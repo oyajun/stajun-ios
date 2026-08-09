@@ -5,6 +5,7 @@ import SwiftUI
 
 enum AuthFlowMode: Equatable {
     case login
+    case registerEmail
     case changeEmail
     case deleteAccount
 }
