@@ -348,8 +348,7 @@ struct HomeView: View {
     private var followingContent: some View {
         if !hasLoadedFeed && feedUsers.isEmpty {
             ProgressView()
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 32)
+                .frame(maxWidth: .infinity, minHeight: 117)
         } else if feedUsers.isEmpty {
             emptyFeedSection
         } else {
