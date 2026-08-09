@@ -75,7 +75,7 @@ struct SettingsView: View {
 
                 // Sign out and delete
                 Section {
-                    if currentUser?.isAnonymous != true {
+                    if currentUser?.isAnonymous == false {
                         Button("Sign Out") {
                             showSignOutConfirmation = true
                         }
