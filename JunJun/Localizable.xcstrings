@@ -825,6 +825,22 @@
         }
       }
     },
+    "Find people to follow in the Search tab" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索タブでフォローする人を探しましょう"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검색 탭에서 팔로우할 사람을 찾아보세요"
+          }
+        }
+      }
+    },
     "Follow" : {
       "localizations" : {
         "ja" : {

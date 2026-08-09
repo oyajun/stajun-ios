@@ -407,6 +407,10 @@ struct HomeView: View {
             Text("No Following Users")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            Text("Find people to follow in the Search tab")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, minHeight: 117)
     }

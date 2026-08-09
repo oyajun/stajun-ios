@@ -52,9 +52,19 @@ struct FollowListView: View {
                     .listRowSeparator(.hidden)
                     .padding(.vertical, 48)
             } else if currentUsers.isEmpty {
-                ContentUnavailableView("No users yet", systemImage: "person.2")
+                if selectedTab == .following {
+                    ContentUnavailableView(
+                        "No Following Users",
+                        systemImage: "person.2",
+                        description: Text("Find people to follow in the Search tab")
+                    )
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
+                } else {
+                    ContentUnavailableView("No users yet", systemImage: "person.2")
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                }
             } else {
                 ForEach(currentUsers) { user in
                     NavigationLink(destination: UserProfileView(userId: user.id)) {
