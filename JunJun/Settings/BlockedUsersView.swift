@@ -27,7 +27,7 @@ struct BlockedUsersView: View {
             } else {
                 ForEach(users) { user in
                     NavigationLink {
-                        UserProfileView(userId: user.id)
+                        UserProfileView(userId: user.id, initialIsBlocked: !unblockedUserIds.contains(user.id))
                     } label: {
                         HStack(spacing: 12) {
                             UserIconView(

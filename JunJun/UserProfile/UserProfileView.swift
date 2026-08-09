@@ -18,8 +18,13 @@ struct UserProfileView: View {
     @State private var hasLoadedPosts = false
     @State private var showReportSuccessAlert = false
 
-    @State private var isBlocked = false
+    @State private var isBlocked: Bool
     @State private var showBlockConfirmation = false
+
+    init(userId: String, initialIsBlocked: Bool = false) {
+        self.userId = userId
+        _isBlocked = State(initialValue: initialIsBlocked)
+    }
 
     private var isOwnProfile: Bool {
         appState.currentUser?.id == userId
@@ -78,7 +83,7 @@ struct UserProfileView: View {
                     isLoading = false
                 }
             }
-            if posts.isEmpty {
+            if !isBlocked && posts.isEmpty {
                 let cachedPosts = PostsCache.load(scopeKey: "user_\(userId)")
                 if !cachedPosts.isEmpty {
                     posts = cachedPosts
@@ -86,7 +91,9 @@ struct UserProfileView: View {
                 }
             }
             await load()
-            await loadPosts()
+            if !isBlocked {
+                await loadPosts()
+            }
         }
         .alert("Report Submitted", isPresented: $showReportSuccessAlert) {
             Button("OK", role: .cancel) { }
@@ -157,14 +164,14 @@ struct UserProfileView: View {
                 emoji: user.iconEmoji,
                 backgroundColor: user.iconBackgroundColor,
                 size: 80,
-                isStudying: user.isStudying
+                isStudying: isBlocked ? false : user.isStudying
             )
 
             VStack(spacing: 6) {
                 Text(user.name)
                     .font(.title2.bold())
 
-                if user.isStudying, let since = user.studyingSince {
+                if !isBlocked, user.isStudying, let since = user.studyingSince {
                     TimelineView(.periodic(from: .now, by: 1)) { context in
                         Text(studyingDurationString(since: since, now: context.date))
                             .font(.title3.monospacedDigit().bold())
@@ -173,17 +180,19 @@ struct UserProfileView: View {
                 }
             }
 
-            HStack(spacing: 16) {
-                Button("Following") { followListTab = .following }
-                    .buttonStyle(.bordered)
-                    .font(.subheadline.weight(.medium))
+            if !isBlocked {
+                HStack(spacing: 16) {
+                    Button("Following Users") { followListTab = .following }
+                        .buttonStyle(.bordered)
+                        .font(.subheadline.weight(.medium))
 
-                Button("Followers") { followListTab = .followers }
-                    .buttonStyle(.bordered)
-                    .font(.subheadline.weight(.medium))
+                    Button("Followers") { followListTab = .followers }
+                        .buttonStyle(.bordered)
+                        .font(.subheadline.weight(.medium))
+                }
             }
 
-            if !isOwnProfile {
+            if !isOwnProfile && !isBlocked {
                 Button {
                     Task { await toggleFollow() }
                 } label: {
@@ -273,8 +282,8 @@ struct UserProfileView: View {
             user = fetched
             UserProfileCache.save(fetched, userId: userId)
             let blockedResp = try? await APIClient.getBlockedUsers(limit: 50, offset: 0)
-            if let resp = blockedResp {
-                isBlocked = resp.users.contains { $0.id == userId }
+            if let resp = blockedResp, resp.users.contains(where: { $0.id == userId }) {
+                isBlocked = true
             }
         } catch {
             if !error.isCancellation {

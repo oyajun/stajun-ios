@@ -37,7 +37,7 @@ struct FollowListView: View {
     var body: some View {
         List {
             Picker("", selection: $selectedTab) {
-                Text("Following").tag(FollowListType.following)
+                Text("Following Users").tag(FollowListType.following)
                 Text("Followers").tag(FollowListType.followers)
             }
             .pickerStyle(.segmented)

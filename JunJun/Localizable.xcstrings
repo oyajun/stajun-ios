@@ -890,6 +890,22 @@
         }
       }
     },
+    "Following Users" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォロー中のユーザー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "팔로잉"
+          }
+        }
+      }
+    },
     "Get Started" : {
       "localizations" : {
         "ja" : {
