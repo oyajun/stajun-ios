@@ -31,43 +31,45 @@ struct MainTabView: View {
 
 private struct StudyingBorderOverlay: View {
     @State private var rotation: Double = 0
+    @State private var cornerRadius: CGFloat = 44
 
-    private let colors: [Color] = [
+    private static let colors: [Color] = [
         .red, .orange, .yellow, .green, .cyan, .blue, .purple, .pink, .red
     ]
 
     var body: some View {
         GeometryReader { _ in
-            let radius = displayCornerRadius()
             let gradient = AngularGradient(
-                colors: colors,
+                colors: Self.colors,
                 center: .center,
                 startAngle: .degrees(rotation),
                 endAngle: .degrees(rotation + 360)
             )
             ZStack {
                 // Outer glow
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(gradient, lineWidth: 24)
                     .blur(radius: 14)
                     .opacity(0.55)
                 // Sharp inner rim
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(gradient, lineWidth: 2)
                     .opacity(0.85)
             }
+            .drawingGroup() // Offload rendering pass to Metal (GPU)
             .ignoresSafeArea()
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
         .onAppear {
+            cornerRadius = getDisplayCornerRadius()
             withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {
                 rotation = 360
             }
         }
     }
 
-    private func displayCornerRadius() -> CGFloat {
+    private func getDisplayCornerRadius() -> CGFloat {
         let screen = UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .first?.screen
