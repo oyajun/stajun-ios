@@ -1287,6 +1287,22 @@
         }
       }
     },
+    "Please create an account or log in before opening this link again." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントの作成かログインをしてからリンクを開き直してください"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "계정 생성 또는 로그인 후 링크를 다시 열어주세요."
+          }
+        }
+      }
+    },
     "Please enter the email address you want to register." : {
       "localizations" : {
         "ja" : {

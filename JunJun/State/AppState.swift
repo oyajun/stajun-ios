@@ -30,6 +30,34 @@ final class AppState {
     /// True if the app has passed its hardcoded expiration date
     var requiresUpdate: Bool = false
 
+    /// User ID or prefix from deep link / Universal Link to display
+    var deepLinkedUserId: String?
+
+    func handleOpenURL(_ url: URL) {
+        let pathComponents = url.pathComponents.filter { $0 != "/" }
+        
+        if url.host == "junjun.oyajun.com" {
+            if pathComponents.count >= 2 && pathComponents[0] == "u" {
+                deepLinkedUserId = pathComponents[1]
+            } else if let first = pathComponents.first, !first.isEmpty {
+                deepLinkedUserId = first
+            }
+            return
+        }
+        
+        if url.scheme == "junjun" {
+            if url.host == "u" || url.host == "users" {
+                if let first = pathComponents.first, !first.isEmpty {
+                    deepLinkedUserId = first
+                }
+            } else if pathComponents.count >= 2 && (pathComponents[0] == "u" || pathComponents[0] == "users") {
+                deepLinkedUserId = pathComponents[1]
+            } else if let first = pathComponents.first, !first.isEmpty {
+                deepLinkedUserId = first
+            }
+        }
+    }
+
     init() {
         self.userEmail = KeychainHelper.email
         checkExpiration()

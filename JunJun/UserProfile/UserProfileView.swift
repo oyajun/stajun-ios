@@ -27,7 +27,8 @@ struct UserProfileView: View {
     }
 
     private var isOwnProfile: Bool {
-        appState.currentUser?.id == userId
+        guard let myId = appState.currentUser?.id else { return false }
+        return myId == userId || myId.hasPrefix(userId) || user?.id == myId
     }
 
     var body: some View {
@@ -44,8 +45,15 @@ struct UserProfileView: View {
         .navigationTitle(user?.name ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            if let user, let shareURL = URL(string: "https://junjun.oyajun.com/u/\(String(user.id.prefix(10)))") {
+                ToolbarItem(placement: .topBarTrailing) {
+                    ShareLink(item: shareURL) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+            }
             if !isOwnProfile {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         if isBlocked {
                             Button("Unblock", role: .destructive) {
@@ -83,14 +91,18 @@ struct UserProfileView: View {
                     isLoading = false
                 }
             }
+            // まずユーザー情報を取得して正式なフル UID を確定させる
+            await load()
+
+            // 正式な ID が確定した後に投稿を取得
+            let targetId = targetFullUserId
             if !isBlocked && posts.isEmpty {
-                let cachedPosts = PostsCache.load(scopeKey: "user_\(userId)")
+                let cachedPosts = PostsCache.load(scopeKey: "user_\(targetId)")
                 if !cachedPosts.isEmpty {
                     posts = cachedPosts
                     hasLoadedPosts = true
                 }
             }
-            await load()
             if !isBlocked {
                 await loadPosts()
             }
@@ -271,6 +283,10 @@ struct UserProfileView: View {
 
     // MARK: - Actions
 
+    private var targetFullUserId: String {
+        user?.id ?? userId
+    }
+
     private func load() async {
         if user == nil {
             isLoading = true
@@ -282,7 +298,7 @@ struct UserProfileView: View {
             user = fetched
             UserProfileCache.save(fetched, userId: userId)
             let blockedResp = try? await APIClient.getBlockedUsers(limit: 50, offset: 0)
-            if let resp = blockedResp, resp.users.contains(where: { $0.id == userId }) {
+            if let resp = blockedResp, resp.users.contains(where: { $0.id == fetched.id || $0.id == userId }) {
                 isBlocked = true
             }
         } catch {
@@ -293,16 +309,17 @@ struct UserProfileView: View {
     }
 
     private func loadPosts() async {
+        let targetId = targetFullUserId
         isLoadingPosts = true
         defer {
             isLoadingPosts = false
             hasLoadedPosts = true
         }
         do {
-            let response = try await APIClient.getUserPosts(userId: userId)
+            let response = try await APIClient.getUserPosts(userId: targetId)
             posts = response.posts
             postsCursor = response.nextCursor
-            PostsCache.save(response.posts, scopeKey: "user_\(userId)")
+            PostsCache.save(response.posts, scopeKey: "user_\(targetId)")
         } catch {
             // Non-fatal: profile still shows without posts.
         }
@@ -310,15 +327,17 @@ struct UserProfileView: View {
 
     private func loadMorePosts() {
         guard let cursor = postsCursor, !isLoadingPosts else { return }
+        let targetId = targetFullUserId
         Task {
             isLoadingPosts = true
             defer { isLoadingPosts = false }
             do {
-                let response = try await APIClient.getUserPosts(userId: userId, cursor: cursor)
+                let response = try await APIClient.getUserPosts(userId: targetId, cursor: cursor)
                 posts.append(contentsOf: response.posts)
                 postsCursor = response.nextCursor
+                PostsCache.save(posts, scopeKey: "user_\(targetId)")
             } catch {
-                // Ignore pagination errors.
+                // Non-fatal
             }
         }
     }

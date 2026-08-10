@@ -15,7 +15,7 @@ enum Config {
     static let expirationDate: Date? = ISO8601DateFormatter().date(from: "2026-09-31T23:59:59Z")
     
     /// App Store URL for the update dialog
-    static let appStoreURL = URL(string: "itms-apps://itunes.apple.com/")
+    static let appStoreURL = URL(string: "https://apps.apple.com/app/junjun-study-community/id6798144458")
     
     static func documentURL(for path: String) -> URL {
         let lang = Locale.current.language.languageCode?.identifier ?? "en"

@@ -35,8 +35,13 @@ struct AuthCoordinatorView: View {
     }
 }
 
+private struct DeepLinkTargetUser: Identifiable {
+    let id: String
+}
+
 struct ContentView: View {
     @Environment(AppState.self) private var appState
+    @State private var showUnauthenticatedDeepLinkAlert = false
 
     var body: some View {
         Group {
@@ -52,6 +57,33 @@ struct ContentView: View {
             case .authenticated:
                 MainTabView()
             }
+        }
+        .onOpenURL { url in
+            if appState.authState == .unauthenticated {
+                showUnauthenticatedDeepLinkAlert = true
+            } else {
+                appState.handleOpenURL(url)
+            }
+        }
+        .sheet(item: Binding(
+            get: { appState.deepLinkedUserId.map { DeepLinkTargetUser(id: $0) } },
+            set: { if $0 == nil { appState.deepLinkedUserId = nil } }
+        )) { target in
+            NavigationStack {
+                UserProfileView(userId: target.id)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button {
+                                appState.deepLinkedUserId = nil
+                            } label: {
+                                Image(systemName: "xmark")
+                            }
+                        }
+                    }
+            }
+        }
+        .alert("Please create an account or log in before opening this link again.", isPresented: $showUnauthenticatedDeepLinkAlert) {
+            Button("OK", role: .cancel) { }
         }
         .alert("Update Required", isPresented: Binding(
             get: { appState.requiresUpdate },
