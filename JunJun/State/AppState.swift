@@ -30,31 +30,20 @@ final class AppState {
     /// True if the app has passed its hardcoded expiration date
     var requiresUpdate: Bool = false
 
-    /// User ID or prefix from deep link / Universal Link to display
+    /// Full User ID from deep link (junjun://u/[fulluserid]) to display
     var deepLinkedUserId: String?
 
     func handleOpenURL(_ url: URL) {
+        guard url.scheme == "junjun" else { return }
         let pathComponents = url.pathComponents.filter { $0 != "/" }
         
-        if url.host == "junjun.oyajun.com" {
-            if pathComponents.count >= 2 && pathComponents[0] == "u" {
-                deepLinkedUserId = pathComponents[1]
-            } else if let first = pathComponents.first, !first.isEmpty {
-                deepLinkedUserId = first
-            }
-            return
-        }
-        
-        if url.scheme == "junjun" {
-            if url.host == "u" || url.host == "users" {
-                if let first = pathComponents.first, !first.isEmpty {
-                    deepLinkedUserId = first
-                }
-            } else if pathComponents.count >= 2 && (pathComponents[0] == "u" || pathComponents[0] == "users") {
-                deepLinkedUserId = pathComponents[1]
-            } else if let first = pathComponents.first, !first.isEmpty {
-                deepLinkedUserId = first
-            }
+        // Handles junjun://u/[fulluserid] and junjun://users/[fulluserid]
+        if url.host == "u" || url.host == "users", let userId = pathComponents.first, !userId.isEmpty {
+            deepLinkedUserId = userId
+        } else if pathComponents.count >= 2, (pathComponents[0] == "u" || pathComponents[0] == "users") {
+            deepLinkedUserId = pathComponents[1]
+        } else if let userId = pathComponents.first, !userId.isEmpty {
+            deepLinkedUserId = userId
         }
     }
 
