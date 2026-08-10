@@ -71,7 +71,7 @@ struct UserProfileView: View {
             }
         }
         .navigationDestination(item: $followListTab) { tab in
-            FollowListView(userId: userId, initialTab: tab)
+            FollowListView(userId: userId, userName: user?.name, initialTab: tab)
         }
         .task {
             if user == nil {

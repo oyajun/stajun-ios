@@ -516,22 +516,6 @@
         }
       }
     },
-    "Connections" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "つながり"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "연결"
-          }
-        }
-      }
-    },
     "Could not load data" : {
       "localizations" : {
         "ja" : {

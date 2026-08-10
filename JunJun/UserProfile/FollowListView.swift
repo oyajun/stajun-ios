@@ -9,6 +9,7 @@ enum FollowListType: String, Identifiable {
 
 struct FollowListView: View {
     let userId: String
+    let userName: String?
     var initialTab: FollowListType = .following
 
     @Environment(AppState.self) private var appState
@@ -20,8 +21,9 @@ struct FollowListView: View {
     @State private var isLoadingFollowers = true
     @State private var errorMessage: String?
 
-    init(userId: String, initialTab: FollowListType = .following) {
+    init(userId: String, userName: String? = nil, initialTab: FollowListType = .following) {
         self.userId = userId
+        self.userName = userName
         self.initialTab = initialTab
         _selectedTab = State(initialValue: initialTab)
     }
@@ -52,19 +54,9 @@ struct FollowListView: View {
                     .listRowSeparator(.hidden)
                     .padding(.vertical, 48)
             } else if currentUsers.isEmpty {
-                if selectedTab == .following {
-                    ContentUnavailableView(
-                        "No Following Users",
-                        systemImage: "person.2",
-                        description: Text("Find people to follow in the Search tab")
-                    )
+                ContentUnavailableView("No users yet", systemImage: "person.2")
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
-                } else {
-                    ContentUnavailableView("No users yet", systemImage: "person.2")
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                }
             } else {
                 ForEach(currentUsers) { user in
                     NavigationLink(destination: UserProfileView(userId: user.id)) {
@@ -82,7 +74,7 @@ struct FollowListView: View {
             }
         }
         .listStyle(.plain)
-        .navigationTitle("Connections")
+        .navigationTitle(userName ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadFollowing() }
         .task { await loadFollowers() }
