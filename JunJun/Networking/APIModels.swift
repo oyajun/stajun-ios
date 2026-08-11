@@ -47,7 +47,10 @@ struct UserWithFollowStatus: Codable, Identifiable {
     let iconEmoji: String
     let iconBackgroundColor: String
     var isFollowing: Bool
+    let isStudying: Bool?
+    let studyingSince: Date?
 }
+
 
 struct UserWithStudyStatus: Codable, Identifiable {
     let id: String
@@ -117,7 +120,12 @@ struct SearchResponse: Codable {
     let pagination: Pagination
 }
 
+struct RecommendedUsersResponse: Codable {
+    let users: [UserWithStudyStatus]
+}
+
 struct Pagination: Codable {
+
     let total: Int
     let limit: Int
     let offset: Int

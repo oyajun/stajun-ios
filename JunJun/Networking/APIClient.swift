@@ -234,6 +234,12 @@ enum APIClient {
         return try await perform(path: "/api/v1/users?q=\(encoded)&limit=\(limit)&offset=\(offset)", method: "GET", as: SearchResponse.self)
     }
 
+    /// Get recommended users (up to 10 users)
+    static func getRecommendedUsers() async throws -> RecommendedUsersResponse {
+        try await perform(path: "/api/v1/users/recommended", method: "GET", as: RecommendedUsersResponse.self)
+    }
+
+
     // MARK: - Follow
 
     /// Follow a user

@@ -5,7 +5,9 @@ struct SearchView: View {
 
     @State private var query = ""
     @State private var results: [UserWithFollowStatus] = []
+    @State private var recommendedUsers: [UserWithStudyStatus] = []
     @State private var isLoading = false
+    @State private var isLoadingRecommended = false
     @State private var isLoadingMore = false
     @State private var hasMore = false
     @State private var errorMessage: String?
@@ -14,45 +16,89 @@ struct SearchView: View {
     var body: some View {
         NavigationStack {
             List {
-                if isLoading {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
-                    .listRowBackground(Color.clear)
-                } else if results.isEmpty && !query.isEmpty {
-                    ContentUnavailableView.search(text: query)
-                        .listRowBackground(Color.clear)
-                } else {
-                    ForEach(results) { user in
-                        NavigationLink {
-                            UserProfileView(userId: user.id)
-                        } label: {
-                            UserRow(
-                                iconEmoji: user.iconEmoji,
-                                iconBackgroundColor: user.iconBackgroundColor,
-                                name: user.name,
-                                isFollowing: user.isFollowing,
-                                onFollowToggle: { toggleFollow(user: user) }
+                if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    // おすすめユーザーセクション
+                    Section {
+                        if isLoadingRecommended {
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                Spacer()
+                            }
+                            .listRowBackground(Color.clear)
+                        } else if recommendedUsers.isEmpty {
+                            ContentUnavailableView(
+                                "No Recommendations Available",
+                                systemImage: "person.2.slash"
                             )
-                        }
-                        .onAppear {
-                            if user.id == results.last?.id {
-                                loadMoreIfNeeded()
+                            .listRowBackground(Color.clear)
+                        } else {
+                            ForEach(recommendedUsers) { user in
+                                NavigationLink {
+                                    UserProfileView(userId: user.id)
+                                } label: {
+                                    UserRow(
+                                        iconEmoji: user.iconEmoji,
+                                        iconBackgroundColor: user.iconBackgroundColor,
+                                        name: user.name,
+                                        isStudying: user.isStudying,
+                                        isFollowing: user.isFollowing ?? false,
+                                        onFollowToggle: { toggleFollowRecommended(user: user) }
+                                    )
+                                }
                             }
                         }
+                    } header: {
+                        Text("Recommended Users")
                     }
+                } else {
+                    // 検索結果セクション
+                    Section {
+                        if isLoading {
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                Spacer()
+                            }
+                            .listRowBackground(Color.clear)
+                        } else if results.isEmpty {
+                            ContentUnavailableView.search(text: query)
+                                .listRowBackground(Color.clear)
+                        } else {
+                            ForEach(results) { user in
+                                NavigationLink {
+                                    UserProfileView(userId: user.id)
+                                } label: {
+                                    UserRow(
+                                        iconEmoji: user.iconEmoji,
+                                        iconBackgroundColor: user.iconBackgroundColor,
+                                        name: user.name,
+                                        isStudying: user.isStudying ?? false,
+                                        isFollowing: user.isFollowing,
+                                        onFollowToggle: { toggleFollow(user: user) }
+                                    )
+                                }
+                                .onAppear {
+                                    if user.id == results.last?.id {
+                                        loadMoreIfNeeded()
+                                    }
+                                }
+                            }
 
-                    if isLoadingMore {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                            Spacer()
+                            if isLoadingMore {
+                                HStack {
+                                    Spacer()
+                                    ProgressView()
+                                    Spacer()
+                                }
+                                .listRowBackground(Color.clear)
+                            }
                         }
-                        .listRowBackground(Color.clear)
+                    } header: {
+                        Text("Search Results")
                     }
                 }
+
 
                 if let errorMessage {
                     Text(errorMessage)
@@ -64,23 +110,53 @@ struct SearchView: View {
             .navigationTitle("Search")
             .searchable(text: $query, prompt: "Search Users")
             .textInputAutocapitalization(.never)
+            .task {
+                if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && recommendedUsers.isEmpty {
+                    await loadRecommendedUsers()
+                }
+            }
             .onChange(of: query) { _, newValue in
                 scheduleSearch(query: newValue)
+            }
+            .refreshable {
+                if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    await loadRecommendedUsers()
+                } else {
+                    await search(query: query)
+                }
+            }
+        }
+    }
+
+    private func loadRecommendedUsers() async {
+        isLoadingRecommended = true
+        errorMessage = nil
+        defer { isLoadingRecommended = false }
+        do {
+            let response = try await APIClient.getRecommendedUsers()
+            recommendedUsers = response.users
+        } catch {
+            if !error.isCancellation {
+                errorMessage = error.localizedDescription
             }
         }
     }
 
     private func scheduleSearch(query: String) {
         searchTask?.cancel()
-        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
             results = []
             hasMore = false
+            Task {
+                await loadRecommendedUsers()
+            }
             return
         }
         searchTask = Task {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
-            await search(query: query)
+            await search(query: trimmed)
         }
     }
 
@@ -132,6 +208,24 @@ struct SearchView: View {
                 } else {
                     _ = try await APIClient.follow(userId: user.id)
                     results[index].isFollowing = true
+                }
+            } catch {
+                // Ignore errors (no UI rollback needed)
+            }
+        }
+    }
+
+    private func toggleFollowRecommended(user: UserWithStudyStatus) {
+        guard let index = recommendedUsers.firstIndex(where: { $0.id == user.id }) else { return }
+        let currentlyFollowing = user.isFollowing ?? false
+        Task {
+            do {
+                if currentlyFollowing {
+                    try await APIClient.unfollow(userId: user.id)
+                    recommendedUsers[index].isFollowing = false
+                } else {
+                    _ = try await APIClient.follow(userId: user.id)
+                    recommendedUsers[index].isFollowing = true
                 }
             } catch {
                 // Ignore errors (no UI rollback needed)

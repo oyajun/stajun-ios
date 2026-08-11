@@ -6,6 +6,7 @@ struct UserRow: View {
     let iconEmoji: String
     let iconBackgroundColor: String
     let name: String
+    var isStudying: Bool = false
     let isFollowing: Bool
     let onFollowToggle: (() -> Void)?
 
@@ -14,8 +15,10 @@ struct UserRow: View {
             UserIconView(
                 emoji: iconEmoji,
                 backgroundColor: iconBackgroundColor,
-                size: 44
+                size: 44,
+                isStudying: isStudying
             )
+
             Text(name)
                 .font(.body)
             Spacer()
