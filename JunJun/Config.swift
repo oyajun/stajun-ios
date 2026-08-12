@@ -18,7 +18,7 @@ enum Config {
     static let adMobBannerUnitID: String = "ca-app-pub-5564838687301652/5099285563"
     
     /// Keywords passed to AdMob to prioritize study & education related ads
-    static let adMobKeywords: [String] = ["udemy"]
+    static let adMobKeywords: [String] = ["大学"]
     
     /// App expiration date. Change this string to configure the expiration date.
     static let expirationDate: Date? = ISO8601DateFormatter().date(from: "2026-09-31T23:59:59Z")

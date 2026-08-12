@@ -150,14 +150,14 @@ struct HomeView: View {
                             .listRowInsets(EdgeInsets(top: 0, leading: 32, bottom: 0, trailing: 32))
                         
                         if Config.showAds && (index == 1 || (index > 1 && (index - 1) % 5 == 0)) {
-                            VStack(spacing: 12) {
+                            VStack(spacing: 0) {
                                 Divider()
-                                AdBannerCard()
+                                AdBannerCard(cacheKey: "timeline-\(index)")
                                 Divider()
                             }
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                         }
                     }
                 }
