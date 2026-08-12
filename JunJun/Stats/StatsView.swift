@@ -32,6 +32,7 @@ struct StatsView: View {
     private var content: some View {
         ScrollView {
             VStack(spacing: 16) {
+                AdBannerCard()
                 if let msg = model.errorMessage {
                     Text(msg)
                         .font(.subheadline)
