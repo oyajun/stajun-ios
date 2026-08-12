@@ -7,6 +7,9 @@ struct JunJunApp: App {
 
     init() {
         if Config.showAds {
+            GADMobileAds.sharedInstance().requestConfiguration.testDeviceIdentifiers = [
+                "abebb238e58136dd84e55df6f9fddec9"
+            ]
             GADMobileAds.sharedInstance().start(completionHandler: nil)
         }
     }

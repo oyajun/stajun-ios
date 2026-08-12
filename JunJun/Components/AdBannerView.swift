@@ -46,23 +46,13 @@ struct AdBannerView: UIViewRepresentable {
     }
 }
 
-/// Helper wrapper that checks `Config.showAds` and centers the 320x50 banner card with a light-blue localized "Ad" badge on the right
+/// Helper wrapper that checks `Config.showAds` and centers the 320x50 banner card
 struct AdBannerCard: View {
     var body: some View {
         if Config.showAds {
-            HStack(alignment: .center, spacing: 6) {
-                AdBannerView()
-                    .frame(width: 320, height: 50)
-                
-                Text("Ad")
-                    .font(.caption2)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color.cyan)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(Color.cyan.opacity(0.15), in: RoundedRectangle(cornerRadius: 4))
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
+            AdBannerView()
+                .frame(width: 320, height: 50)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 }
