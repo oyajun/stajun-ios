@@ -15,7 +15,7 @@ struct ComposePostView: View {
     @State private var isSubmitting = false
     @State private var errorMessage: String?
 
-    private let maxCommentLength = 500
+    private let maxCommentLength = 50
 
     init(initialMinutes: Int = 0, onPosted: ((StudyPost) -> Void)? = nil) {
         self.onPosted = onPosted
@@ -76,8 +76,16 @@ struct ComposePostView: View {
                 }
 
                 Section {
-                    TextField("What did you study?", text: $comment, axis: .vertical)
-                        .lineLimit(3...8)
+                    TextField("What did you study?", text: $comment)
+                        .onChange(of: comment) { _, newValue in
+                            var filtered = newValue.replacingOccurrences(of: "\n", with: " ").replacingOccurrences(of: "\r", with: "")
+                            if filtered.count > maxCommentLength {
+                                filtered = String(filtered.prefix(maxCommentLength))
+                            }
+                            if comment != filtered {
+                                comment = filtered
+                            }
+                        }
                 } header: {
                     HStack {
                         Text("Comment (optional)")
