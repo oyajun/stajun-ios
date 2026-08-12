@@ -13,7 +13,12 @@ struct AdBannerView: UIViewRepresentable {
         bannerView.adUnitID = adUnitID
         bannerView.rootViewController = context.coordinator.getRootViewController()
         bannerView.delegate = context.coordinator
-        bannerView.load(GADRequest())
+        
+        let request = GADRequest()
+        if !Config.adMobKeywords.isEmpty {
+            request.keywords = Config.adMobKeywords
+        }
+        bannerView.load(request)
         return bannerView
     }
 
