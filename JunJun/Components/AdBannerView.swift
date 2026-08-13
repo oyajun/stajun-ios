@@ -115,6 +115,23 @@ struct AdBannerCard: View {
     }
 }
 
+/// タイムライン最初の広告向けの中間バナー (320×100 Large Banner)
+struct AdLargeBannerCard: View {
+    let cacheKey: String
+
+    var body: some View {
+        if Config.showAds {
+            AdBannerView(
+                adUnitID: Config.adMobBannerUnitID,
+                adSize: GADAdSizeLargeBanner,
+                cacheKey: cacheKey
+            )
+            .frame(width: 320, height: 100)
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+    }
+}
+
 /// Stats 画面など小さいスペース向けの通常バナー (320×50)
 struct AdSmallBannerCard: View {
     var body: some View {

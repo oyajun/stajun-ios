@@ -40,7 +40,6 @@ struct StatsView: View {
                 }
                 summarySection
                 heatmapSection
-                AdSmallBannerCard()
                 chartCard
                 AdSmallBannerCard()
             }
