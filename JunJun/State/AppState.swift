@@ -167,6 +167,7 @@ final class AppState {
     func signOut() async {
         try? await APIClient.signOut()
         KeychainHelper.token = nil
+        NotificationHandler.resetRegisteredToken()
         FeedCache.clear()
         ProfileCache.clear()
         PostsCache.clear()
@@ -181,6 +182,7 @@ final class AppState {
     func clearAfterAccountDeletion() {
         KeychainHelper.token = nil
         userEmail = nil
+        NotificationHandler.resetRegisteredToken()
         FeedCache.clear()
         ProfileCache.clear()
         PostsCache.clear()

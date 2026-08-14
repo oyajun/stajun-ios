@@ -40,6 +40,7 @@ private struct DeepLinkTargetUser: Identifiable {
 }
 
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(AppState.self) private var appState
     @State private var showUnauthenticatedDeepLinkAlert = false
 
@@ -56,6 +57,11 @@ struct ContentView: View {
 
             case .authenticated:
                 MainTabView()
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active && appState.authState == .authenticated {
+                appState.requestPushPermissionIfAppropriate()
             }
         }
         .onOpenURL { url in
