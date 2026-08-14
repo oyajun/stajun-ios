@@ -108,9 +108,12 @@ struct AdBannerCard: View {
 
     var body: some View {
         if Config.showAds {
-            AdBannerView(cacheKey: cacheKey)
-                .frame(width: 300, height: 250)
-                .frame(maxWidth: .infinity, alignment: .center)
+            HStack(alignment: .bottom, spacing: 0) {
+                AdBannerView(cacheKey: cacheKey)
+                    .frame(width: 300, height: 250)
+                AdBadge()
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 }
@@ -121,12 +124,15 @@ struct AdLargeBannerCard: View {
 
     var body: some View {
         if Config.showAds {
-            AdBannerView(
-                adUnitID: Config.adMobBannerUnitID,
-                adSize: GADAdSizeLargeBanner,
-                cacheKey: cacheKey
-            )
-            .frame(width: 320, height: 100)
+            HStack(alignment: .bottom, spacing: 0) {
+                AdBannerView(
+                    adUnitID: Config.adMobBannerUnitID,
+                    adSize: GADAdSizeLargeBanner,
+                    cacheKey: cacheKey
+                )
+                .frame(width: 320, height: 100)
+                AdBadge()
+            }
             .frame(maxWidth: .infinity, alignment: .center)
         }
     }
@@ -136,12 +142,32 @@ struct AdLargeBannerCard: View {
 struct AdSmallBannerCard: View {
     var body: some View {
         if Config.showAds {
-            AdBannerView(
-                adUnitID: Config.adMobBannerUnitID,
-                adSize: GADAdSizeBanner
-            )
-            .frame(width: 320, height: 50)
+            HStack(alignment: .bottom, spacing: 0) {
+                AdBannerView(
+                    adUnitID: Config.adMobBannerUnitID,
+                    adSize: GADAdSizeBanner
+                )
+                // SE など幅が狭い端末でバッジが潰れないよう maxWidth で柔軟に
+                .frame(minWidth: 0, idealWidth: 320, maxWidth: 320, minHeight: 50, maxHeight: 50)
+                AdBadge()
+            }
             .frame(maxWidth: .infinity, alignment: .center)
         }
+    }
+}
+
+/// 広告バナーの右横に表示する水色バッジ
+private struct AdBadge: View {
+    var body: some View {
+        Text("Ad", comment: "Short label shown on advertisement banners.")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color(red: 0.0, green: 0.68, blue: 0.85), in: Capsule())
+            .padding(.top, 6)
+            .padding(.trailing, 4)
+            .fixedSize()          // 潰れ防止: 常に intrinsic サイズを維持
+            .layoutPriority(1)    // HStack 内でバナーより優先的にスペースを確保
     }
 }

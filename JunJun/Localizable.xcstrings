@@ -2242,6 +2242,24 @@
           }
         }
       }
+    },
+
+    "Ad" : {
+      "comment" : "Short label shown on advertisement banners.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "広告"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "광고"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"
