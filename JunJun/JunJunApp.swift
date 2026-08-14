@@ -3,6 +3,7 @@ import GoogleMobileAds
 
 @main
 struct JunJunApp: App {
+    @UIApplicationDelegateAdaptor(NotificationHandler.self) private var appDelegate
     @State private var appState = AppState()
 
     init() {

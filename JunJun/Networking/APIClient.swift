@@ -381,4 +381,14 @@ enum APIClient {
         let sign = seconds >= 0 ? "%2B" : "-"
         return String(format: "%@%02d:%02d", sign, hours, minutes)
     }
+
+    // MARK: - Push Notifications
+
+    /// Register APNs device token with the server
+    static func registerAPNsToken(token: String) async throws {
+        struct RegisterAPNsTokenRequest: Encodable {
+            let token: String
+        }
+        try await perform(path: "/api/v1/apns-token", method: "POST", body: RegisterAPNsTokenRequest(token: token), as: EmptyResponse.self)
+    }
 }

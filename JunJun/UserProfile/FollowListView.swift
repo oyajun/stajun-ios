@@ -123,6 +123,7 @@ struct FollowListView: View {
                     try await APIClient.unfollow(userId: user.id)
                 } else {
                     _ = try await APIClient.follow(userId: user.id)
+                    appState.requestPushPermissionIfAppropriate()
                 }
                 let newValue = !wasFollowing
                 if let i = followingUsers.firstIndex(where: { $0.id == user.id }) {

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UserNotifications
 
 // MARK: - Auth State
 
@@ -78,6 +79,7 @@ final class AppState {
             currentUser = profile
             ProfileCache.save(profile)
             authState = .authenticated
+            checkFollowingAndRequestPushPermission()
         } catch APIError.unauthorized {
             // Token actually invalid → sign out
             KeychainHelper.token = nil
@@ -91,6 +93,7 @@ final class AppState {
             // because the server is down. Use the cached profile if we have one.
             currentUser = ProfileCache.load()
             authState = .authenticated
+            checkFollowingAndRequestPushPermission()
         }
     }
 
@@ -115,6 +118,7 @@ final class AppState {
             let profile = try await APIClient.getMyProfile()
             currentUser = profile
             authState = .authenticated
+            checkFollowingAndRequestPushPermission()
 
         case .registerEmail, .changeEmail:
             try await APIClient.changeEmail(newEmail: email, otp: otp)
@@ -185,5 +189,52 @@ final class AppState {
         currentUser = nil
         isStudying = false
         authState = .unauthenticated
+    }
+
+    // MARK: - Push Notifications
+
+    /// Prompts for push notification permissions if not determined yet.
+    /// Used when following a user or logging in while already following users.
+    func requestPushPermissionIfAppropriate() {
+        Task {
+            let center = UNUserNotificationCenter.current()
+            let settings = await center.notificationSettings()
+            guard settings.authorizationStatus == .notDetermined else {
+                if settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional {
+                    await MainActor.run {
+                        UIApplication.shared.registerForRemoteNotifications()
+                    }
+                }
+                return
+            }
+            do {
+                let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+                if granted {
+                    await MainActor.run {
+                        UIApplication.shared.registerForRemoteNotifications()
+                    }
+                }
+            } catch {
+                #if DEBUG
+                print("[Push Notifications] Authorization error: \(error)")
+                #endif
+            }
+        }
+    }
+
+    /// Check if current user is following anyone; if so, request push notification permission
+    func checkFollowingAndRequestPushPermission() {
+        Task {
+            do {
+                let following = try await APIClient.getFollowing(userId: "me")
+                if !following.users.isEmpty {
+                    requestPushPermissionIfAppropriate()
+                }
+            } catch {
+                #if DEBUG
+                print("[Push Notifications] Failed to fetch following for permission check: \(error)")
+                #endif
+            }
+        }
     }
 }

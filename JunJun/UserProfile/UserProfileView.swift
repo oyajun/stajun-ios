@@ -364,6 +364,7 @@ struct UserProfileView: View {
             } else {
                 _ = try await APIClient.follow(userId: userId)
                 user?.isFollowing = true
+                appState.requestPushPermissionIfAppropriate()
             }
         } catch {
             if !error.isCancellation {
