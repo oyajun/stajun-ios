@@ -86,6 +86,13 @@ struct NotificationsView: View {
                 }
                 await loadNotifications()
             }
+            .onAppear {
+                if hasLoaded {
+                    Task {
+                        await loadNotifications()
+                    }
+                }
+            }
             .onChange(of: appState.deepLinkedUserId) { _, newId in
                 guard let newId else { return }
                 if let index = notifications.firstIndex(where: { $0.actor?.id == newId && !$0.isRead }) {
@@ -232,10 +239,13 @@ struct NotificationsView: View {
 
     // MARK: - Helpers
 
+    private static let calendar = Calendar.autoupdatingCurrent
+    private static let locale = Locale.autoupdatingCurrent
+
     private func timeAgoText(for date: Date) -> String {
-        let calendar = Calendar.autoupdatingCurrent
+        let calendar = Self.calendar
         let now = Date()
-        let locale = Locale.autoupdatingCurrent
+        let locale = Self.locale
 
         if calendar.isDate(date, inSameDayAs: now) {
             return date.formatted(

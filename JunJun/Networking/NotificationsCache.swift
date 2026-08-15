@@ -22,10 +22,15 @@ enum NotificationsCache {
         cacheDir.appendingPathComponent("notifications.json")
     }
 
-    /// Saves notifications to cache. Best-effort.
+    private static let ioQueue = DispatchQueue(label: "com.oyajun.junjun.notifications-cache", qos: .utility)
+
+    /// Saves notifications to cache asynchronously in background.
     static func save(_ notifications: [AppNotification]) {
-        guard let data = try? encoder.encode(notifications) else { return }
-        try? data.write(to: fileURL, options: .atomic)
+        let copy = notifications
+        ioQueue.async {
+            guard let data = try? encoder.encode(copy) else { return }
+            try? data.write(to: fileURL, options: .atomic)
+        }
     }
 
     /// Loads cached notifications from disk.
@@ -38,6 +43,8 @@ enum NotificationsCache {
 
     /// Clears cached notifications.
     static func clear() {
-        try? FileManager.default.removeItem(at: fileURL)
+        ioQueue.async {
+            try? FileManager.default.removeItem(at: fileURL)
+        }
     }
 }
