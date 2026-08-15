@@ -391,4 +391,33 @@ enum APIClient {
         }
         try await perform(path: "/api/v1/apns-token", method: "POST", body: RegisterAPNsTokenRequest(token: token), as: EmptyResponse.self)
     }
+
+    // MARK: - Notifications
+
+    /// Get list of notifications (cursor-paginated)
+    static func getNotifications(cursor: String? = nil, limit: Int = 20) async throws -> NotificationsResponse {
+        var query = ["limit=\(limit)"]
+        if let cursor, let encoded = cursor.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            query.append("cursor=\(encoded)")
+        }
+        let path = "/api/v1/notifications?" + query.joined(separator: "&")
+        return try await perform(path: path, method: "GET", as: NotificationsResponse.self)
+    }
+
+    /// Mark all unread notifications as read
+    static func markAllNotificationsAsRead() async throws {
+        try await perform(path: "/api/v1/notifications/read-all", method: "POST", as: EmptyResponse.self)
+    }
+
+    /// Mark a specific notification as read
+    static func markNotificationAsRead(id: String) async throws {
+        try await perform(path: "/api/v1/notifications/\(id)/read", method: "PATCH", as: EmptyResponse.self)
+    }
+
+    /// Get unread notifications count
+    static func getUnreadNotificationCount() async throws -> Int {
+        let res = try await perform(path: "/api/v1/notifications/unread-count", method: "GET", as: UnreadNotificationCountResponse.self)
+        return res.unreadCount
+    }
 }
+

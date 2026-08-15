@@ -193,3 +193,25 @@ struct BlockedUsersResponse: Codable {
     let pagination: Pagination
 }
 
+// MARK: - Notifications
+
+struct AppNotification: Codable, Identifiable {
+    let id: String
+    let type: String
+    let actor: UserProfile?
+    let postId: String?
+    let extra: String?
+    var isRead: Bool
+    let createdAt: Date
+}
+
+struct NotificationsResponse: Codable {
+    let notifications: [AppNotification]
+    let unreadCount: Int
+    let nextCursor: String?
+}
+
+struct UnreadNotificationCountResponse: Codable {
+    let unreadCount: Int
+}
+

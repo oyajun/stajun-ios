@@ -590,6 +590,7 @@ struct HomeView: View {
             try? await Task.sleep(for: .seconds(Config.feedPollingInterval))
             await refreshStudyState()
             await loadFeed()
+            await appState.fetchUnreadNotificationCount()
         }
     }
 

@@ -76,6 +76,12 @@ final class NotificationHandler: NSObject, UIApplicationDelegate, UNUserNotifica
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+        Task { @MainActor in
+            NotificationCenter.default.post(
+                name: .didReceiveRemoteNotification,
+                object: nil
+            )
+        }
         completionHandler([.banner, .sound, .badge])
     }
 
@@ -85,6 +91,42 @@ final class NotificationHandler: NSObject, UIApplicationDelegate, UNUserNotifica
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
+        let userInfo = response.notification.request.content.userInfo
+
+        // 1. notificationId があればサーバー上で既読化
+        if let notificationId = userInfo["notificationId"] as? String, !notificationId.isEmpty {
+            Task {
+                try? await APIClient.markNotificationAsRead(id: notificationId)
+            }
+        }
+
+        // 2. フォロー通知なら該当ユーザーのプロフィールを開くよう通知
+        if let type = userInfo["type"] as? String, type == "FOLLOW",
+           let actorId = userInfo["actorId"] as? String, !actorId.isEmpty {
+            Task { @MainActor in
+                NotificationCenter.default.post(
+                    name: .didTapPushNotification,
+                    object: nil,
+                    userInfo: ["userId": actorId]
+                )
+            }
+        } else {
+            Task { @MainActor in
+                NotificationCenter.default.post(
+                    name: .didTapPushNotification,
+                    object: nil,
+                    userInfo: [:]
+                )
+            }
+        }
+
         completionHandler()
     }
 }
+
+extension Notification.Name {
+    static let didTapPushNotification = Notification.Name("didTapPushNotification")
+    static let didReceiveRemoteNotification = Notification.Name("didReceiveRemoteNotification")
+}
+
+

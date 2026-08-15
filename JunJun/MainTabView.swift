@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab: MainTab = .home
 
     var body: some View {
@@ -12,11 +13,23 @@ struct MainTabView: View {
             Tab("Stats", systemImage: "chart.bar", value: .stats) {
                 StatsView()
             }
+            Tab("Notifications", systemImage: "bell", value: .notifications) {
+                NotificationsView()
+            }
+            .badge(appState.unreadNotificationCount)
             Tab("Search", systemImage: "magnifyingglass", value: .search) {
                 SearchView()
             }
             Tab("Settings", systemImage: "gearshape", value: .settings) {
                 SettingsView()
+            }
+        }
+        .task {
+            await appState.fetchUnreadNotificationCount()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                Task { await appState.fetchUnreadNotificationCount() }
             }
         }
         .overlay {
@@ -80,6 +93,7 @@ private struct StudyingBorderOverlay: View {
 private enum MainTab: Hashable {
     case home
     case stats
+    case notifications
     case search
     case settings
 }
