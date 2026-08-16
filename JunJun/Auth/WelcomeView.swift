@@ -4,6 +4,19 @@ struct WelcomeView: View {
     @Environment(AppState.self) private var appState
     @Environment(AuthRouter.self) private var authRouter: AuthRouter?
 
+    private var agreementAttributedString: AttributedString {
+        let termsURL = Config.termsOfServiceURL.absoluteString
+        let privacyURL = Config.privacyPolicyURL.absoluteString
+        let format = String(
+            localized: "By continuing, you agree to our [Terms of Service](%1$@) and [Privacy Policy](%2$@)."
+        )
+        let formatted = String(format: format, termsURL, privacyURL)
+        if let attributed = try? AttributedString(markdown: formatted, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
+            return attributed
+        }
+        return AttributedString(formatted)
+    }
+
     var body: some View {
         VStack(spacing: 32) {
                 Spacer()
@@ -43,19 +56,18 @@ struct WelcomeView: View {
                 }
                 .padding(.horizontal)
                 
-                HStack(spacing: 16) {
-                    Link(destination: Config.termsOfServiceURL) {
-                        Text("Terms of Service")
-                    }
-                    Link(destination: Config.privacyPolicyURL) {
-                        Text("Privacy Policy")
-                    }
+                VStack(spacing: 12) {
+                    Text(agreementAttributedString)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+
                     Link(destination: Config.supportURL) {
                         Text("Support")
                     }
                 }
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .tint(.blue)
+                .padding(.horizontal, 24)
                 .padding(.top, 8)
 
                 Spacer()

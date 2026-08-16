@@ -462,6 +462,22 @@
         }
       }
     },
+    "By continuing, you agree to our [Terms of Service](%1$@) and [Privacy Policy](%2$@)." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用し始めることで、[利用規約](%1$@)と[プライバシーポリシー](%2$@)に同意したものとします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "계속 진행하면 [이용약관](%1$@) 및 [개인정보 처리방침](%2$@)에 동의하게 됩니다."
+          }
+        }
+      }
+    },
     "Cancel" : {
       "localizations" : {
         "ja" : {
