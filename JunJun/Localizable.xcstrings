@@ -392,6 +392,38 @@
         }
       }
     },
+    "Are you sure you want to delete this post?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この投稿を削除しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 게시글을 삭제하시겠습니까?"
+          }
+        }
+      }
+    },
+    "Are you sure you want to report this post?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この投稿を通報しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 게시글을 신고하시겠습니까?"
+          }
+        }
+      }
+    },
     "Are you sure you want to sign out?" : {
       "localizations" : {
         "ja" : {
@@ -771,6 +803,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "삭제"
+          }
+        }
+      }
+    },
+    "Delete Post" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "投稿を削除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "게시글 삭제"
           }
         }
       }
@@ -2019,7 +2067,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "報告"
+            "value" : "通報"
           }
         },
         "ko" : {
@@ -2030,12 +2078,28 @@
         }
       }
     },
+    "Report Post" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "投稿を通報"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "게시글 신고"
+          }
+        }
+      }
+    },
     "Report Submitted" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "報告を送信しました"
+            "value" : "通報を送信しました"
           }
         },
         "ko" : {
@@ -2407,7 +2471,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ご報告ありがとうございます。"
+            "value" : "通報を受け付けました。"
           }
         },
         "ko" : {

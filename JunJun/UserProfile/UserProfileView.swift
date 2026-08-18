@@ -16,6 +16,8 @@ struct UserProfileView: View {
     @State private var postsCursor: String?
     @State private var isLoadingPosts = false
     @State private var hasLoadedPosts = false
+    @State private var postToDelete: Post?
+    @State private var postToReport: Post?
     @State private var showReportSuccessAlert = false
 
     @State private var showMuteAlert = false
@@ -115,6 +117,28 @@ struct UserProfileView: View {
             if !isBlocked {
                 await loadPosts()
             }
+        }
+        .alert("Delete Post", isPresented: Binding(
+            get: { postToDelete != nil },
+            set: { if !$0 { postToDelete = nil } }
+        ), presenting: postToDelete) { post in
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                Task { await deletePost(post) }
+            }
+        } message: { _ in
+            Text("Are you sure you want to delete this post?")
+        }
+        .alert("Report Post", isPresented: Binding(
+            get: { postToReport != nil },
+            set: { if !$0 { postToReport = nil } }
+        ), presenting: postToReport) { post in
+            Button("Cancel", role: .cancel) { }
+            Button("Report", role: .destructive) {
+                Task { await reportPost(post) }
+            }
+        } message: { _ in
+            Text("Are you sure you want to report this post?")
         }
         .alert("Report Submitted", isPresented: $showReportSuccessAlert) {
             Button("OK", role: .cancel) { }
@@ -272,14 +296,14 @@ struct UserProfileView: View {
             base
                 .swipeActions(edge: .trailing) {
                     Button(role: .destructive) {
-                        Task { await deletePost(post) }
+                        postToDelete = post
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
                 }
                 .contextMenu {
                     Button(role: .destructive) {
-                        Task { await deletePost(post) }
+                        postToDelete = post
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
@@ -288,7 +312,7 @@ struct UserProfileView: View {
             base
                 .contextMenu {
                     Button(role: .destructive) {
-                        Task { await reportPost(post) }
+                        postToReport = post
                     } label: {
                         Label("Report", systemImage: "exclamationmark.bubble")
                     }
