@@ -18,6 +18,9 @@ struct UserProfileView: View {
     @State private var hasLoadedPosts = false
     @State private var showReportSuccessAlert = false
 
+    @State private var showMuteAlert = false
+    @State private var muteAlertTitle: String = ""
+
     @State private var isBlocked: Bool
     @State private var showBlockConfirmation = false
 
@@ -59,6 +62,17 @@ struct UserProfileView: View {
                                 Task { await unblock() }
                             }
                         } else {
+                            if user?.isFollowing ?? false {
+                                Button {
+                                    Task { await toggleMute() }
+                                } label: {
+                                    Label(
+                                        (user?.isMuted ?? false) ? "Unmute Notifications" : "Mute Notifications",
+                                        systemImage: (user?.isMuted ?? false) ? "bell" : "bell.slash"
+                                    )
+                                }
+                            }
+
                             Button("Block", role: .destructive) {
                                 showBlockConfirmation = true
                             }
@@ -114,6 +128,9 @@ struct UserProfileView: View {
             }
         } message: {
             Text("Are you sure you want to block this user?")
+        }
+        .alert(LocalizedStringKey(muteAlertTitle), isPresented: $showMuteAlert) {
+            Button("OK", role: .cancel) { }
         }
     }
 
@@ -200,24 +217,39 @@ struct UserProfileView: View {
             }
 
             if !isOwnProfile && !isBlocked {
-                Button {
-                    Task { await toggleFollow() }
-                } label: {
-                    Group {
-                        if isFollowLoading {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Text(user.isFollowing ?? false ? "Following" : "Follow")
-                                .fontWeight(.semibold)
+                HStack(spacing: 8) {
+                    Button {
+                        Task { await toggleFollow() }
+                    } label: {
+                        Group {
+                            if isFollowLoading {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Text(user.isFollowing ?? false ? "Following" : "Follow")
+                                    .fontWeight(.semibold)
+                            }
                         }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 36)
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 36)
+                    .buttonStyle(.glassProminent)
+                    .tint(user.isFollowing ?? false ? .secondary : .accentColor)
+                    .disabled(isFollowLoading)
+
+                    if user.isFollowing ?? false {
+                        Button {
+                            Task { await toggleMute() }
+                        } label: {
+                            Image(systemName: (user.isMuted ?? false) ? "bell.slash.fill" : "bell.fill")
+                                .font(.body)
+                                .frame(width: 44, height: 36)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint((user.isMuted ?? false) ? .secondary : .accentColor)
+                        .accessibilityLabel((user.isMuted ?? false) ? "Unmute Notifications" : "Mute Notifications")
+                    }
                 }
-                .buttonStyle(.glassProminent)
-                .tint(user.isFollowing ?? false ? .secondary : .accentColor)
-                .disabled(isFollowLoading)
             }
 
             if let errorMessage {
@@ -361,15 +393,44 @@ struct UserProfileView: View {
             if currentUser.isFollowing ?? false {
                 try await APIClient.unfollow(userId: userId)
                 user?.isFollowing = false
+                user?.muteStudyStartNotification = 0
+                user?.isMuted = false
             } else {
-                _ = try await APIClient.follow(userId: userId)
+                let res = try await APIClient.follow(userId: userId)
                 user?.isFollowing = true
+                user?.muteStudyStartNotification = res.muteStudyStartNotification ?? 0
+                user?.isMuted = res.isMuted ?? ((res.muteStudyStartNotification ?? 0) == 1)
                 appState.requestPushPermissionIfAppropriate()
             }
         } catch {
             if !error.isCancellation {
                 errorMessage = error.localizedDescription
             }
+        }
+    }
+
+    private func toggleMute() async {
+        guard let currentUser = user else { return }
+        let previousMuted = (currentUser.isMuted == true) || (currentUser.muteStudyStartNotification == 1)
+        let previousMode = currentUser.muteStudyStartNotification ?? (previousMuted ? 1 : 0)
+        let targetMuted = !previousMuted
+        let targetMode = targetMuted ? 1 : 0
+
+        // 楽観的UI更新
+        user?.muteStudyStartNotification = targetMode
+        user?.isMuted = targetMuted
+
+        do {
+            let res = try await APIClient.updateFollowMute(userId: userId, isMuted: targetMuted)
+            let isMutedResult = res.isMuted ?? ((res.muteStudyStartNotification ?? targetMode) == 1)
+            user?.muteStudyStartNotification = res.muteStudyStartNotification ?? (isMutedResult ? 1 : 0)
+            user?.isMuted = isMutedResult
+        } catch {
+            // エラー時は元の状態にロールバックし、エラーダイアログを表示
+            user?.muteStudyStartNotification = previousMode
+            user?.isMuted = previousMuted
+            muteAlertTitle = targetMuted ? "Could Not Mute" : "Could Not Unmute"
+            showMuteAlert = true
         }
     }
 
