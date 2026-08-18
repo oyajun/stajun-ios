@@ -41,7 +41,11 @@ struct StatsView: View {
                 summarySection
                 heatmapSection
                 chartCard
-                AdSmallBannerCard()
+                // AdMob (審査通過後に復帰予定)
+                // AdSmallBannerCard()
+                if Config.isAffiliateAdVisible {
+                    AffiliateBannerCard(cacheKey: "stats")
+                }
             }
             .padding()
         }

@@ -151,21 +151,25 @@ struct HomeView: View {
                         timelinePostRow(post)
                             .listRowInsets(EdgeInsets(top: 0, leading: 32, bottom: 0, trailing: 32))
                         
-                        if Config.showAds && index == 1 {
-                            // 最初の広告: 中間バナー (320×100)
+                        if Config.isAffiliateAdVisible && index == 1 {
+                            // 最初の広告: 楽天アフィリエイトバナー
                             VStack(spacing: 0) {
                                 Divider()
-                                AdLargeBannerCard(cacheKey: "timeline-first")
+                                // AdMob (審査通過後に復帰予定)
+                                // AdLargeBannerCard(cacheKey: "timeline-first")
+                                AffiliateBannerCard(cacheKey: "timeline-first")
                                 Divider()
                             }
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                             .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                        } else if Config.showAds && index > 1 && (index - 1) % 8 == 0 {
-                            // 以降の広告: 8投稿ごとに大型バナー (300×250)
+                        } else if Config.isAffiliateAdVisible && index > 1 && (index - 1) % 6 == 0 {
+                            // 以降の広告: 6投稿ごとに楽天アフィリエイトバナー
                             VStack(spacing: 0) {
                                 Divider()
-                                AdBannerCard(cacheKey: "timeline-\(index)")
+                                // AdMob (審査通過後に復帰予定)
+                                // AdBannerCard(cacheKey: "timeline-\(index)")
+                                AffiliateBannerCard(cacheKey: "timeline-\(index)")
                                 Divider()
                             }
                             .listRowBackground(Color.clear)
