@@ -17,25 +17,61 @@ enum APIError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unauthorized:
-            return "Login is required."
+            return String(localized: "Please log in to continue.")
         case .sessionNotFresh:
-            return "Session has expired. Please re-authenticate."
-        case .forbidden(_, let msg):
-            return msg
+            return String(localized: "Your session has expired. Please log in again.")
+        case .forbidden(let code, _):
+            switch code {
+            case "USER_BLOCKED":
+                return String(localized: "This user is blocked.")
+            default:
+                return String(localized: "You do not have permission to perform this action.")
+            }
         case .notFound:
-            return "Not found."
-        case .conflict(_, let msg):
-            return msg
-        case .badRequest(_, let msg):
-            return msg
-        case .serverError(_, let msg):
-            return msg
-        case .networkError(let e):
-            return e.localizedDescription
-        case .decodingError(let e):
-            return "Failed to parse data: \(e.localizedDescription)"
+            return String(localized: "The requested content could not be found.")
+        case .conflict(let code, _):
+            switch code {
+            case "EMAIL_ALREADY_IN_USE":
+                return String(localized: "This email address is already in use.")
+            case "USER_ALREADY_EXISTS":
+                return String(localized: "This user already exists.")
+            default:
+                return String(localized: "A conflict occurred. Please try again.")
+            }
+        case .badRequest(let code, _):
+            switch code {
+            case "INVALID_OTP", "OTP_EXPIRED":
+                return String(localized: "The verification code is invalid or has expired.")
+            case "INVALID_EMAIL":
+                return String(localized: "Please enter a valid email address.")
+            case "INVALID_NAME":
+                return String(localized: "Please enter a valid name.")
+            case "INVALID_MINUTES":
+                return String(localized: "Please enter a valid study time.")
+            default:
+                return String(localized: "Invalid request. Please check your input.")
+            }
+        case .serverError:
+            return String(localized: "A server error occurred. Please try again later.")
+        case .networkError(let error):
+            let nsError = error as NSError
+            if nsError.domain == NSURLErrorDomain {
+                switch nsError.code {
+                case NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost:
+                    return String(localized: "You are offline. Please check your internet connection.")
+                case NSURLErrorTimedOut:
+                    return String(localized: "The connection timed out. Please try again.")
+                case NSURLErrorCannotConnectToHost, NSURLErrorCannotFindHost, NSURLErrorBadServerResponse:
+                    return String(localized: "Cannot connect to the server. The server may be temporarily down or unreachable.")
+                default:
+                    return String(localized: "Unable to connect. Please check your internet connection and try again.")
+                }
+            }
+            return String(localized: "Unable to connect. Please check your internet connection and try again.")
+        case .decodingError:
+            return String(localized: "Failed to process data. Please try again.")
         case .unknown:
-            return "An unknown error occurred."
+            return String(localized: "An unexpected error occurred. Please try again.")
         }
     }
 }
@@ -240,11 +276,28 @@ enum APIClient {
     }
 
 
-    // MARK: - Follow
-
     /// Follow a user
     static func follow(userId: String) async throws -> FollowActionResponse {
         try await perform(path: "/api/v1/follow/\(userId)", method: "PUT", as: FollowActionResponse.self)
+    }
+
+    /// Mute study start notifications from a followed user
+    static func muteFollow(userId: String) async throws -> MuteActionResponse {
+        try await perform(path: "/api/v1/follow/\(userId)/mute", method: "PUT", as: MuteActionResponse.self)
+    }
+
+    /// Unmute study start notifications from a followed user
+    static func unmuteFollow(userId: String) async throws -> MuteActionResponse {
+        try await perform(path: "/api/v1/follow/\(userId)/mute", method: "DELETE", as: MuteActionResponse.self)
+    }
+
+    /// Update follow notification mute setting
+    static func updateFollowMute(userId: String, isMuted: Bool) async throws -> MuteActionResponse {
+        if isMuted {
+            return try await muteFollow(userId: userId)
+        } else {
+            return try await unmuteFollow(userId: userId)
+        }
     }
 
     /// Unfollow a user
@@ -381,4 +434,62 @@ enum APIClient {
         let sign = seconds >= 0 ? "%2B" : "-"
         return String(format: "%@%02d:%02d", sign, hours, minutes)
     }
+
+    // MARK: - Push Notifications
+
+    /// Register APNs device token with the server
+    static func registerAPNsToken(token: String) async throws {
+        struct RegisterAPNsTokenRequest: Encodable {
+            let token: String
+        }
+        try await perform(path: "/api/v1/apns-token", method: "POST", body: RegisterAPNsTokenRequest(token: token), as: EmptyResponse.self)
+    }
+
+    /// Get current push notification settings
+    static func getPushNotificationSettings() async throws -> PushNotificationSettings {
+        try await perform(path: "/api/v1/settings/push-notifications", method: "GET", as: PushNotificationSettings.self)
+    }
+
+    /// Update push notification settings
+    static func updatePushNotificationSettings(
+        enabled: Bool? = nil,
+        follow: Bool? = nil,
+        studyStart: Bool? = nil
+    ) async throws -> PushNotificationSettings {
+        let body = UpdatePushNotificationSettingsRequest(
+            enabled: enabled,
+            follow: follow,
+            studyStart: studyStart
+        )
+        return try await perform(path: "/api/v1/settings/push-notifications", method: "PUT", body: body, as: PushNotificationSettings.self)
+    }
+
+    // MARK: - Notifications
+
+    /// Get list of notifications (cursor-paginated)
+    static func getNotifications(cursor: String? = nil, limit: Int = 20) async throws -> NotificationsResponse {
+        var query = ["limit=\(limit)"]
+        if let cursor, let encoded = cursor.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            query.append("cursor=\(encoded)")
+        }
+        let path = "/api/v1/notifications?" + query.joined(separator: "&")
+        return try await perform(path: path, method: "GET", as: NotificationsResponse.self)
+    }
+
+    /// Mark all unread notifications as read
+    static func markAllNotificationsAsRead() async throws {
+        try await perform(path: "/api/v1/notifications/read-all", method: "POST", as: EmptyResponse.self)
+    }
+
+    /// Mark a specific notification as read
+    static func markNotificationAsRead(id: String) async throws {
+        try await perform(path: "/api/v1/notifications/\(id)/read", method: "PATCH", as: EmptyResponse.self)
+    }
+
+    /// Get unread notifications count
+    static func getUnreadNotificationCount() async throws -> Int {
+        let res = try await perform(path: "/api/v1/notifications/unread-count", method: "GET", as: UnreadNotificationCountResponse.self)
+        return res.unreadCount
+    }
 }
+

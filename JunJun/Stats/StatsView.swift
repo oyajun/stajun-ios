@@ -41,6 +41,7 @@ struct StatsView: View {
                 summarySection
                 heatmapSection
                 chartCard
+                AdSmallBannerCard()
             }
             .padding()
         }

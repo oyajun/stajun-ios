@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UserNotifications
 
 // MARK: - Auth State
 
@@ -30,6 +31,9 @@ final class AppState {
     /// True if the app has passed its hardcoded expiration date
     var requiresUpdate: Bool = false
 
+    /// Unread notification count for tab badge
+    var unreadNotificationCount: Int = 0
+
     /// Full User ID from deep link (junjun://u/[fulluserid]) to display
     var deepLinkedUserId: String?
 
@@ -50,7 +54,35 @@ final class AppState {
     init() {
         self.userEmail = KeychainHelper.email
         checkExpiration()
+        setupNotificationObservers()
         Task { await checkExistingSession() }
+    }
+
+    private func setupNotificationObservers() {
+        NotificationCenter.default.addObserver(
+            forName: .didTapPushNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self else { return }
+            if let userId = note.userInfo?["userId"] as? String, !userId.isEmpty {
+                self.deepLinkedUserId = userId
+            }
+            Task {
+                await self.fetchUnreadNotificationCount()
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .didReceiveRemoteNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            Task {
+                await self.fetchUnreadNotificationCount()
+            }
+        }
     }
     
     private func checkExpiration() {
@@ -71,6 +103,7 @@ final class AppState {
         if let cached = ProfileCache.load() {
             currentUser = cached
             authState = .authenticated
+            Task { await self.fetchUnreadNotificationCount() }
         }
 
         do {
@@ -78,11 +111,14 @@ final class AppState {
             currentUser = profile
             ProfileCache.save(profile)
             authState = .authenticated
+            checkFollowingAndRequestPushPermission()
+            await fetchUnreadNotificationCount()
         } catch APIError.unauthorized {
             // Token actually invalid → sign out
             KeychainHelper.token = nil
             ProfileCache.clear()
             currentUser = nil
+            unreadNotificationCount = 0
             authState = .unauthenticated
         } catch {
             // Server unreachable / network error / server error:
@@ -91,6 +127,34 @@ final class AppState {
             // because the server is down. Use the cached profile if we have one.
             currentUser = ProfileCache.load()
             authState = .authenticated
+            checkFollowingAndRequestPushPermission()
+        }
+    }
+
+    // MARK: - Notifications
+
+    /// Fetch latest unread notifications count from server
+    func fetchUnreadNotificationCount() async {
+        guard authState == .authenticated else { return }
+        do {
+            let count = try await APIClient.getUnreadNotificationCount()
+            unreadNotificationCount = count
+        } catch {
+            #if DEBUG
+            print("[Notifications] Failed to fetch unread count: \(error)")
+            #endif
+        }
+    }
+
+    /// Mark all notifications as read and reset badge count
+    func markAllNotificationsAsRead() async {
+        unreadNotificationCount = 0
+        do {
+            try await APIClient.markAllNotificationsAsRead()
+        } catch {
+            #if DEBUG
+            print("[Notifications] Failed to mark notifications as read: \(error)")
+            #endif
         }
     }
 
@@ -115,6 +179,8 @@ final class AppState {
             let profile = try await APIClient.getMyProfile()
             currentUser = profile
             authState = .authenticated
+            checkFollowingAndRequestPushPermission()
+            await fetchUnreadNotificationCount()
 
         case .registerEmail, .changeEmail:
             try await APIClient.changeEmail(newEmail: email, otp: otp)
@@ -140,6 +206,7 @@ final class AppState {
         currentUser = profile
         ProfileCache.save(profile)
         authState = .authenticated
+        Task { await fetchUnreadNotificationCount() }
     }
 
     /// Create an anonymous profile
@@ -163,11 +230,13 @@ final class AppState {
     func signOut() async {
         try? await APIClient.signOut()
         KeychainHelper.token = nil
+        NotificationHandler.resetRegisteredToken()
         FeedCache.clear()
         ProfileCache.clear()
         PostsCache.clear()
         StatsCache.clear()
         UserProfileCache.clear()
+        NotificationsCache.clear()
         currentUser = nil
         isStudying = false
         authState = .unauthenticated
@@ -177,13 +246,62 @@ final class AppState {
     func clearAfterAccountDeletion() {
         KeychainHelper.token = nil
         userEmail = nil
+        NotificationHandler.resetRegisteredToken()
         FeedCache.clear()
         ProfileCache.clear()
         PostsCache.clear()
         StatsCache.clear()
         UserProfileCache.clear()
+        NotificationsCache.clear()
         currentUser = nil
         isStudying = false
         authState = .unauthenticated
+    }
+
+    // MARK: - Push Notifications
+
+    /// Prompts for push notification permissions if not determined yet.
+    /// Used when following a user or logging in while already following users.
+    func requestPushPermissionIfAppropriate() {
+        Task {
+            let center = UNUserNotificationCenter.current()
+            let settings = await center.notificationSettings()
+            guard settings.authorizationStatus == .notDetermined else {
+                if settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional {
+                    await MainActor.run {
+                        UIApplication.shared.registerForRemoteNotifications()
+                    }
+                }
+                return
+            }
+            do {
+                let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+                if granted {
+                    await MainActor.run {
+                        UIApplication.shared.registerForRemoteNotifications()
+                    }
+                }
+            } catch {
+                #if DEBUG
+                print("[Push Notifications] Authorization error: \(error)")
+                #endif
+            }
+        }
+    }
+
+    /// Check if current user is following anyone; if so, request push notification permission
+    func checkFollowingAndRequestPushPermission() {
+        Task {
+            do {
+                let following = try await APIClient.getFollowing(userId: "me")
+                if !following.users.isEmpty {
+                    requestPushPermissionIfAppropriate()
+                }
+            } catch {
+                #if DEBUG
+                print("[Push Notifications] Failed to fetch following for permission check: \(error)")
+                #endif
+            }
+        }
     }
 }

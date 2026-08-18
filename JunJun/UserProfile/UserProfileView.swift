@@ -16,7 +16,12 @@ struct UserProfileView: View {
     @State private var postsCursor: String?
     @State private var isLoadingPosts = false
     @State private var hasLoadedPosts = false
+    @State private var postToDelete: Post?
+    @State private var postToReport: Post?
     @State private var showReportSuccessAlert = false
+
+    @State private var showMuteAlert = false
+    @State private var muteAlertTitle: String = ""
 
     @State private var isBlocked: Bool
     @State private var showBlockConfirmation = false
@@ -59,6 +64,17 @@ struct UserProfileView: View {
                                 Task { await unblock() }
                             }
                         } else {
+                            if user?.isFollowing ?? false {
+                                Button {
+                                    Task { await toggleMute() }
+                                } label: {
+                                    Label(
+                                        (user?.isMuted ?? false) ? "Unmute Notifications" : "Mute Notifications",
+                                        systemImage: (user?.isMuted ?? false) ? "bell" : "bell.slash"
+                                    )
+                                }
+                            }
+
                             Button("Block", role: .destructive) {
                                 showBlockConfirmation = true
                             }
@@ -102,6 +118,28 @@ struct UserProfileView: View {
                 await loadPosts()
             }
         }
+        .alert("Delete Post", isPresented: Binding(
+            get: { postToDelete != nil },
+            set: { if !$0 { postToDelete = nil } }
+        ), presenting: postToDelete) { post in
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                Task { await deletePost(post) }
+            }
+        } message: { _ in
+            Text("Are you sure you want to delete this post?")
+        }
+        .alert("Report Post", isPresented: Binding(
+            get: { postToReport != nil },
+            set: { if !$0 { postToReport = nil } }
+        ), presenting: postToReport) { post in
+            Button("Cancel", role: .cancel) { }
+            Button("Report", role: .destructive) {
+                Task { await reportPost(post) }
+            }
+        } message: { _ in
+            Text("Are you sure you want to report this post?")
+        }
         .alert("Report Submitted", isPresented: $showReportSuccessAlert) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -114,6 +152,9 @@ struct UserProfileView: View {
             }
         } message: {
             Text("Are you sure you want to block this user?")
+        }
+        .alert(LocalizedStringKey(muteAlertTitle), isPresented: $showMuteAlert) {
+            Button("OK", role: .cancel) { }
         }
     }
 
@@ -200,24 +241,39 @@ struct UserProfileView: View {
             }
 
             if !isOwnProfile && !isBlocked {
-                Button {
-                    Task { await toggleFollow() }
-                } label: {
-                    Group {
-                        if isFollowLoading {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Text(user.isFollowing ?? false ? "Following" : "Follow")
-                                .fontWeight(.semibold)
+                HStack(spacing: 8) {
+                    Button {
+                        Task { await toggleFollow() }
+                    } label: {
+                        Group {
+                            if isFollowLoading {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Text(user.isFollowing ?? false ? "Following" : "Follow")
+                                    .fontWeight(.semibold)
+                            }
                         }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 36)
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 36)
+                    .buttonStyle(.glassProminent)
+                    .tint(user.isFollowing ?? false ? .secondary : .accentColor)
+                    .disabled(isFollowLoading)
+
+                    if user.isFollowing ?? false {
+                        Button {
+                            Task { await toggleMute() }
+                        } label: {
+                            Image(systemName: (user.isMuted ?? false) ? "bell.slash.fill" : "bell.fill")
+                                .font(.body)
+                                .frame(width: 44, height: 36)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint((user.isMuted ?? false) ? .secondary : .accentColor)
+                        .accessibilityLabel((user.isMuted ?? false) ? "Unmute Notifications" : "Mute Notifications")
+                    }
                 }
-                .buttonStyle(.glassProminent)
-                .tint(user.isFollowing ?? false ? .secondary : .accentColor)
-                .disabled(isFollowLoading)
             }
 
             if let errorMessage {
@@ -240,14 +296,14 @@ struct UserProfileView: View {
             base
                 .swipeActions(edge: .trailing) {
                     Button(role: .destructive) {
-                        Task { await deletePost(post) }
+                        postToDelete = post
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
                 }
                 .contextMenu {
                     Button(role: .destructive) {
-                        Task { await deletePost(post) }
+                        postToDelete = post
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
@@ -256,7 +312,7 @@ struct UserProfileView: View {
             base
                 .contextMenu {
                     Button(role: .destructive) {
-                        Task { await reportPost(post) }
+                        postToReport = post
                     } label: {
                         Label("Report", systemImage: "exclamationmark.bubble")
                     }
@@ -361,14 +417,44 @@ struct UserProfileView: View {
             if currentUser.isFollowing ?? false {
                 try await APIClient.unfollow(userId: userId)
                 user?.isFollowing = false
+                user?.muteStudyStartNotification = 0
+                user?.isMuted = false
             } else {
-                _ = try await APIClient.follow(userId: userId)
+                let res = try await APIClient.follow(userId: userId)
                 user?.isFollowing = true
+                user?.muteStudyStartNotification = res.muteStudyStartNotification ?? 0
+                user?.isMuted = res.isMuted ?? ((res.muteStudyStartNotification ?? 0) == 1)
+                appState.requestPushPermissionIfAppropriate()
             }
         } catch {
             if !error.isCancellation {
                 errorMessage = error.localizedDescription
             }
+        }
+    }
+
+    private func toggleMute() async {
+        guard let currentUser = user else { return }
+        let previousMuted = (currentUser.isMuted == true) || (currentUser.muteStudyStartNotification == 1)
+        let previousMode = currentUser.muteStudyStartNotification ?? (previousMuted ? 1 : 0)
+        let targetMuted = !previousMuted
+        let targetMode = targetMuted ? 1 : 0
+
+        // 楽観的UI更新
+        user?.muteStudyStartNotification = targetMode
+        user?.isMuted = targetMuted
+
+        do {
+            let res = try await APIClient.updateFollowMute(userId: userId, isMuted: targetMuted)
+            let isMutedResult = res.isMuted ?? ((res.muteStudyStartNotification ?? targetMode) == 1)
+            user?.muteStudyStartNotification = res.muteStudyStartNotification ?? (isMutedResult ? 1 : 0)
+            user?.isMuted = isMutedResult
+        } catch {
+            // エラー時は元の状態にロールバックし、エラーダイアログを表示
+            user?.muteStudyStartNotification = previousMode
+            user?.isMuted = previousMuted
+            muteAlertTitle = targetMuted ? "Could Not Mute" : "Could Not Unmute"
+            showMuteAlert = true
         }
     }
 

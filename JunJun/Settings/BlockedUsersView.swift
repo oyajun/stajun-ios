@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct BlockedUsersView: View {
+    @Environment(AppState.self) private var appState
     @State private var users: [UserWithFollowStatus] = []
     @State private var unblockedUserIds: Set<String> = []
     @State private var isLoading = true
@@ -149,6 +150,7 @@ struct BlockedUsersView: View {
                 } else {
                     _ = try await APIClient.follow(userId: user.id)
                     users[index].isFollowing = true
+                    appState.requestPushPermissionIfAppropriate()
                 }
             } catch {
                 if !error.isCancellation {

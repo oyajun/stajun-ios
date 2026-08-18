@@ -58,6 +58,10 @@ struct SettingsView: View {
                         }
                     }
                     
+                    NavigationLink("Push Notifications") {
+                        PushNotificationSettingsView()
+                    }
+
                     NavigationLink("Blocked Users") {
                         BlockedUsersView()
                     }

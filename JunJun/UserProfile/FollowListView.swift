@@ -20,6 +20,8 @@ struct FollowListView: View {
     @State private var isLoadingFollowing = true
     @State private var isLoadingFollowers = true
     @State private var errorMessage: String?
+    @State private var showMuteAlert = false
+    @State private var muteAlertTitle: String = ""
 
     init(userId: String, userName: String? = nil, initialTab: FollowListType = .following) {
         self.userId = userId
@@ -70,6 +72,31 @@ struct FollowListView: View {
                                 : { toggleFollow(user: user) }
                         )
                     }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        if (user.isFollowing ?? false) && user.id != appState.currentUser?.id {
+                            Button {
+                                toggleMute(user: user)
+                            } label: {
+                                Label(
+                                    (user.isMuted ?? false) ? "Unmute Notifications" : "Mute Notifications",
+                                    systemImage: (user.isMuted ?? false) ? "bell" : "bell.slash"
+                                )
+                            }
+                            .tint((user.isMuted ?? false) ? .accentColor : .secondary)
+                        }
+                    }
+                    .contextMenu {
+                        if (user.isFollowing ?? false) && user.id != appState.currentUser?.id {
+                            Button {
+                                toggleMute(user: user)
+                            } label: {
+                                Label(
+                                    (user.isMuted ?? false) ? "Unmute Notifications" : "Mute Notifications",
+                                    systemImage: (user.isMuted ?? false) ? "bell" : "bell.slash"
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -78,6 +105,9 @@ struct FollowListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadFollowing() }
         .task { await loadFollowers() }
+        .alert(LocalizedStringKey(muteAlertTitle), isPresented: $showMuteAlert) {
+            Button("OK", role: .cancel) { }
+        }
         .overlay(alignment: .bottom) {
             if let errorMessage {
                 Text(errorMessage)
@@ -123,16 +153,70 @@ struct FollowListView: View {
                     try await APIClient.unfollow(userId: user.id)
                 } else {
                     _ = try await APIClient.follow(userId: user.id)
+                    appState.requestPushPermissionIfAppropriate()
                 }
                 let newValue = !wasFollowing
                 if let i = followingUsers.firstIndex(where: { $0.id == user.id }) {
                     followingUsers[i].isFollowing = newValue
+                    if !newValue {
+                        followingUsers[i].muteStudyStartNotification = 0
+                        followingUsers[i].isMuted = false
+                    }
                 }
                 if let i = followersUsers.firstIndex(where: { $0.id == user.id }) {
                     followersUsers[i].isFollowing = newValue
+                    if !newValue {
+                        followersUsers[i].muteStudyStartNotification = 0
+                        followersUsers[i].isMuted = false
+                    }
                 }
             } catch {
                 // Ignore errors
+            }
+        }
+    }
+
+    private func toggleMute(user: UserWithStudyStatus) {
+        let previousMuted = (user.isMuted == true) || (user.muteStudyStartNotification == 1)
+        let previousMode = user.muteStudyStartNotification ?? (previousMuted ? 1 : 0)
+        let targetMuted = !previousMuted
+        let targetMode = targetMuted ? 1 : 0
+
+        // 楽観的UI更新
+        if let i = followingUsers.firstIndex(where: { $0.id == user.id }) {
+            followingUsers[i].muteStudyStartNotification = targetMode
+            followingUsers[i].isMuted = targetMuted
+        }
+        if let i = followersUsers.firstIndex(where: { $0.id == user.id }) {
+            followersUsers[i].muteStudyStartNotification = targetMode
+            followersUsers[i].isMuted = targetMuted
+        }
+
+        Task {
+            do {
+                let res = try await APIClient.updateFollowMute(userId: user.id, isMuted: targetMuted)
+                let isMutedResult = res.isMuted ?? ((res.muteStudyStartNotification ?? targetMode) == 1)
+                let modeResult = res.muteStudyStartNotification ?? (isMutedResult ? 1 : 0)
+                if let i = followingUsers.firstIndex(where: { $0.id == user.id }) {
+                    followingUsers[i].muteStudyStartNotification = modeResult
+                    followingUsers[i].isMuted = isMutedResult
+                }
+                if let i = followersUsers.firstIndex(where: { $0.id == user.id }) {
+                    followersUsers[i].muteStudyStartNotification = modeResult
+                    followersUsers[i].isMuted = isMutedResult
+                }
+            } catch {
+                // エラー時は元の状態にロールバック
+                if let i = followingUsers.firstIndex(where: { $0.id == user.id }) {
+                    followingUsers[i].muteStudyStartNotification = previousMode
+                    followingUsers[i].isMuted = previousMuted
+                }
+                if let i = followersUsers.firstIndex(where: { $0.id == user.id }) {
+                    followersUsers[i].muteStudyStartNotification = previousMode
+                    followersUsers[i].isMuted = previousMuted
+                }
+                muteAlertTitle = targetMuted ? "Could Not Mute" : "Could Not Unmute"
+                showMuteAlert = true
             }
         }
     }

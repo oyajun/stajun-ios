@@ -38,6 +38,8 @@ struct HomeView: View {
     @State private var postsError: String?
     @State private var postScope: PostScope = .following
     @State private var showCompose = false
+    @State private var postToDelete: Post?
+    @State private var postToReport: Post?
     @State private var showReportSuccessAlert = false
 
     private var currentPosts: [Post] {
@@ -145,9 +147,31 @@ struct HomeView: View {
                         .listRowInsets(EdgeInsets())
                 } else {
                     // Post rows (swipe-to-delete + long-press context menu)
-                    ForEach(currentPosts) { post in
+                    ForEach(Array(currentPosts.enumerated()), id: \.element.id) { index, post in
                         timelinePostRow(post)
                             .listRowInsets(EdgeInsets(top: 0, leading: 32, bottom: 0, trailing: 32))
+                        
+                        if Config.showAds && index == 1 {
+                            // 最初の広告: 中間バナー (320×100)
+                            VStack(spacing: 0) {
+                                Divider()
+                                AdLargeBannerCard(cacheKey: "timeline-first")
+                                Divider()
+                            }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                        } else if Config.showAds && index > 1 && (index - 1) % 8 == 0 {
+                            // 以降の広告: 8投稿ごとに大型バナー (300×250)
+                            VStack(spacing: 0) {
+                                Divider()
+                                AdBannerCard(cacheKey: "timeline-\(index)")
+                                Divider()
+                            }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                        }
                     }
                 }
 
@@ -240,6 +264,28 @@ struct HomeView: View {
                     }
                 }
             }
+            .alert("Delete Post", isPresented: Binding(
+                get: { postToDelete != nil },
+                set: { if !$0 { postToDelete = nil } }
+            ), presenting: postToDelete) { post in
+                Button("Cancel", role: .cancel) { }
+                Button("Delete", role: .destructive) {
+                    Task { await deletePost(post) }
+                }
+            } message: { _ in
+                Text("Are you sure you want to delete this post?")
+            }
+            .alert("Report Post", isPresented: Binding(
+                get: { postToReport != nil },
+                set: { if !$0 { postToReport = nil } }
+            ), presenting: postToReport) { post in
+                Button("Cancel", role: .cancel) { }
+                Button("Report", role: .destructive) {
+                    Task { await reportPost(post) }
+                }
+            } message: { _ in
+                Text("Are you sure you want to report this post?")
+            }
             .alert("Report Submitted", isPresented: $showReportSuccessAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
@@ -287,8 +333,6 @@ struct HomeView: View {
             // Right: timer + button
             VStack(spacing: 12) {
                 HStack {
-                    Image(systemName: "timer")
-                        .foregroundStyle(isStudying ? .orange : .secondary)
                     Text(isStudying ? elapsedString(from: studyStartedAt ?? now, to: now) : "--:--")
                         .font(.title3.monospacedDigit().bold())
                         .foregroundStyle(isStudying ? .orange : .secondary)
@@ -449,14 +493,14 @@ struct HomeView: View {
             base
                 .swipeActions(edge: .trailing) {
                     Button(role: .destructive) {
-                        Task { await deletePost(post) }
+                        postToDelete = post
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
                 }
                 .contextMenu {
                     Button(role: .destructive) {
-                        Task { await deletePost(post) }
+                        postToDelete = post
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
@@ -465,7 +509,7 @@ struct HomeView: View {
             base
                 .contextMenu {
                     Button(role: .destructive) {
-                        Task { await reportPost(post) }
+                        postToReport = post
                     } label: {
                         Label("Report", systemImage: "exclamationmark.bubble")
                     }
@@ -568,6 +612,7 @@ struct HomeView: View {
             try? await Task.sleep(for: .seconds(Config.feedPollingInterval))
             await refreshStudyState()
             await loadFeed()
+            await appState.fetchUnreadNotificationCount()
         }
     }
 

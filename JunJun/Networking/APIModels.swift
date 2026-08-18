@@ -47,6 +47,8 @@ struct UserWithFollowStatus: Codable, Identifiable {
     let iconEmoji: String
     let iconBackgroundColor: String
     var isFollowing: Bool
+    var muteStudyStartNotification: Int?
+    var isMuted: Bool?
     let isStudying: Bool?
     let studyingSince: Date?
 }
@@ -58,6 +60,8 @@ struct UserWithStudyStatus: Codable, Identifiable {
     let iconEmoji: String
     let iconBackgroundColor: String
     var isFollowing: Bool?
+    var muteStudyStartNotification: Int?
+    var isMuted: Bool?
     let isStudying: Bool
     let studyingSince: Date?
 }
@@ -79,6 +83,13 @@ struct HomeFeedResponse: Codable {
 
 struct FollowActionResponse: Codable {
     let isFollowing: Bool
+    let muteStudyStartNotification: Int?
+    let isMuted: Bool?
+}
+
+struct MuteActionResponse: Codable {
+    let muteStudyStartNotification: Int?
+    let isMuted: Bool?
 }
 
 // MARK: - Posts (機能2: 学習時間の投稿)
@@ -191,5 +202,41 @@ struct EmptyResponse: Decodable {}
 struct BlockedUsersResponse: Codable {
     let users: [UserWithFollowStatus]
     let pagination: Pagination
+}
+
+// MARK: - Notifications
+
+struct AppNotification: Codable, Identifiable {
+    let id: String
+    let type: String
+    let actor: UserProfile?
+    let postId: String?
+    let extra: String?
+    var isRead: Bool
+    let createdAt: Date
+}
+
+struct NotificationsResponse: Codable {
+    let notifications: [AppNotification]
+    let unreadCount: Int
+    let nextCursor: String?
+}
+
+struct UnreadNotificationCountResponse: Codable {
+    let unreadCount: Int
+}
+
+// MARK: - Push Notification Settings
+
+struct PushNotificationSettings: Codable, Equatable {
+    var enabled: Bool
+    var follow: Bool
+    var studyStart: Bool
+}
+
+struct UpdatePushNotificationSettingsRequest: Encodable {
+    let enabled: Bool?
+    let follow: Bool?
+    let studyStart: Bool?
 }
 

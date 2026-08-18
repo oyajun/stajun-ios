@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SearchView: View {
+    @Environment(AppState.self) private var appState
     private let pageSize = 20
 
     @State private var query = ""
@@ -208,6 +209,7 @@ struct SearchView: View {
                 } else {
                     _ = try await APIClient.follow(userId: user.id)
                     results[index].isFollowing = true
+                    appState.requestPushPermissionIfAppropriate()
                 }
             } catch {
                 // Ignore errors (no UI rollback needed)
@@ -226,6 +228,7 @@ struct SearchView: View {
                 } else {
                     _ = try await APIClient.follow(userId: user.id)
                     recommendedUsers[index].isFollowing = true
+                    appState.requestPushPermissionIfAppropriate()
                 }
             } catch {
                 // Ignore errors (no UI rollback needed)
