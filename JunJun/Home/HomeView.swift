@@ -333,8 +333,6 @@ struct HomeView: View {
             // Right: timer + button
             VStack(spacing: 12) {
                 HStack {
-                    Image(systemName: "timer")
-                        .foregroundStyle(isStudying ? .orange : .secondary)
                     Text(isStudying ? elapsedString(from: studyStartedAt ?? now, to: now) : "--:--")
                         .font(.title3.monospacedDigit().bold())
                         .foregroundStyle(isStudying ? .orange : .secondary)
