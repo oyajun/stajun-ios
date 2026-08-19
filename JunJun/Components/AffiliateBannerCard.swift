@@ -91,7 +91,7 @@ private struct CachedAffiliateImage: View {
                     }
             }
         }
-        .frame(width: 72, height: 72)
+        .frame(width: 82, height: 82)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .task(id: url) {
@@ -132,61 +132,78 @@ struct AffiliateBannerCard: View {
 
     var body: some View {
         if Config.isAffiliateAdVisible, let item {
-            Button {
-                if let url = item.affiliateURL {
-                    openURL(url)
-                }
-            } label: {
-                HStack(alignment: .center, spacing: 12) {
-                    // キャッシュ付き商品画像
-                    CachedAffiliateImage(url: item.imageURL)
+            HStack(alignment: .center, spacing: 12) {
+                // キャッシュ付き商品画像
+                CachedAffiliateImage(url: item.imageURL)
 
-                    // 商品情報
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(alignment: .top) {
-                            Text(item.title)
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(.primary)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-                            
-                            Spacer(minLength: 4)
-                            
-                            // 右上の青い広告バッジ
-                            Text("広告")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color(red: 0.0, green: 0.68, blue: 0.85), in: Capsule())
-                                .fixedSize()
+                // 商品情報
+                VStack(alignment: .leading, spacing: 6) {
+                    // タイトル + 右上の青い広告バッジ
+                    HStack(alignment: .top, spacing: 6) {
+                        Text(item.title)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                        
+                        Spacer(minLength: 4)
+                        
+                        Text("広告")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color(red: 0.0, green: 0.68, blue: 0.85), in: Capsule())
+                            .fixedSize()
+                    }
+
+                    // 値段
+                    if !item.priceAndShipping.isEmpty {
+                        Text(item.priceAndShipping)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    // 楽天で購入 + Amazonで購入 ボタン
+                    HStack(spacing: 8) {
+                        Spacer(minLength: 0)
+
+                        // 楽天で購入ボタン
+                        if let rakutenURL = item.rakutenURL {
+                            Button {
+                                openURL(rakutenURL)
+                            } label: {
+                                Text("楽天で購入")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 13)
+                                    .padding(.vertical, 8)
+                                    .background(Color(red: 0.75, green: 0.0, blue: 0.0), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
                         }
 
-                        if !item.priceAndShipping.isEmpty {
-                            Text(item.priceAndShipping)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                        // Amazonで購入ボタン
+                        if let amazonURL = item.amazonURL {
+                            Button {
+                                openURL(amazonURL)
+                            } label: {
+                                Text("Amazonで購入")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 13)
+                                    .padding(.vertical, 8)
+                                    .background(Color(red: 0.95, green: 0.55, blue: 0.1), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
                         }
-
-                        // 赤いピル型ボタン「楽天で購入」
-                        HStack {
-                            Text("楽天で購入")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(Color(red: 0.75, green: 0.0, blue: 0.0), in: Capsule())
-                            
-                            Spacer()
-                        }
-                        .padding(.top, 2)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .contentShape(Rectangle()) // バナー全体の当たり判定
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
         }
     }
 }
