@@ -63,6 +63,13 @@ enum Config {
             affiliateURL: URL(string: "https://hb.afl.rakuten.co.jp/ichiba/56a9c4e7.b6e5be35.56a9c4e8.8024cf62/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbook%2F14999435%2F&link_type=hybrid_url&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJoeWJyaWRfdXJsIiwic2l6ZSI6IjI0MHgyNDAiLCJuYW0iOjEsIm5hbXAiOiJyaWdodCIsImNvbSI6MSwiY29tcCI6ImRvd24iLCJwcmljZSI6MCwiYm9yIjoxLCJjb2wiOjEsImJidG4iOjEsInByb2QiOjAsImFtcCI6ZmFsc2V9")
         ),
         AffiliateItem(
+            id: "rakuten-seki-the-rule2",
+            title: "関正生のThe Rules 英語長文問題集2入試標準",
+            priceAndShipping: "1,320円（税込、送料無料)",
+            imageURL: URL(string: "https://hbb.afl.rakuten.co.jp/hgb/56a9c4e7.b6e5be35.56a9c4e8.8024cf62/?me_id=1213310&item_id=20384382&pc=https%3A%2F%2Fthumbnail.image.rakuten.co.jp%2F%400_mall%2Fbook%2Fcabinet%2F8567%2F9784010348567_1_62.jpg%3F_ex%3D240x240&s=240x240&t=pict"),
+            affiliateURL: URL(string: "https://hb.afl.rakuten.co.jp/ichiba/56a9c4e7.b6e5be35.56a9c4e8.8024cf62/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fbook%2F16775139%2F&link_type=hybrid_url&ut=eyJwYWdlIjoiaXRlbSIsInR5cGUiOiJoeWJyaWRfdXJsIiwic2l6ZSI6IjI0MHgyNDAiLCJuYW0iOjEsIm5hbXAiOiJyaWdodCIsImNvbSI6MSwiY29tcCI6ImRvd24iLCJwcmljZSI6MCwiYm9yIjoxLCJjb2wiOjEsImJidG4iOjEsInByb2QiOjAsImFtcCI6ZmFsc2V9")
+        ),
+        AffiliateItem(
             id: "rakuten-toeic-official-12",
             title: "公式TOEIC Listening & Reading 問題集 12",
             priceAndShipping: "3,630円（税込、送料無料)",
