@@ -18,12 +18,13 @@ struct EditProfileView: View {
             Form {
                 HStack {
                     Spacer()
-                    VStack(spacing: 10) {
+                    VStack(spacing: 8) {
                         UserIconView(
                             emoji: selectedEmoji,
                             backgroundColor: selectedColor,
                             size: 80
                         )
+                        .frame(width: 80, height: 80)
                         .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
 
                         Text(name.isEmpty ? "Name" : name)
@@ -32,7 +33,8 @@ struct EditProfileView: View {
                     }
                     Spacer()
                 }
-                .padding(.vertical, 16)
+                .padding(.top, 0)
+                .padding(.bottom, 0)
                 .listRowInsets(EdgeInsets())
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
