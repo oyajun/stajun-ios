@@ -85,6 +85,8 @@ struct PushNotificationSettingsView: View {
                 .foregroundStyle(settings.enabled ? .primary : .secondary)
             } header: {
                 Text("Activity")
+            } footer: {
+                Text("To turn off notifications for a specific user you follow, you can mute them individually from their profile.")
             }
         }
         .navigationTitle("Push Notifications")
