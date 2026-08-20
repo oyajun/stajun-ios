@@ -159,7 +159,6 @@ struct NotificationsView: View {
                         backgroundColor: actor.iconBackgroundColor,
                         size: 44
                     )
-                    .padding(.vertical, -8.8) // Match icon glow inset
                 } else {
                     Circle()
                         .fill(.gray.opacity(0.2))

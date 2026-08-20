@@ -80,7 +80,7 @@ struct UserIconView: View {
             Text(emoji)
                 .font(.system(size: size * 0.48))
         }
-        .frame(width: size * 1.4, height: size * 1.4)
+        .frame(width: size, height: size)
         .onAppear {
             if isStudying { startRotation() }
         }

@@ -9,9 +9,6 @@ struct PostRow: View {
     var onTapAuthor: (() -> Void)? = nil
 
     private let iconSize: CGFloat = 44
-    /// UserIconView reserves `size * 1.4` for the studying glow halo. Posts don't
-    /// show that glow, so trim the halo inset to align the icon's circle with the name.
-    private var iconGlowInset: CGFloat { iconSize * 0.2 }
 
     private var durationText: LocalizedStringKey {
         let h = post.minutes / 60
@@ -46,44 +43,49 @@ struct PostRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            authorLink {
-                UserIconView(
-                    emoji: post.user.iconEmoji,
-                    backgroundColor: post.user.iconBackgroundColor,
-                    size: iconSize
-                )
-            }
-            .padding(.vertical, -iconGlowInset)
+        VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: 12) {
+                authorLink {
+                    UserIconView(
+                        emoji: post.user.iconEmoji,
+                        backgroundColor: post.user.iconBackgroundColor,
+                        size: iconSize
+                    )
+                }
 
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 8) {
-                    authorLink {
-                        Text(post.user.name)
-                            .font(.subheadline.bold())
-                            .lineLimit(1)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        authorLink {
+                            Text(post.user.name)
+                                .font(.subheadline.bold())
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 8)
+                        Text(postedAtText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    Spacer(minLength: 8)
-                    Text(postedAtText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
 
-                HStack(spacing: 4) {
-                    Image(systemName: "clock")
-                    Text(durationText)
-                }
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.orange)
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                        Text(durationText)
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.orange)
 
-                if let comment = post.comment, !comment.isEmpty {
-                    Text(comment)
-                        .font(.body)
-                        .fixedSize(horizontal: false, vertical: true)
+                    if let comment = post.comment, !comment.isEmpty {
+                        Text(comment)
+                            .font(.body)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
+            .padding(.horizontal, 32)
+            .padding(.vertical, 10)
+
+            Divider()
+                .padding(.horizontal, 16)
         }
-        .padding(.vertical, 10)
     }
 
     /// Makes content tappable (navigating to the author) when a handler is provided.

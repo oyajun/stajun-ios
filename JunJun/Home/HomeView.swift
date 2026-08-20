@@ -149,14 +149,13 @@ struct HomeView: View {
                     // Post rows (swipe-to-delete + long-press context menu)
                     ForEach(Array(currentPosts.enumerated()), id: \.element.id) { index, post in
                         timelinePostRow(post)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 32, bottom: 0, trailing: 32))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets())
                         
                         if Config.isAffiliateAdVisible && index == 1 {
                             // 最初の広告: 楽天アフィリエイトバナー
                             VStack(spacing: 0) {
-                                Divider()
-                                // AdMob (審査通過後に復帰予定)
-                                // AdLargeBannerCard(cacheKey: "timeline-first")
                                 AffiliateBannerCard(cacheKey: "timeline-first")
                                 Divider()
                             }
@@ -166,9 +165,6 @@ struct HomeView: View {
                         } else if Config.isAffiliateAdVisible && index > 1 && (index - 1) % 6 == 0 {
                             // 以降の広告: 6投稿ごとに楽天アフィリエイトバナー
                             VStack(spacing: 0) {
-                                Divider()
-                                // AdMob (審査通過後に復帰予定)
-                                // AdBannerCard(cacheKey: "timeline-\(index)")
                                 AffiliateBannerCard(cacheKey: "timeline-\(index)")
                                 Divider()
                             }
@@ -438,7 +434,7 @@ struct HomeView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.leading, 32)
+                .padding(.horizontal, 32)
                 .padding(.top, 8)
             }
         }
@@ -489,7 +485,6 @@ struct HomeView: View {
     @ViewBuilder
     private func timelinePostRow(_ post: Post) -> some View {
         let base = PostRow(post: post, onTapAuthor: { path.append(post.userId) })
-            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
             .onAppear {
                 if post.id == currentPosts.last?.id { loadMoreCurrentPosts() }
             }

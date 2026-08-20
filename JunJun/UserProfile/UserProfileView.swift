@@ -192,7 +192,9 @@ struct UserProfileView: View {
             } else {
                 ForEach(posts) { post in
                     postRow(post)
-                        .listRowInsets(EdgeInsets(top: 0, leading: 32, bottom: 0, trailing: 32))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets())
                 }
             }
         }
@@ -288,7 +290,6 @@ struct UserProfileView: View {
     @ViewBuilder
     private func postRow(_ post: Post) -> some View {
         let base = PostRow(post: post)
-            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
             .onAppear {
                 if post.id == posts.last?.id { loadMorePosts() }
             }

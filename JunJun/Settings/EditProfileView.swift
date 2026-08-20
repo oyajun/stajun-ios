@@ -83,7 +83,6 @@ struct EditProfileView: View {
                         backgroundColor: selectedColor,
                         size: 80
                     )
-                    .frame(width: 80, height: 80)
                     .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
 
                     Text(name.isEmpty ? "Name" : name)
