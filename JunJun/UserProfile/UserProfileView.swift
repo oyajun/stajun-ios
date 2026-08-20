@@ -165,7 +165,7 @@ struct UserProfileView: View {
             profileHeader(user)
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 24, leading: 32, bottom: 24, trailing: 32))
+                .listRowInsets(EdgeInsets(top: 36, leading: 32, bottom: 24, trailing: 32))
 
             // Posts
             if isBlocked {

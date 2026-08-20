@@ -63,8 +63,8 @@ struct SettingsView: View {
                     }
                     Spacer()
                 }
-                .padding(.top, 12)
-                .padding(.bottom, 0)
+                .padding(.top, 40)
+                .padding(.bottom, 8)
                 .listRowInsets(EdgeInsets())
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
