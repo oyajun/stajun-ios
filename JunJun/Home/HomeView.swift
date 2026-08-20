@@ -322,10 +322,11 @@ struct HomeView: View {
                         size: 52,
                         isStudying: isStudying
                     )
-                    Spacer(minLength: 0)
                     Text(appState.currentUser?.name ?? "")
                         .font(.caption)
                         .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .padding(.top, 14)
                 }
             }
             .buttonStyle(.plain)
