@@ -104,7 +104,7 @@ struct HomeView: View {
                 studyCard
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 20, leading: 32, bottom: 24, trailing: 32))
+                    .listRowInsets(EdgeInsets(top: 20, leading: 32, bottom: 0, trailing: 32))
 
                 // Following users (loads independently)
                 followingContent
@@ -131,7 +131,7 @@ struct HomeView: View {
                 }
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 16, leading: 32, bottom: 8, trailing: 32))
+                .listRowInsets(EdgeInsets(top: 0, leading: 32, bottom: 8, trailing: 32))
 
                 // Posts: loading / empty states
                 if !hasLoadedCurrentPosts && currentPosts.isEmpty {
