@@ -1297,18 +1297,18 @@
         }
       }
     },
-    "Jun Oyamada (oyajun) (Out of App)" : {
+    "Jun Oyamada (Out of App)" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "小山田純(oyajun) (アプリ外へ遷移)"
+            "value" : "小山田純 (アプリ外へ遷移)"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "오야마다 준(oyajun) (앱 외부로 이동)"
+            "value" : "Jun Oyamada (앱 외부로 이동)"
           }
         }
       }

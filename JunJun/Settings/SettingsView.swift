@@ -202,7 +202,7 @@ struct SettingsView: View {
                     Link(destination: URL(string: "https://oyajun.com")!) {
                         HStack(spacing: 12) {
                             Image(systemName: "globe")
-                            Text("Jun Oyamada (oyajun) (Out of App)")
+                            Text("Jun Oyamada (Out of App)")
                             Spacer()
                             Image(systemName: "arrow.up.right")
                                 .foregroundStyle(.tertiary)
