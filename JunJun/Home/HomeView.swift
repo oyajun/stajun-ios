@@ -405,10 +405,10 @@ struct HomeView: View {
     private var followingSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 16) {
+                HStack(alignment: .top, spacing: 14) {
                     ForEach(feedUsers) { user in
                         NavigationLink(value: user.id) {
-                            VStack(spacing: 2) {
+                            VStack(spacing: 0) {
                                 UserIconView(
                                     emoji: user.iconEmoji,
                                     backgroundColor: user.iconBackgroundColor,
@@ -419,24 +419,29 @@ struct HomeView: View {
                                     .font(.caption)
                                     .foregroundStyle(.primary)
                                     .lineLimit(1)
+                                    .padding(.top, 8)
                                 if user.isStudying, let since = user.studyingSince {
                                     Text(elapsedString(from: since, to: now))
                                         .font(.caption2)
                                         .monospacedDigit()
                                         .foregroundStyle(.orange)
+                                        .padding(.top, 2)
                                 } else {
                                     Text(" ")
                                         .font(.caption2)
+                                        .padding(.top, 2)
                                 }
                             }
-                            .frame(width: 80)
+                            .frame(width: 74)
                         }
                         .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 32)
-                .padding(.top, 12)
+                .padding(.top, 42)
+                .padding(.bottom, 10)
             }
+            .scrollClipDisabled()
         }
     }
 
