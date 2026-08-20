@@ -1,4 +1,6 @@
+import MarketplaceKit
 import SwiftUI
+import UIKit
 
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
@@ -8,8 +10,17 @@ struct SettingsView: View {
     @State private var showEditProfile = false
     @State private var showDeleteAccount = false
     @State private var showChangeEmail = false
+    @State private var hasCopiedVersion = false
+    @State private var installedStore: String = "-"
 
     private var currentUser: UserProfile? { appState.currentUser }
+    private var appVersionString: String? {
+        guard let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+              let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String else {
+            return nil
+        }
+        return "\(version) (\(build))"
+    }
 
     var body: some View {
         NavigationStack {
@@ -66,14 +77,112 @@ struct SettingsView: View {
                         BlockedUsersView()
                     }
                 } header: {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Account")
-                        if currentUser?.isAnonymous == true {
-                            Text("By registering an email address, you can log in from other devices, and you can easily log back in if your current device is lost or damaged.")
-                                .textCase(.none)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
+                    if currentUser?.isAnonymous == true {
+                        Text("By registering an email address, you can log in from other devices, and you can easily log back in if your current device is lost or damaged.")
+                            .textCase(.none)
+                    }
+                }
+
+                // About
+                Section {
+                    Link(destination: Config.websiteURL) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "globe")
+                            Text("Website (Out of App)")
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .foregroundStyle(.tertiary)
                         }
+                    }
+                    .foregroundStyle(.blue)
+
+                    Link(destination: Config.supportURL) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "globe")
+                            Text("Support (Out of App)")
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .foregroundStyle(.blue)
+
+                    Link(destination: Config.termsOfServiceURL) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "globe")
+                            Text("Terms of Service (Out of App)")
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .foregroundStyle(.blue)
+                    
+                    Link(destination: Config.privacyPolicyURL) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "globe")
+                            Text("Privacy Policy (Out of App)")
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .foregroundStyle(.blue)
+                }
+                
+                // Developer
+                Section {
+                    Link(destination: URL(string: "https://oyajun.com")!) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "globe")
+                            Text("Jun Oyamada (oyajun) (Out of App)")
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .foregroundStyle(.blue)
+                } header: {
+                    Text("Developer")
+                }
+
+                // Version & Store
+                Section {
+                    Button {
+                        if let appVersionString {
+                            UIPasteboard.general.string = appVersionString
+                            hasCopiedVersion.toggle()
+                        }
+                    } label: {
+                        HStack {
+                            Text("Version")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            if let appVersionString {
+                                Text(verbatim: appVersionString)
+                                    .foregroundStyle(.secondary)
+                                    .textSelection(.enabled)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .sensoryFeedback(.success, trigger: hasCopiedVersion)
+                    .contextMenu {
+                        if let appVersionString {
+                            Button {
+                                UIPasteboard.general.string = appVersionString
+                                hasCopiedVersion.toggle()
+                            } label: {
+                                Label("Copy", systemImage: "doc.on.doc")
+                            }
+                        }
+                    }
+
+                    HStack {
+                        Text("Store")
+                        Spacer()
+                        Text(verbatim: installedStore)
+                            .foregroundStyle(.secondary)
                     }
                 }
 
@@ -91,66 +200,6 @@ struct SettingsView: View {
                         showDeleteAccount = true
                     }
                     .foregroundStyle(.red)
-                }
-                
-                // About
-                Section {
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
-                           let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
-                            Text(verbatim: "\(version) (\(build))")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    Link(destination: Config.supportURL) {
-                        HStack {
-                            Text("Support")
-                            Spacer()
-                            Image(systemName: "arrow.up.right")
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .foregroundStyle(.primary)
-
-                    Link(destination: Config.termsOfServiceURL) {
-                        HStack {
-                            Text("Terms of Service")
-                            Spacer()
-                            Image(systemName: "arrow.up.right")
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .foregroundStyle(.primary)
-                    
-                    Link(destination: Config.privacyPolicyURL) {
-                        HStack {
-                            Text("Privacy Policy")
-                            Spacer()
-                            Image(systemName: "arrow.up.right")
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .foregroundStyle(.primary)
-                } header: {
-                    Text("About")
-                }
-                
-                // Developer
-                Section {
-                    Link(destination: URL(string: "https://oyajun.com")!) {
-                        HStack {
-                            Text(verbatim: "小山田純(oyajun)")
-                            Spacer()
-                            Image(systemName: "arrow.up.right")
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .foregroundStyle(.primary)
-                } header: {
-                    Text("Developer")
                 }
                 
                 Text(verbatim: "from Japan 🇯🇵")
@@ -181,10 +230,37 @@ struct SettingsView: View {
                 Text("Are you sure you want to sign out?")
             }
             .task {
+                await loadStoreInfo()
                 if let profile = try? await APIClient.getMyProfile() {
                     appState.updateCurrentUser(profile)
                 }
             }
+        }
+    }
+
+    private func loadStoreInfo() async {
+        do {
+            let distributor = try await AppDistributor.current
+            switch distributor {
+            case .appStore:
+                installedStore = "App Store"
+            case .testFlight:
+                installedStore = "TestFlight"
+            case .marketplace(let name):
+                installedStore = name.isEmpty ? "Alternative Marketplace" : name
+            case .web:
+                installedStore = "Web"
+            case .other:
+                installedStore = "Other"
+            @unknown default:
+                installedStore = "Unknown"
+            }
+        } catch {
+            #if targetEnvironment(simulator)
+            installedStore = "Simulator"
+            #else
+            installedStore = "Unknown"
+            #endif
         }
     }
 
@@ -193,6 +269,8 @@ struct SettingsView: View {
         await appState.signOut()
     }
 }
+
+extension AppDistributor: @retroactive @unchecked Sendable {}
 
 #Preview {
     SettingsView()

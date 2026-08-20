@@ -106,6 +106,10 @@ enum Config {
         documentURL(for: "terms-of-service")
     }
     
+    static var websiteURL: URL {
+        URL(string: "https://junjun.oyajun.com/")!
+    }
+    
     static var supportURL: URL {
         documentURL(for: "support")
     }
