@@ -2034,6 +2034,23 @@
         }
       }
     },
+    "Profile" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プロフィール"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프로필"
+          }
+        }
+      }
+    },
     "Profile setup is required." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2338,6 +2355,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "설정"
+          }
+        }
+      }
+    },
+    "Share Profile" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プロフィールを共有"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프로필 공유"
           }
         }
       }
@@ -2786,6 +2819,22 @@
         }
       }
     },
+    "To turn off notifications for a specific user you follow, you can mute them individually from their profile." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "特定のフォロー中のユーザーの通知をオフにしたい場合は、そのユーザーのプロフィール画面から個別にミュートできます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "특정 팔로우 중인 사용자의 알림을 끄려면 해당 사용자의 프로필 화면에서 개별적으로 음소거할 수 있습니다."
+          }
+        }
+      }
+    },
     "Today" : {
       "localizations" : {
         "ja" : {
@@ -2814,22 +2863,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "누적"
-          }
-        }
-      }
-    },
-    "To turn off notifications for a specific user you follow, you can mute them individually from their profile." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "特定のフォロー中のユーザーの通知をオフにしたい場合は、そのユーザーのプロフィール画面から個別にミュートできます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "특정 팔로우 중인 사용자의 알림을 끄려면 해당 사용자의 프로필 화면에서 개별적으로 음소거할 수 있습니다."
           }
         }
       }
@@ -2991,6 +3024,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "버전"
+          }
+        }
+      }
+    },
+    "View Profile Page" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プロフィールページを表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프로필 페이지 보기"
           }
         }
       }

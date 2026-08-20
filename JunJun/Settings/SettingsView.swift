@@ -28,46 +28,113 @@ struct SettingsView: View {
                 HStack {
                     Spacer()
                     VStack(spacing: 12) {
-                        UserIconView(
-                            emoji: currentUser?.iconEmoji ?? "",
-                            backgroundColor: currentUser?.iconBackgroundColor ?? "#FFD54F",
-                            size: 72
-                        )
-                        Text(currentUser?.name ?? "")
-                            .font(.headline)
-                        Button("Edit Profile") {
+                        Button {
                             showEditProfile = true
+                        } label: {
+                            UserIconView(
+                                emoji: currentUser?.iconEmoji ?? "",
+                                backgroundColor: currentUser?.iconBackgroundColor ?? "#FFD54F",
+                                size: 80,
+                                isStudying: appState.isStudying
+                            )
+                            .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
+                            .overlay(alignment: .center) {
+                                Image(systemName: "pencil")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 24, height: 24)
+                                    .background(Color.accentColor)
+                                    .clipShape(Circle())
+                                    .overlay(
+                                        Circle()
+                                            .strokeBorder(Color(uiColor: .systemGroupedBackground), lineWidth: 2)
+                                    )
+                                    .offset(x: 28, y: 28)
+                            }
                         }
-                        .font(.subheadline)
+                        .buttonStyle(.plain)
+
+                        if let name = currentUser?.name, !name.isEmpty {
+                            Text(name)
+                                .font(.title2.bold())
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                        }
                     }
                     Spacer()
                 }
-                .padding(.vertical, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 0)
                 .listRowInsets(EdgeInsets())
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
 
+                // Profile
+                Section {
+                    if let userId = currentUser?.id {
+                        NavigationLink("View Profile Page") {
+                            UserProfileView(userId: userId)
+                        }
+                    }
+
+                    Button {
+                        showEditProfile = true
+                    } label: {
+                        HStack {
+                            Text("Edit Profile")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    if let userId = currentUser?.id,
+                       let shareURL = URL(string: "https://junjun.oyajun.com/u/\(String(userId.prefix(10)))") {
+                        ShareLink(item: shareURL) {
+                            HStack {
+                                Text("Share Profile")
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
                 // Account
                 Section {
-                    HStack {
-                        Text("Email")
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Button {
-                            showChangeEmail = true
-                        } label: {
+                    Button {
+                        showChangeEmail = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text("Email")
+                                .foregroundStyle(.primary)
+                            Spacer()
                             if let email = appState.userEmail {
                                 Text(email)
                                     .lineLimit(1)
                                     .font(.subheadline)
-                                    .foregroundStyle(.primary)
+                                    .foregroundStyle(.secondary)
                             } else {
                                 Text("Register Email")
                                     .font(.subheadline)
                                     .foregroundStyle(.blue)
                             }
+                            Image(systemName: "chevron.right")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.tertiary)
                         }
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
                     
                     NavigationLink("Push Notifications") {
                         PushNotificationSettingsView()

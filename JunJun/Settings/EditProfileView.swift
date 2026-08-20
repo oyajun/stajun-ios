@@ -18,19 +18,21 @@ struct EditProfileView: View {
             Form {
                 HStack {
                     Spacer()
-                    VStack(spacing: 8) {
+                    VStack(spacing: 10) {
                         UserIconView(
                             emoji: selectedEmoji,
                             backgroundColor: selectedColor,
                             size: 80
                         )
+                        .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
+
                         Text(name.isEmpty ? "Name" : name)
-                            .font(.headline)
+                            .font(.title2.bold())
                             .foregroundStyle(name.isEmpty ? .secondary : .primary)
                     }
                     Spacer()
                 }
-                .padding(.vertical, 24)
+                .padding(.vertical, 16)
                 .listRowInsets(EdgeInsets())
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
