@@ -236,6 +236,7 @@ final class AppState {
         try? await APIClient.signOut()
         KeychainHelper.token = nil
         NotificationHandler.resetRegisteredToken()
+        LocalStudyStore.clear()
         FeedCache.clear()
         ProfileCache.clear()
         PostsCache.clear()
@@ -252,6 +253,7 @@ final class AppState {
         KeychainHelper.token = nil
         userEmail = nil
         NotificationHandler.resetRegisteredToken()
+        LocalStudyStore.clear()
         FeedCache.clear()
         ProfileCache.clear()
         PostsCache.clear()

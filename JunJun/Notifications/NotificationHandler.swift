@@ -11,8 +11,21 @@ final class NotificationHandler: NSObject, UIApplicationDelegate, UNUserNotifica
         return true
     }
 
-    /// 最後にサーバーへの登録に成功した APNs トークン
-    private static var lastRegisteredToken: String?
+    private static let lastRegisteredTokenKey = "com.oyajun.StaJun.lastRegisteredAPNsToken"
+
+    /// 最後にサーバーへの登録に成功した APNs トークン（UserDefaults で永続化）
+    private static var lastRegisteredToken: String? {
+        get {
+            UserDefaults.standard.string(forKey: lastRegisteredTokenKey)
+        }
+        set {
+            if let value = newValue {
+                UserDefaults.standard.set(value, forKey: lastRegisteredTokenKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: lastRegisteredTokenKey)
+            }
+        }
+    }
 
     /// OS から受信した最新の APNs トークン（未ログイン時などの保留用）
     private static var pendingDeviceToken: String?
