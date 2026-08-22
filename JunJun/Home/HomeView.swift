@@ -344,6 +344,7 @@ struct HomeView: View {
                 }
 
                 Button {
+                    UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
                     Task { await toggleStudy() }
                 } label: {
                     Group {
