@@ -243,11 +243,43 @@ struct StatsView: View {
         }
     }
 
+    private struct YAxisScale {
+        let top: Int
+        let values: [Int]
+    }
+
+    private func calculateYAxisScale(maxMinutes: Int) -> YAxisScale {
+        let rawHours = max(1, Int(ceil(Double(maxMinutes) / 60.0)))
+
+        let stepHours: Int
+        if rawHours <= 15 {
+            stepHours = 1
+        } else if rawHours <= 30 {
+            stepHours = 5
+        } else if rawHours <= 60 {
+            stepHours = 10
+        } else if rawHours <= 120 {
+            stepHours = 20
+        } else if rawHours <= 300 {
+            stepHours = 50
+        } else if rawHours <= 600 {
+            stepHours = 100
+        } else {
+            stepHours = 200
+        }
+
+        let stepMinutes = stepHours * 60
+        let count = max(1, Int(ceil(Double(maxMinutes) / Double(stepMinutes))))
+        let topMinutes = count * stepMinutes
+
+        let values = stride(from: 0, through: topMinutes, by: stepMinutes).map { $0 }
+        return YAxisScale(top: topMinutes, values: values)
+    }
+
     private func chart(items: [StatsChartItem]) -> some View {
         let unit = model.unit
         let maxMinutes = items.map(\.minutes).max() ?? 0
-        // Round the top of the y axis up to a whole hour (minimum one hour)
-        let yTop = max(60, Int((Double(maxMinutes) / 60).rounded(.up)) * 60)
+        let yScale = calculateYAxisScale(maxMinutes: maxMinutes)
         let domain = model.pageDomain
         // Centered axis labels render between a mark and the next one, so the
         // last bucket needs a sentinel mark at the domain end to get a label.
@@ -262,7 +294,7 @@ struct StatsView: View {
             .cornerRadius(3)
         }
         .chartXScale(domain: domain)
-        .chartYScale(domain: 0...yTop)
+        .chartYScale(domain: 0...yScale.top)
         .chartXAxis {
             AxisMarks(values: axisDates) { value in
                 AxisValueLabel(centered: true) {
@@ -275,7 +307,7 @@ struct StatsView: View {
             }
         }
         .chartYAxis {
-            AxisMarks { value in
+            AxisMarks(values: yScale.values) { value in
                 AxisGridLine()
                 AxisValueLabel {
                     if let minutes = value.as(Int.self) {
@@ -315,10 +347,7 @@ struct StatsView: View {
 
     private func yAxisLabel(_ minutes: Int) -> LocalizedStringKey {
         if minutes == 0 { return "0" }
-        if minutes < 60 { return "\(minutes)m" }
-        if minutes.isMultiple(of: 60) { return "\(minutes / 60)h" }
-        let h = Double(minutes) / 60
-        return "\(h, specifier: "%.1f")h"
+        return "\(minutes / 60)h"
     }
 }
 
