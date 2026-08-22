@@ -153,11 +153,15 @@ struct StatsView: View {
     @ViewBuilder
     private var summarySection: some View {
         if let stats = model.stats {
-            HStack(spacing: 0) {
-                StatItem(title: "Total",  minutes: stats.totalMinutes)
-                StatItem(title: "Month",  minutes: stats.monthMinutes)
-                StatItem(title: "Week",   minutes: stats.weekMinutes)
-                StatItem(title: "Today",  minutes: stats.todayMinutes)
+            VStack(spacing: 12) {
+                HStack(spacing: 0) {
+                    StatItem(title: "Total",       minutes: stats.totalMinutes)
+                    StatItem(title: "This Month",  minutes: stats.monthMinutes)
+                }
+                HStack(spacing: 0) {
+                    StatItem(title: "This Week",   minutes: stats.weekMinutes)
+                    StatItem(title: "Today",       minutes: stats.todayMinutes)
+                }
             }
             .padding(.vertical, 12)
             .padding(.horizontal, 8)
@@ -327,11 +331,11 @@ private struct StatItem: View {
     var body: some View {
         VStack(spacing: 2) {
             Text(title)
-                .font(.caption2)
+                .font(.caption)
                 .foregroundStyle(.secondary)
             Text(formatMinutes(minutes))
-                .font(.subheadline.weight(.semibold))
-                .minimumScaleFactor(0.6)
+                .font(.headline.weight(.semibold))
+                .minimumScaleFactor(0.7)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity)

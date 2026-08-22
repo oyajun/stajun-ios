@@ -1416,6 +1416,7 @@
       }
     },
     "Month" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -2787,6 +2788,22 @@
         }
       }
     },
+    "This Month" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今月"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이번 달"
+          }
+        }
+      }
+    },
     "This user already exists." : {
       "localizations" : {
         "ja" : {
@@ -2815,6 +2832,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "차단된 사용자입니다."
+          }
+        }
+      }
+    },
+    "This Week" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今週"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이번 주"
           }
         }
       }
@@ -3098,6 +3131,7 @@
       }
     },
     "Week" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
