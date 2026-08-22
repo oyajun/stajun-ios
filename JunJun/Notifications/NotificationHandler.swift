@@ -23,7 +23,7 @@ final class NotificationHandler: NSObject, UIApplicationDelegate, UNUserNotifica
     /// 登録キャッシュのリセット（ログアウト時やアカウント削除時に呼び出し）
     static func resetRegisteredToken() {
         lastRegisteredToken = nil
-        pendingDeviceToken = nil
+        // pendingDeviceToken（端末の最新トークン）は保持し、再ログイン時に新ユーザーへ即時紐付け可能にする
         activeRegistrationTask?.cancel()
         activeRegistrationTask = nil
     }
