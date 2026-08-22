@@ -103,6 +103,7 @@ final class AppState {
         if let cached = ProfileCache.load() {
             currentUser = cached
             authState = .authenticated
+            NotificationHandler.syncPendingTokenIfNeeded()
             Task { await self.fetchUnreadNotificationCount() }
         }
 
@@ -112,6 +113,7 @@ final class AppState {
             ProfileCache.save(profile)
             authState = .authenticated
             checkFollowingAndRequestPushPermission()
+            NotificationHandler.syncPendingTokenIfNeeded()
             await fetchUnreadNotificationCount()
         } catch APIError.unauthorized {
             // Token actually invalid → sign out
@@ -128,6 +130,7 @@ final class AppState {
             currentUser = ProfileCache.load()
             authState = .authenticated
             checkFollowingAndRequestPushPermission()
+            NotificationHandler.syncPendingTokenIfNeeded()
         }
     }
 
@@ -180,6 +183,7 @@ final class AppState {
             currentUser = profile
             authState = .authenticated
             checkFollowingAndRequestPushPermission()
+            NotificationHandler.syncPendingTokenIfNeeded()
             await fetchUnreadNotificationCount()
 
         case .registerEmail, .changeEmail:
@@ -206,6 +210,7 @@ final class AppState {
         currentUser = profile
         ProfileCache.save(profile)
         authState = .authenticated
+        NotificationHandler.syncPendingTokenIfNeeded()
         Task { await fetchUnreadNotificationCount() }
     }
 

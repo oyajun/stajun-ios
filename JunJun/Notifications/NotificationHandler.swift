@@ -11,20 +11,87 @@ final class NotificationHandler: NSObject, UIApplicationDelegate, UNUserNotifica
         return true
     }
 
-    /// フォアグラウンド滞在中に多重送信しないためのフラグ
-    private static var hasRegisteredThisForegroundSession = false
+    /// 最後にサーバーへの登録に成功した APNs トークン
+    private static var lastRegisteredToken: String?
 
+    /// OS から受信した最新の APNs トークン（未ログイン時などの保留用）
+    private static var pendingDeviceToken: String?
+
+    /// トークン登録の排他制御用（現在進行中の Task）
+    private static var activeRegistrationTask: Task<Void, Never>?
+
+    /// 登録キャッシュのリセット（ログアウト時やアカウント削除時に呼び出し）
     static func resetRegisteredToken() {
-        hasRegisteredThisForegroundSession = false
+        lastRegisteredToken = nil
+        pendingDeviceToken = nil
+        activeRegistrationTask?.cancel()
+        activeRegistrationTask = nil
+    }
+
+    /// ログイン完了時などに、未送信トークンがあればサーバーへ同期する
+    static func syncPendingTokenIfNeeded() {
+        guard let token = pendingDeviceToken ?? lastRegisteredToken else { return }
+        registerTokenIfNeeded(token: token)
+    }
+
+    /// トークンをサーバーへ登録（排他制御・重複チェック付き）
+    static func registerTokenIfNeeded(token: String) {
+        // 未ログイン時はトークンのみ保持して終了（ログイン後に syncPendingTokenIfNeeded で送信）
+        guard KeychainHelper.token != nil else {
+            pendingDeviceToken = token
+            #if DEBUG
+            print("[APNs] Token received but user not logged in yet. Saved as pending token.")
+            #endif
+            return
+        }
+
+        // 既に同じトークンが登録完了している場合はスキップ
+        if lastRegisteredToken == token {
+            #if DEBUG
+            print("[APNs] Token already registered on server: \(token)")
+            #endif
+            return
+        }
+
+        // すでに登録処理が進行中の場合、多重リクエストをスキップ
+        if activeRegistrationTask != nil {
+            #if DEBUG
+            print("[APNs] Registration already in progress, skipping duplicate call.")
+            #endif
+            return
+        }
+
+        pendingDeviceToken = token
+
+        #if DEBUG
+        print("[APNs] Registering device token on server: \(token)")
+        #endif
+
+        activeRegistrationTask = Task {
+            defer {
+                activeRegistrationTask = nil
+            }
+
+            do {
+                try await APIClient.registerAPNsToken(token: token)
+                lastRegisteredToken = token
+                #if DEBUG
+                print("[APNs] Device token sent to server successfully.")
+                #endif
+            } catch {
+                #if DEBUG
+                print("[APNs] Failed to send device token to server: \(error)")
+                #endif
+            }
+        }
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
-        // バックグラウンドに入ったらフラグをリセット（次回フォアグラウンド復帰時にAPIを叩けるようにする）
-        Self.hasRegisteredThisForegroundSession = false
+        // バックグラウンド移行時の処理（必要に応じて将来拡張）
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
-        // フォアグラウンド復帰時にリモート通知登録をリクエストして最新トークンをサーバーへ同期
+        // フォアグラウンド復帰時にリモート通知登録をリクエストしてトークン変更を検知
         UIApplication.shared.registerForRemoteNotifications()
     }
 
@@ -35,28 +102,7 @@ final class NotificationHandler: NSObject, UIApplicationDelegate, UNUserNotifica
         let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
         let token = tokenParts.joined()
 
-        // フォアグラウンド滞在中にすでに登録済みなら同一フォアグラウンドセッション内の多重呼び出しをスキップ
-        if Self.hasRegisteredThisForegroundSession {
-            return
-        }
-
-        #if DEBUG
-        print("[APNs] Registering device token on foreground/launch: \(token)")
-        #endif
-
-        Task {
-            do {
-                try await APIClient.registerAPNsToken(token: token)
-                Self.hasRegisteredThisForegroundSession = true
-                #if DEBUG
-                print("[APNs] Device token sent to server successfully.")
-                #endif
-            } catch {
-                #if DEBUG
-                print("[APNs] Failed to send device token to server: \(error)")
-                #endif
-            }
-        }
+        Self.registerTokenIfNeeded(token: token)
     }
 
     func application(
