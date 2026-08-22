@@ -269,7 +269,11 @@ struct StatsView: View {
         }
 
         let stepMinutes = stepHours * 60
-        let count = max(1, Int(ceil(Double(maxMinutes) / Double(stepMinutes))))
+        var count = max(1, Int(ceil(Double(maxMinutes) / Double(stepMinutes))))
+        // Ensure headroom above the tallest bar so the annotation label is never clipped
+        if maxMinutes > 0 && maxMinutes >= Int(Double(count * stepMinutes) * 0.9) {
+            count += 1
+        }
         let topMinutes = count * stepMinutes
 
         let values = stride(from: 0, through: topMinutes, by: stepMinutes).map { $0 }
@@ -292,6 +296,11 @@ struct StatsView: View {
             )
             .foregroundStyle(Color.accentColor.gradient)
             .cornerRadius(3)
+            .annotation(position: .top, alignment: .center, spacing: 2) {
+                if item.minutes > 0 {
+                    barAnnotationView(item.minutes)
+                }
+            }
         }
         .chartXScale(domain: domain)
         .chartYScale(domain: 0...yScale.top)
@@ -348,6 +357,24 @@ struct StatsView: View {
     private func yAxisLabel(_ minutes: Int) -> LocalizedStringKey {
         if minutes == 0 { return "0" }
         return "\(minutes / 60)h"
+    }
+
+    @ViewBuilder
+    private func barAnnotationView(_ minutes: Int) -> some View {
+        let h = minutes / 60
+        let m = minutes % 60
+        VStack(spacing: 0) {
+            if h > 0 {
+                Text("\(h)h")
+            }
+            if m > 0 {
+                Text("\(m)m")
+            }
+        }
+        .font(.system(size: 8, weight: .semibold))
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .minimumScaleFactor(0.65)
     }
 }
 
