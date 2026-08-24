@@ -152,25 +152,9 @@ struct HomeView: View {
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                             .listRowInsets(EdgeInsets())
-                        
-                        if Config.isAffiliateAdVisible && index == 1 {
-                            // 最初の広告: 楽天アフィリエイトバナー
-                            VStack(spacing: 0) {
-                                AffiliateBannerCard(cacheKey: "timeline-first")
-                                Divider()
-                            }
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                        } else if Config.isAffiliateAdVisible && index > 1 && (index - 1) % 6 == 0 {
-                            // 以降の広告: 6投稿ごとに楽天アフィリエイトバナー
-                            VStack(spacing: 0) {
-                                AffiliateBannerCard(cacheKey: "timeline-\(index)")
-                                Divider()
-                            }
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+
+                        if Config.showAds && (index == 1 || (index > 1 && (index - 1) % 6 == 0)) {
+                            timelineAdRow(for: index)
                         }
                     }
                 }
@@ -521,6 +505,28 @@ struct HomeView: View {
                     }
                 }
         }
+    }
+
+    // MARK: - Timeline Ad Row
+
+    @ViewBuilder
+    private func timelineAdRow(for index: Int) -> some View {
+        let slotIndex = (index - 1) / 6
+        VStack(spacing: 0) {
+            if Config.isJapanRegion {
+                if slotIndex % 2 == 0 {
+                    AdBannerCard(cacheKey: "timeline-admob-\(index)")
+                } else {
+                    AffiliateBannerCard(cacheKey: "timeline-affiliate-\(index)")
+                }
+            } else {
+                AdBannerCard(cacheKey: "timeline-admob-\(index)")
+            }
+            Divider()
+        }
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
     }
 
     // MARK: - Study Actions
