@@ -226,14 +226,16 @@ struct EmojiPickerView: View {
                 // Search Results View
                 if results.isEmpty {
                     VStack(spacing: 10) {
+                        Spacer()
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 32))
                             .foregroundStyle(.tertiary)
                         Text("No emojis found")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                        Spacer()
                     }
-                    .frame(maxWidth: .infinity, minHeight: 200)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 6) {
@@ -243,7 +245,7 @@ struct EmojiPickerView: View {
                         }
                         .padding(.vertical, 4)
                     }
-                    .frame(maxHeight: 280)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else {
                 // Category Bar & Paged Category View
