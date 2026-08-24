@@ -132,7 +132,7 @@ struct EditProfileView: View {
                     HStack {
                         // Symmetrical spacer so the center icon remains perfectly centered
                         Color.clear
-                            .frame(width: 54, height: 54)
+                            .frame(width: 76, height: 52)
 
                         Spacer()
 
@@ -150,12 +150,14 @@ struct EditProfileView: View {
                         } label: {
                             VStack(spacing: 3) {
                                 Image(systemName: "dice.fill")
-                                    .font(.system(size: 20, weight: .semibold))
-                                Text("Random")
-                                    .font(.caption2.weight(.medium))
+                                    .font(.system(size: 18, weight: .semibold))
+                                Text("Pick Randomly")
+                                    .font(.system(size: 10.5, weight: .medium))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
                             }
                             .foregroundStyle(Color.accentColor)
-                            .frame(width: 54, height: 54)
+                            .frame(width: 76, height: 52)
                             .background(Color(uiColor: .secondarySystemFill))
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .overlay(
