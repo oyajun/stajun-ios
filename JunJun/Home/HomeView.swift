@@ -23,6 +23,8 @@ struct HomeView: View {
 
     // Timeline posts (Following & Mine completely separated)
     private let pageSize = 20
+    private let firstAdIndex = 1
+    private let adInterval = 7
     @State private var followingPosts: [Post] = []
     @State private var followingNextCursor: String?
     @State private var isLoadingFollowingPosts = false
@@ -153,7 +155,7 @@ struct HomeView: View {
                             .listRowSeparator(.hidden)
                             .listRowInsets(EdgeInsets())
 
-                        if Config.showAds && (index == 1 || (index > 1 && (index - 1) % 6 == 0)) {
+                        if Config.showAds && index >= firstAdIndex && (index - firstAdIndex) % adInterval == 0 {
                             timelineAdRow(for: index)
                         }
                     }
@@ -518,7 +520,7 @@ struct HomeView: View {
 
     @ViewBuilder
     private func timelineAdRow(for index: Int) -> some View {
-        let slotIndex = (index - 1) / 6
+        let slotIndex = (index - firstAdIndex) / adInterval
         VStack(spacing: 0) {
             if Config.isJapanRegion {
                 if slotIndex % 2 == 0 {
