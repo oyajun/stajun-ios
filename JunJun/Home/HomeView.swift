@@ -346,6 +346,13 @@ struct HomeView: View {
                 .buttonStyle(.glassProminent)
                 .tint(isStudying ? .red : .accentColor)
                 .disabled(studyActionLoading)
+                .background {
+                    if isStudying {
+                        StudyingButtonGlow(
+                            backgroundColor: appState.currentUser?.iconBackgroundColor ?? "#FFD54F"
+                        )
+                    }
+                }
 
                 if let studyError {
                     Text(studyError)
@@ -792,6 +799,56 @@ struct HomeView: View {
         } else {
             return String(format: "%02d:%02d", m, s)
         }
+    }
+}
+
+// MARK: - Studying Button Glow
+
+private struct StudyingButtonGlow: View {
+    var backgroundColor: String = "#FFD54F"
+    var cornerRadius: CGFloat = 16
+    @State private var rotation: Double = 0
+
+    // Rainbow colors (preserved)
+    private static let rainbowColors: [Color] = [
+        .red, .orange, .yellow, .green, .cyan, .blue, .purple, .pink, .red
+    ]
+
+    private var glowColors: [Color] {
+        Color.neighboringColors(from: backgroundColor)
+    }
+
+    var body: some View {
+        let gradient = AngularGradient(
+            colors: glowColors,
+            center: .center,
+            startAngle: .degrees(rotation),
+            endAngle: .degrees(rotation + 360)
+        )
+
+        /*
+        // --- Original Rainbow Gradient (Preserved) ---
+        let rainbowGradient = AngularGradient(
+            colors: Self.rainbowColors,
+            center: .center,
+            startAngle: .degrees(rotation),
+            endAngle: .degrees(rotation + 360)
+        )
+        */
+
+        // Soft, frameless ambient glow behind the button
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(gradient)
+            .padding(-6)
+            .drawingGroup() // Offload rendering pass to Metal (GPU)
+            .blur(radius: 16)
+            .opacity(0.70)
+            .allowsHitTesting(false)
+            .onAppear {
+                withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {
+                    rotation = 360
+                }
+            }
     }
 }
 

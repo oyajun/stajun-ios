@@ -45,7 +45,9 @@ struct MainTabView: View {
         }
         .overlay {
             if appState.isStudying {
-                StudyingBorderOverlay()
+                StudyingBorderOverlay(
+                    backgroundColor: appState.currentUser?.iconBackgroundColor ?? "#FFD54F"
+                )
             }
         }
     }
@@ -54,31 +56,48 @@ struct MainTabView: View {
 // MARK: - Studying Border Overlay
 
 private struct StudyingBorderOverlay: View {
+    var backgroundColor: String = "#FFD54F"
     @State private var rotation: Double = 0
     @State private var cornerRadius: CGFloat = 44
 
-    private static let colors: [Color] = [
+    // Rainbow colors (preserved)
+    private static let rainbowColors: [Color] = [
         .red, .orange, .yellow, .green, .cyan, .blue, .purple, .pink, .red
     ]
+
+    private var glowColors: [Color] {
+        Color.neighboringColors(from: backgroundColor)
+    }
 
     var body: some View {
         GeometryReader { _ in
             let gradient = AngularGradient(
-                colors: Self.colors,
+                colors: glowColors,
                 center: .center,
                 startAngle: .degrees(rotation),
                 endAngle: .degrees(rotation + 360)
             )
+
+            /*
+            // --- Original Rainbow Gradient (Preserved) ---
+            let rainbowGradient = AngularGradient(
+                colors: Self.rainbowColors,
+                center: .center,
+                startAngle: .degrees(rotation),
+                endAngle: .degrees(rotation + 360)
+            )
+            */
+
             ZStack {
                 // Outer glow
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(gradient, lineWidth: 24)
                     .blur(radius: 14)
-                    .opacity(0.55)
+                    .opacity(0.60)
                 // Sharp inner rim
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(gradient, lineWidth: 2)
-                    .opacity(0.85)
+                    .opacity(0.75)
             }
             .drawingGroup() // Offload rendering pass to Metal (GPU)
             .ignoresSafeArea()
