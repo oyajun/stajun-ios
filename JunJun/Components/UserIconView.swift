@@ -110,6 +110,10 @@ enum IconPresets {
     static let rainbowColors: [Color] = [
         .red, .orange, .yellow, .green, .cyan, .blue, .purple, .pink, .red
     ]
+
+    static func randomColor() -> String {
+        colors.randomElement() ?? "#FFD54F"
+    }
 }
 
 // MARK: - UserIconView

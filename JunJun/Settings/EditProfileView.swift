@@ -130,14 +130,40 @@ struct EditProfileView: View {
                     Text("Icon")
 
                     HStack {
+                        // Symmetrical spacer so the center icon remains perfectly centered
+                        Color.clear
+                            .frame(width: 54, height: 54)
+
                         Spacer()
+
                         UserIconView(
                             emoji: selectedEmoji,
                             backgroundColor: selectedColor,
                             size: 88
                         )
                         .shadow(color: .black.opacity(0.10), radius: 10, y: 4)
+
                         Spacer()
+
+                        Button {
+                            randomizeIcon()
+                        } label: {
+                            VStack(spacing: 3) {
+                                Image(systemName: "dice.fill")
+                                    .font(.system(size: 20, weight: .semibold))
+                                Text("Random")
+                                    .font(.caption2.weight(.medium))
+                            }
+                            .foregroundStyle(Color.accentColor)
+                            .frame(width: 54, height: 54)
+                            .background(Color(uiColor: .secondarySystemFill))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.top, 4)
@@ -157,12 +183,24 @@ struct EditProfileView: View {
     private func initializeValues() {
         if case .create = mode {
             name = ""
-            selectedEmoji = IconPresets.emojis.first ?? "📚"
-            selectedColor = IconPresets.colors.first ?? "#FFD54F"
+            randomizeIcon(animated: false)
         } else {
             name = currentUser?.name ?? ""
-            selectedEmoji = currentUser?.iconEmoji ?? (IconPresets.emojis.first ?? "📚")
-            selectedColor = currentUser?.iconBackgroundColor ?? (IconPresets.colors.first ?? "#FFD54F")
+            selectedEmoji = currentUser?.iconEmoji ?? EmojiCatalog.randomAvatarEmoji()
+            selectedColor = currentUser?.iconBackgroundColor ?? IconPresets.randomColor()
+        }
+    }
+
+    private func randomizeIcon(animated: Bool = true) {
+        if animated {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                selectedEmoji = EmojiCatalog.randomAvatarEmoji()
+                selectedColor = IconPresets.randomColor()
+            }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        } else {
+            selectedEmoji = EmojiCatalog.randomAvatarEmoji()
+            selectedColor = IconPresets.randomColor()
         }
     }
 

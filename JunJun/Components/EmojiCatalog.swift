@@ -576,6 +576,34 @@ enum EmojiCatalog {
         return items
     }()
 
+    /// Curated list of appealing, expressive emojis ideal for avatar icons (excludes awkward symbols, tools, or anatomy)
+    static let curatedAvatarEmojis: [String] = [
+        // Animals & Creatures
+        "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐧",
+        "🐦", "🐤", "🦆", "🦅", "🦉", "🐺", "🐴", "🦄", "🐝", "🦋", "🐢", "🐙", "🐠", "🐬", "🐳", "🦈",
+        "🐘", "🦒", "🦘", "🐕", "🐈", "🦚", "🦜", "🦩", "🐇", "🦝", "🦦", "🦥", "🐿️", "🦔", "🐉", "🦖",
+        // Expressive Smiles & Characters
+        "😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "😉", "😊", "😇", "🥰", "😍", "🤩", "😘", "😋",
+        "😜", "🤪", "🤑", "🤗", "🤭", "🤔", "🫡", "🤠", "🥳", "😎", "🤓", "🧐", "🤖", "👻", "👽", "👾",
+        "😺", "😸", "😻",
+        // Study, Goals, Tech & Art
+        "📚", "📖", "📕", "📗", "📘", "📙", "🎓", "💡", "🧠", "🎯", "⚡", "🌟", "✨", "🏆", "🥇", "🥈",
+        "🥉", "🏅", "🎨", "🎵", "🎶", "🎸", "🎹", "🧪", "🔬", "🔭", "🚀", "🛸", "💻", "🕹️", "🎮", "🎲",
+        "🎬", "📷", "🔮", "💎", "👑",
+        // Sports & Hobbies
+        "⚽", "🏀", "🏈", "⚾", "🎾", "🏐", "🏓", "🏸", "🥊", "🥋", "🛹", "🏄", "🧗", "🚴", "🏎️", "⛺",
+        // Cute Food & Drinks
+        "🍎", "🍓", "🍒", "🍑", "🍊", "🍋", "🍍", "🍉", "🍇", "🍌", "🥑", "🍕", "🍔", "🍟", "🍿", "🥞",
+        "🍩", "🍪", "🎂", "🍰", "🧁", "🍫", "🍬", "🍭", "🍮", "🍯", "☕", "🧋", "🍦", "🍧",
+        // Nature & Cosmos
+        "🌸", "🌺", "🌻", "🌹", "🌷", "🌼", "🍀", "🍁", "🍄", "🌵", "🌴", "🌈", "☀️", "🌙", "⭐️", "💫", "🪐", "🔥"
+    ]
+
+    /// Returns a randomly picked emoji suited for avatar icons
+    static func randomAvatarEmoji() -> String {
+        curatedAvatarEmojis.randomElement() ?? "📚"
+    }
+
     // MARK: - Search
 
     /// Multi-language search supporting Japanese (kanji, hiragana, katakana), Korean, English, and direct emoji input
