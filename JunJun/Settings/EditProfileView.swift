@@ -5,6 +5,13 @@ enum ProfileFormMode: Hashable {
     case create(isAnonymous: Bool)
 }
 
+enum IconTab: String, CaseIterable, Identifiable {
+    case emoji
+    case background
+
+    var id: String { rawValue }
+}
+
 struct EditProfileView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
@@ -14,6 +21,7 @@ struct EditProfileView: View {
     @State private var name = ""
     @State private var selectedEmoji = IconPresets.emojis.first ?? "📚"
     @State private var selectedColor = IconPresets.colors.first ?? "#FFD54F"
+    @State private var selectedTab: IconTab = .emoji
 
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -63,6 +71,11 @@ struct EditProfileView: View {
                                 Task { await save() }
                             }
                             .disabled(!isValid || isLoading)
+                            .overlay {
+                                if isLoading {
+                                    ProgressView().scaleEffect(0.8)
+                                }
+                            }
                         }
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Cancel") { dismiss() }
@@ -70,45 +83,65 @@ struct EditProfileView: View {
                     }
                     .onAppear(perform: initializeValues)
             }
+            .interactiveDismissDisabled()
         }
     }
 
     private var formContent: some View {
         Form {
-            HStack {
-                Spacer()
-                VStack(spacing: 8) {
-                    UserIconView(
-                        emoji: selectedEmoji,
-                        backgroundColor: selectedColor,
-                        size: 80
-                    )
-                    .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
-
-                    Text(name.isEmpty ? "Name" : name)
-                        .font(.title2.bold())
-                        .foregroundStyle(name.isEmpty ? .secondary : .primary)
-                }
-                Spacer()
-            }
-            .padding(.top, 0)
-            .padding(.bottom, 0)
-            .listRowInsets(EdgeInsets())
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
-
+            // Name Field
             Section("Name") {
-                TextField(isCreateMode ? "e.g., Alex" : "Name", text: $name)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
+                HStack {
+                    TextField(isCreateMode ? "e.g., Alex" : "Name", text: $name)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+
+                    if !name.isEmpty {
+                        Text(verbatim: "\(name.count)/30")
+                            .font(.caption2)
+                            .foregroundStyle(name.count > 30 ? Color.red : Color.secondary)
+                    }
+                }
             }
 
-            Section("Icon Emoji") {
-                EmojiPickerView(selected: $selectedEmoji)
-            }
+            // Icon Customization Section (Preview in Header, Tabs & Picker in Card)
+            Section {
+                VStack(spacing: 8) {
+                    // Segmented Tabs: Emoji | Background Color
+                    Picker("Icon Settings", selection: $selectedTab) {
+                        Label("Emoji", systemImage: "face.smiling")
+                            .tag(IconTab.emoji)
+                        Label("Background Color", systemImage: "paintpalette")
+                            .tag(IconTab.background)
+                    }
+                    .pickerStyle(.segmented)
 
-            Section("Icon Background Color") {
-                ColorPresetPickerView(selected: $selectedColor)
+                    // Selection View
+                    switch selectedTab {
+                    case .emoji:
+                        EmojiPickerView(selected: $selectedEmoji)
+                    case .background:
+                        ColorPresetPickerView(selected: $selectedColor)
+                    }
+                }
+                .padding(.vertical, 4)
+            } header: {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Icon")
+
+                    HStack {
+                        Spacer()
+                        UserIconView(
+                            emoji: selectedEmoji,
+                            backgroundColor: selectedColor,
+                            size: 88
+                        )
+                        .shadow(color: .black.opacity(0.10), radius: 10, y: 4)
+                        Spacer()
+                    }
+                }
+                .padding(.top, 4)
+                .padding(.bottom, 2)
             }
 
             if let errorMessage {

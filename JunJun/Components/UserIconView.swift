@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Color Extension
 
@@ -15,6 +16,20 @@ extension Color {
             green: Double((rgb & 0x00FF00) >>  8) / 255.0,
             blue:  Double( rgb & 0x0000FF       ) / 255.0
         )
+    }
+
+    /// Convert Color to "#RRGGBB" hex string
+    func toHex() -> String? {
+        let uic = UIColor(self)
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        guard uic.getRed(&r, green: &g, blue: &b, alpha: &a) else { return nil }
+        let ri = Int(round(r * 255))
+        let gi = Int(round(g * 255))
+        let bi = Int(round(b * 255))
+        return String(format: "#%02X%02X%02X", max(0, min(255, ri)), max(0, min(255, gi)), max(0, min(255, bi)))
     }
 
     /// Generate an array of neighboring/analogous colors around a hex color for a spinning gradient
@@ -80,10 +95,16 @@ enum IconPresets {
     ]
 
     static let colors: [String] = [
-        "#FFD54F", "#B3E5FC", "#FFCCBC", "#C8E6C9",
-        "#E1BEE7", "#FFF9C4", "#F8BBD0", "#B2EBF2",
-        "#FFAB40", "#69F0AE", "#CE93D8", "#80DEEA",
-        "#FF8A65", "#4DB6AC", "#7986CB", "#F06292",
+        // Reds & Oranges
+        "#FF3B30", "#FF6D00", "#FFD600", "#FFF9C4",
+        // Pinks & Purples
+        "#FF4081", "#FF10F0", "#F8BBD0", "#9C27B0", "#E1BEE7",
+        // Blues & Cyans
+        "#007AFF", "#3D5AFE", "#00E5FF", "#00ACC1", "#B3E5FC",
+        // Greens & Limes
+        "#00C853", "#76FF03", "#C8E6C9",
+        // Earth & Neutrals
+        "#D7CCC8", "#8D6E63", "#212121"
     ]
 
     static let rainbowColors: [Color] = [
@@ -127,24 +148,6 @@ struct UserIconView: View {
                     .drawingGroup() // Offload rendering pass to Metal (GPU)
                     .blur(radius: size * 0.15)
                     .opacity(0.72)
-
-                /*
-                // --- Rainbow glow (preserved) ---
-                Circle()
-                    .strokeBorder(
-                        AngularGradient(
-                            colors: IconPresets.rainbowColors,
-                            center: .center,
-                            startAngle: .degrees(rotation),
-                            endAngle: .degrees(rotation + 360)
-                        ),
-                        lineWidth: size * 0.20
-                    )
-                    .frame(width: size * 1.25, height: size * 1.25)
-                    .drawingGroup()
-                    .blur(radius: size * 0.12)
-                    .opacity(0.55)
-                */
             }
 
             Circle()
@@ -175,34 +178,159 @@ struct UserIconView: View {
 struct EmojiPickerView: View {
     @Binding var selected: String
 
-    private let columns = [GridItem(.adaptive(minimum: 52), spacing: 8)]
+    @State private var searchText = ""
+    @State private var activeCategory: EmojiCategory = .smileys
+
+    private let columns = [GridItem(.adaptive(minimum: 44), spacing: 6)]
+
+    private var searchResults: [String]? {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return EmojiCatalog.search(query: trimmed)
+    }
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 8) {
-            ForEach(IconPresets.emojis, id: \.self) { emoji in
-                Button {
-                    selected = emoji
-                } label: {
-                    Text(emoji)
-                        .font(.title2)
-                        .frame(width: 52, height: 52)
-                        .background(
-                            selected == emoji
-                                ? Color.accentColor.opacity(0.18)
-                                : Color.clear
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .strokeBorder(
-                                    selected == emoji ? Color.accentColor : Color.clear,
-                                    lineWidth: 1.5
-                                )
-                        )
+        VStack(spacing: 12) {
+            // Search Bar
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                TextField("Search emoji", text: $searchText)
+                    .font(.subheadline)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(Color(uiColor: .tertiarySystemFill))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            if let results = searchResults {
+                // Search Results View
+                if results.isEmpty {
+                    VStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 32))
+                            .foregroundStyle(.tertiary)
+                        Text("No emojis found")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 200)
+                } else {
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 6) {
+                            ForEach(results, id: \.self) { emoji in
+                                emojiButton(emoji)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .frame(maxHeight: 280)
+                }
+            } else {
+                // Category Bar & Paged Category View
+                VStack(spacing: 3) {
+                    // Category selector bar
+                    HStack(spacing: 4) {
+                        ForEach(EmojiCategory.allCases) { cat in
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    activeCategory = cat
+                                }
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            } label: {
+                                Text(cat.symbol)
+                                    .font(.system(size: 20))
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 34)
+                                    .background(
+                                        activeCategory == cat
+                                            ? Color.accentColor.opacity(0.18)
+                                            : Color(uiColor: .secondarySystemFill).opacity(0.4)
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                            .strokeBorder(
+                                                activeCategory == cat ? Color.accentColor : Color.clear,
+                                                lineWidth: 1.5
+                                            )
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    // Category Title
+                    HStack {
+                        Text(LocalizedStringKey(activeCategory.title))
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 2)
+                    .padding(.top, 1)
+
+                    // Paged Emoji Grid
+                    TabView(selection: $activeCategory) {
+                        ForEach(EmojiCategory.allCases) { cat in
+                            ScrollView {
+                                LazyVGrid(columns: columns, spacing: 6) {
+                                    ForEach(EmojiCatalog.emojis(for: cat), id: \.self) { emoji in
+                                        emojiButton(emoji)
+                                    }
+                                }
+                                .padding(.top, 1)
+                                .padding(.bottom, 6)
+                            }
+                            .tag(cat)
+                        }
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .frame(maxHeight: .infinity)
+                }
             }
         }
+        .frame(height: 480)
+    }
+
+    private func emojiButton(_ emoji: String) -> some View {
+        Button {
+            selected = emoji
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        } label: {
+            Text(emoji)
+                .font(.system(size: 26))
+                .frame(width: 44, height: 44)
+                .background(
+                    selected == emoji
+                        ? Color.accentColor.opacity(0.20)
+                        : Color.clear
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(
+                            selected == emoji ? Color.accentColor : Color.clear,
+                            lineWidth: 2
+                        )
+                )
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -214,25 +342,39 @@ struct ColorPresetPickerView: View {
     private let columns = [GridItem(.adaptive(minimum: 44), spacing: 10)]
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 10) {
-            ForEach(IconPresets.colors, id: \.self) { hex in
-                Button {
-                    selected = hex
-                } label: {
-                    Circle()
-                        .fill(Color(hex: hex) ?? .gray)
-                        .frame(width: 40, height: 40)
-                        .overlay {
-                            if selected == hex {
-                                Circle()
-                                    .strokeBorder(Color.primary, lineWidth: 2.5)
-                                    .padding(-3)
-                            }
-                        }
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(IconPresets.colors, id: \.self) { hex in
+                    colorButton(hex: hex)
                 }
-                .buttonStyle(.plain)
             }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 2)
         }
+        .frame(height: 480)
+    }
+
+    private func colorButton(hex: String) -> some View {
+        Button {
+            selected = hex
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        } label: {
+            Circle()
+                .fill(Color(hex: hex) ?? .gray)
+                .frame(width: 42, height: 42)
+                .overlay {
+                    Circle()
+                        .strokeBorder(Color.gray.opacity(0.20), lineWidth: 1)
+                }
+                .overlay {
+                    if selected.caseInsensitiveCompare(hex) == .orderedSame {
+                        Circle()
+                            .strokeBorder(Color.primary, lineWidth: 2.5)
+                            .padding(-3)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
     }
 }
 
