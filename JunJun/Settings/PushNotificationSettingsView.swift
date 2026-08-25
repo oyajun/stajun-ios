@@ -12,8 +12,11 @@ struct PushNotificationSettingsView: View {
     )
     @State private var isLoading = true
     @State private var isSystemNotificationDisabled = false
+    @State private var isReregistering = false
     @State private var errorMessage: String?
+    @State private var errorAlertTitle: LocalizedStringKey = "Could Not Update Settings"
     @State private var showErrorAlert = false
+    @State private var showSuccessAlert = false
 
     var body: some View {
         Form {
@@ -88,6 +91,25 @@ struct PushNotificationSettingsView: View {
             } footer: {
                 Text("To turn off notifications for a specific user you follow, you can mute them individually from their profile.")
             }
+
+            // プッシュ通知の再登録
+            Section {
+                Button {
+                    reregisterPushNotifications()
+                } label: {
+                    HStack {
+                        Text("Re-register Push Notifications")
+                            .foregroundStyle(isReregistering ? .secondary : .primary)
+                        Spacer()
+                        if isReregistering {
+                            ProgressView()
+                        }
+                    }
+                }
+                .disabled(isReregistering)
+            } footer: {
+                Text("If you are not receiving push notifications, try re-registering.")
+            }
         }
         .navigationTitle("Push Notifications")
         .navigationBarTitleDisplayMode(.inline)
@@ -107,7 +129,7 @@ struct PushNotificationSettingsView: View {
                 }
             }
         }
-        .alert("Could Not Update Settings", isPresented: $showErrorAlert) {
+        .alert(errorAlertTitle, isPresented: $showErrorAlert) {
             Button("OK", role: .cancel) { }
         } message: {
             if let errorMessage {
@@ -115,6 +137,11 @@ struct PushNotificationSettingsView: View {
             } else {
                 Text("An unexpected error occurred. Please try again.")
             }
+        }
+        .alert("Push Notifications Re-registered", isPresented: $showSuccessAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Your device has been re-registered to receive push notifications.")
         }
     }
 
@@ -173,6 +200,41 @@ struct PushNotificationSettingsView: View {
                 await MainActor.run {
                     // ロールバック
                     self.settings = previous
+                    self.errorAlertTitle = "Could Not Update Settings"
+                    self.errorMessage = error.localizedDescription
+                    self.showErrorAlert = true
+                }
+            }
+        }
+    }
+
+    private func reregisterPushNotifications() {
+        guard !isReregistering else { return }
+        isReregistering = true
+
+        Task {
+            defer {
+                Task { @MainActor in
+                    self.isReregistering = false
+                }
+            }
+
+            do {
+                try await NotificationHandler.reregister()
+                await checkSystemNotificationStatus()
+                await MainActor.run {
+                    self.showSuccessAlert = true
+                }
+            } catch let error as NotificationHandler.RegistrationError where error == .permissionDenied {
+                await checkSystemNotificationStatus()
+                await MainActor.run {
+                    self.errorAlertTitle = "Notifications Disabled"
+                    self.errorMessage = String(localized: "Push notifications are turned off in your device settings. To receive notifications, please allow notifications for JunJun in Settings.")
+                    self.showErrorAlert = true
+                }
+            } catch {
+                await MainActor.run {
+                    self.errorAlertTitle = "Could Not Re-register"
                     self.errorMessage = error.localizedDescription
                     self.showErrorAlert = true
                 }

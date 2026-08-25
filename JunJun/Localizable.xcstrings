@@ -779,6 +779,22 @@
         }
       }
     },
+    "Could Not Re-register" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再登録に失敗しました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "재등록에 실패했습니다"
+          }
+        }
+      }
+    },
     "Could Not Unmute" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1429,6 +1445,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "아이콘 설정"
+          }
+        }
+      }
+    },
+    "If you are not receiving push notifications, try re-registering." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知が届かない場合は、プッシュ通知の再登録をお試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "알림이 오지 않는 경우 푸시 알림 재등록을 시도해 보세요."
           }
         }
       }
@@ -2332,6 +2364,22 @@
         }
       }
     },
+    "Push Notifications Re-registered" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プッシュ通知を再登録しました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "푸시 알림이 재등록되었습니다"
+          }
+        }
+      }
+    },
     "Push notifications are turned off in your device settings. To receive notifications, please allow notifications for JunJun in Settings." : {
       "localizations" : {
         "ja" : {
@@ -2377,6 +2425,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "추천 ユーザー"
+          }
+        }
+      }
+    },
+    "Re-register Push Notifications" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プッシュ通知の再登録"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "푸시 알림 재등록"
           }
         }
       }
@@ -3645,6 +3709,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "오프라인 상태입니다"
+          }
+        }
+      }
+    },
+    "Your device has been re-registered to receive push notifications." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "端末のプッシュ通知設定を再登録しました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기기의 푸시 알림 설정이 재등록되었습니다."
           }
         }
       }

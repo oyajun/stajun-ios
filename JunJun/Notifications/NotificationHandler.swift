@@ -47,11 +47,54 @@ final class NotificationHandler: NSObject, UIApplicationDelegate, UNUserNotifica
         registerTokenIfNeeded(token: token)
     }
 
+    enum RegistrationError: LocalizedError {
+        case permissionDenied
+
+        var errorDescription: String? {
+            switch self {
+            case .permissionDenied:
+                return String(localized: "Push notifications are turned off in your device settings. To receive notifications, please allow notifications for JunJun in Settings.")
+            }
+        }
+    }
+
+    /// プッシュ通知の強制再登録処理
+    static func reregister() async throws {
+        // 1. 通知の権限状態を確認・リクエスト
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+
+        if settings.authorizationStatus == .notDetermined {
+            let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+            guard granted else {
+                throw RegistrationError.permissionDenied
+            }
+        } else if settings.authorizationStatus == .denied {
+            throw RegistrationError.permissionDenied
+        }
+
+        // 2. 登録キャッシュをクリア
+        lastRegisteredToken = nil
+
+        // 3. APNs リモート通知の登録を OS に要求
+        await MainActor.run {
+            UIApplication.shared.registerForRemoteNotifications()
+        }
+
+        // 4. 既に保持しているトークンがあれば直ちにサーバーへ送信
+        let tokenToSend = pendingDeviceToken ?? UserDefaults.standard.string(forKey: lastRegisteredTokenKey)
+        if let token = tokenToSend, !token.isEmpty, KeychainHelper.token != nil {
+            try await APIClient.registerAPNsToken(token: token)
+            lastRegisteredToken = token
+        }
+    }
+
     /// トークンをサーバーへ登録（排他制御・重複チェック付き）
     static func registerTokenIfNeeded(token: String) {
+        pendingDeviceToken = token
+
         // 未ログイン時はトークンのみ保持して終了（ログイン後に syncPendingTokenIfNeeded で送信）
         guard KeychainHelper.token != nil else {
-            pendingDeviceToken = token
             #if DEBUG
             print("[APNs] Token received but user not logged in yet. Saved as pending token.")
             #endif
@@ -73,8 +116,6 @@ final class NotificationHandler: NSObject, UIApplicationDelegate, UNUserNotifica
             #endif
             return
         }
-
-        pendingDeviceToken = token
 
         #if DEBUG
         print("[APNs] Registering device token on server: \(token)")
