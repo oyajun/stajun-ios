@@ -1,6 +1,9 @@
 import Foundation
 #if canImport(MarketplaceKit)
-import MarketplaceKit
+@preconcurrency import MarketplaceKit
+
+@available(iOS 17.4, *)
+extension AppDistributor: @unchecked @retroactive Sendable {}
 #endif
 
 enum StoreDetector {
