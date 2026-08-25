@@ -22,16 +22,20 @@ enum PostCountStore {
         return newCount
     }
 
-    /// Checks if a review request should be triggered (when the 5th post is completed) and requests it.
+    /// Checks and executes post completion milestones (4th post -> invite friends, 6th post -> app review).
     @MainActor
-    static func requestReviewIfEligible() {
-        guard count == 5 else { return }
-        // Delay slightly to ensure any presenting sheet (such as ComposePostView) has dismissed cleanly.
+    static func handlePostCompleted(onInviteFriends: @escaping () -> Void) {
+        let currentCount = count
         Task { @MainActor in
+            // Delay slightly to ensure any presenting sheet (such as ComposePostView) has dismissed cleanly.
             try? await Task.sleep(for: .milliseconds(600))
-            if let windowScene = UIApplication.shared.connectedScenes
-                .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
-                AppStore.requestReview(in: windowScene)
+            if currentCount == 4 {
+                onInviteFriends()
+            } else if currentCount == 6 {
+                if let windowScene = UIApplication.shared.connectedScenes
+                    .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+                    AppStore.requestReview(in: windowScene)
+                }
             }
         }
     }

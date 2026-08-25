@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import UIKit
 
 struct HomeView: View {
     @Environment(AppState.self) private var appState
@@ -43,6 +44,7 @@ struct HomeView: View {
     @State private var postToDelete: Post?
     @State private var postToReport: Post?
     @State private var showReportSuccessAlert = false
+    @State private var showInviteFriendsAlert = false
 
     private var currentPosts: [Post] {
         switch postScope {
@@ -238,6 +240,7 @@ struct HomeView: View {
                         await loadMyPosts()
                         await loadFeed()
                     }
+                    handlePostMilestone()
                 }
             }
             .sheet(isPresented: $showCompose) {
@@ -248,6 +251,7 @@ struct HomeView: View {
                         await loadMyPosts()
                         await loadFeed()
                     }
+                    handlePostMilestone()
                 }
             }
             .alert("Delete Post", isPresented: Binding(
@@ -276,6 +280,14 @@ struct HomeView: View {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text("Thank you for reporting this post.")
+            }
+            .alert("Invite Your Friends!", isPresented: $showInviteFriendsAlert) {
+                Button("Share Your Profile") {
+                    shareMyProfile()
+                }
+                Button("Not Now", role: .cancel) { }
+            } message: {
+                Text("Have your friends install the app and follow each other.\nYou'll be able to see when and what they are studying!")
             }
             .overlay(alignment: .bottom) {
                 if let postsError, !currentPosts.isEmpty {
@@ -786,6 +798,28 @@ struct HomeView: View {
             if !error.isCancellation {
                 postsError = error.localizedDescription
             }
+        }
+    }
+
+    private func handlePostMilestone() {
+        PostCountStore.handlePostCompleted(
+            onInviteFriends: {
+                showInviteFriendsAlert = true
+            }
+        )
+    }
+
+    private func shareMyProfile() {
+        guard let userId = appState.currentUser?.id ?? ProfileCache.load()?.id,
+              let url = URL(string: "https://junjun.oyajun.com/u/\(String(userId.prefix(10)))") else { return }
+        let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        if let windowScene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+           let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController {
+            var topVC = rootVC
+            while let presented = topVC.presentedViewController {
+                topVC = presented
+            }
+            topVC.present(activityVC, animated: true)
         }
     }
 

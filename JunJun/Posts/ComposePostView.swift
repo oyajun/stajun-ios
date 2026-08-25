@@ -131,7 +131,6 @@ struct ComposePostView: View {
         do {
             let post = try await APIClient.createPost(minutes: totalMinutes, comment: comment)
             onPosted?(post)
-            PostCountStore.requestReviewIfEligible()
             dismiss()
         } catch {
             if !error.isCancellation {
