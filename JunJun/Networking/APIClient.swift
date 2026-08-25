@@ -105,6 +105,17 @@ enum APIClient {
         return e
     }()
 
+    private static let userAgent: String = {
+        let appName = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "JunJun"
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        let os = ProcessInfo.processInfo.operatingSystemVersion
+        let osVersion = os.patchVersion == 0
+            ? "\(os.majorVersion).\(os.minorVersion)"
+            : "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
+        return "\(appName)/\(version) (\(build); iOS \(osVersion))"
+    }()
+
     // MARK: Low-level
 
     private static func buildRequest(
@@ -118,6 +129,7 @@ enum APIClient {
         // Fail reasonably fast instead of hanging on the default 60s timeout.
         req.timeoutInterval = 20
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(userAgent, forHTTPHeaderField: "User-Agent")
 
         // Set Origin header for better-auth CSRF protection (remove trailing slash)
         var origin = Config.baseURL.absoluteString
