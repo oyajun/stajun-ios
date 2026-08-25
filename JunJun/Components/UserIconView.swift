@@ -48,7 +48,7 @@ extension Color {
         let minVal = min(r, g, b)
         let delta = maxVal - minVal
 
-        var h: Double = 0
+        var h: Double = 0.08
         if delta > 0 {
             if maxVal == r {
                 h = (g - b) / delta + (g < b ? 6 : 0)
@@ -60,13 +60,9 @@ extension Color {
             h /= 6.0
         }
 
-        let sat = maxVal == 0 ? 0.0 : (delta / maxVal)
-        let bri = maxVal
-
-        // Smoothly balance saturation: lift pale colors (~0.52-0.58) without oversaturating deep colors (~0.65-0.70)
-        let glowSat = min(0.50 + sat * 0.28, 0.72)
-        // Ensure glowing luminance remains bright and light (not dark or muddy)
-        let glowBri = max(bri, 0.94)
+        // Use balanced saturation and brightness for clear but soft visibility
+        let glowSat: Double = 0.75
+        let glowBri: Double = 1.0
 
         // Offsets around the base hue to form a seamless rotating loop
         let offsets: [Double] = [-0.07, -0.035, 0.0, 0.035, 0.07, 0.035, 0.0, -0.035, -0.07]
@@ -74,12 +70,7 @@ extension Color {
         return offsets.map { offset in
             var newHue = (h + offset).truncatingRemainder(dividingBy: 1.0)
             if newHue < 0 { newHue += 1.0 }
-            if sat < 0.08 {
-                let briVar = min(max(bri + offset * 1.5, 0.4), 1.0)
-                return Color(hue: h, saturation: 0, brightness: briVar)
-            } else {
-                return Color(hue: newHue, saturation: glowSat, brightness: glowBri)
-            }
+            return Color(hue: newHue, saturation: glowSat, brightness: glowBri)
         }
     }
 }
@@ -137,7 +128,7 @@ struct UserIconView: View {
     var body: some View {
         ZStack {
             if isStudying {
-                // Soft spinning glow using a balanced gradient of neighboring colors around the icon's color
+                // Soft spinning glow around the icon
                 Circle()
                     .strokeBorder(
                         AngularGradient(
@@ -146,12 +137,12 @@ struct UserIconView: View {
                             startAngle: .degrees(rotation),
                             endAngle: .degrees(rotation + 360)
                         ),
-                        lineWidth: size * 0.20
+                        lineWidth: size * 0.22
                     )
-                    .frame(width: size * 1.30, height: size * 1.30)
+                    .frame(width: size * 1.32, height: size * 1.32)
                     .drawingGroup() // Offload rendering pass to Metal (GPU)
-                    .blur(radius: size * 0.15)
-                    .opacity(0.72)
+                    .blur(radius: size * 0.11)
+                    .opacity(0.80)
             }
 
             Circle()
