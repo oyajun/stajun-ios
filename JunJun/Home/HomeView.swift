@@ -23,6 +23,8 @@ struct HomeView: View {
 
     // Timeline posts (Following & Mine completely separated)
     private let pageSize = 20
+    private let firstAdIndex = 1
+    private let adInterval = 7
     @State private var followingPosts: [Post] = []
     @State private var followingNextCursor: String?
     @State private var isLoadingFollowingPosts = false
@@ -152,25 +154,9 @@ struct HomeView: View {
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                             .listRowInsets(EdgeInsets())
-                        
-                        if Config.isAffiliateAdVisible && index == 1 {
-                            // 最初の広告: 楽天アフィリエイトバナー
-                            VStack(spacing: 0) {
-                                AffiliateBannerCard(cacheKey: "timeline-first")
-                                Divider()
-                            }
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                        } else if Config.isAffiliateAdVisible && index > 1 && (index - 1) % 6 == 0 {
-                            // 以降の広告: 6投稿ごとに楽天アフィリエイトバナー
-                            VStack(spacing: 0) {
-                                AffiliateBannerCard(cacheKey: "timeline-\(index)")
-                                Divider()
-                            }
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+
+                        if Config.showAds && index >= firstAdIndex && (index - firstAdIndex) % adInterval == 0 {
+                            timelineAdRow(for: index)
                         }
                     }
                 }
@@ -362,6 +348,13 @@ struct HomeView: View {
                 .buttonStyle(.glassProminent)
                 .tint(isStudying ? .red : .accentColor)
                 .disabled(studyActionLoading)
+                .background {
+                    if isStudying {
+                        StudyingButtonGlow(
+                            backgroundColor: appState.currentUser?.iconBackgroundColor ?? "#FFD54F"
+                        )
+                    }
+                }
 
                 if let studyError {
                     Text(studyError)
@@ -521,6 +514,28 @@ struct HomeView: View {
                     }
                 }
         }
+    }
+
+    // MARK: - Timeline Ad Row
+
+    @ViewBuilder
+    private func timelineAdRow(for index: Int) -> some View {
+        let slotIndex = (index - firstAdIndex) / adInterval
+        VStack(spacing: 0) {
+            if Config.isJapanRegion {
+                if slotIndex % 2 == 0 {
+                    AdBannerCard(cacheKey: "timeline-admob-\(index)")
+                } else {
+                    AffiliateBannerCard(cacheKey: "timeline-affiliate-\(index)")
+                }
+            } else {
+                AdBannerCard(cacheKey: "timeline-admob-\(index)")
+            }
+            Divider()
+        }
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
     }
 
     // MARK: - Study Actions
@@ -786,6 +801,56 @@ struct HomeView: View {
         } else {
             return String(format: "%02d:%02d", m, s)
         }
+    }
+}
+
+// MARK: - Studying Button Glow
+
+private struct StudyingButtonGlow: View {
+    var backgroundColor: String = "#FFD54F"
+    var cornerRadius: CGFloat = 16
+    @State private var rotation: Double = 0
+
+    // Rainbow colors (preserved)
+    private static let rainbowColors: [Color] = [
+        .red, .orange, .yellow, .green, .cyan, .blue, .purple, .pink, .red
+    ]
+
+    private var glowColors: [Color] {
+        Color.neighboringColors(from: backgroundColor)
+    }
+
+    var body: some View {
+        let gradient = AngularGradient(
+            colors: glowColors,
+            center: .center,
+            startAngle: .degrees(rotation),
+            endAngle: .degrees(rotation + 360)
+        )
+
+        /*
+        // --- Original Rainbow Gradient (Preserved) ---
+        let rainbowGradient = AngularGradient(
+            colors: Self.rainbowColors,
+            center: .center,
+            startAngle: .degrees(rotation),
+            endAngle: .degrees(rotation + 360)
+        )
+        */
+
+        // Soft, frameless ambient glow behind the button
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(gradient)
+            .padding(-6)
+            .drawingGroup() // Offload rendering pass to Metal (GPU)
+            .blur(radius: 16)
+            .opacity(0.70)
+            .allowsHitTesting(false)
+            .onAppear {
+                withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {
+                    rotation = 360
+                }
+            }
     }
 }
 

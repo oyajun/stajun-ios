@@ -149,7 +149,7 @@ struct AffiliateBannerCard: View {
                         
                         Spacer(minLength: 4)
                         
-                        Text("広告")
+                        Text(LocalizedStringKey("Ad"))
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 6)

@@ -157,9 +157,9 @@ struct AdSmallBannerCard: View {
 }
 
 /// 広告バナーの右横に表示する水色バッジ
-private struct AdBadge: View {
+struct AdBadge: View {
     var body: some View {
-        Text("Ad", comment: "Short label shown on advertisement banners.")
+        Text(LocalizedStringKey("Ad"))
             .font(.caption.weight(.semibold))
             .foregroundStyle(.white)
             .padding(.horizontal, 6)

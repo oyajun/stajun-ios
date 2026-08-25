@@ -14,9 +14,14 @@ enum Config {
     /// Global flag to enable or disable ad displays app-wide
     static let showAds: Bool = true
 
+    /// Whether the user is in Japan region
+    static var isJapanRegion: Bool {
+        Locale.current.region?.identifier == "JP"
+    }
+
     /// Whether affiliate ads should be displayed (enabled and in Japan region)
     static var isAffiliateAdVisible: Bool {
-        showAds && Locale.current.region?.identifier == "JP"
+        showAds && isJapanRegion
     }
     
     /// Google AdMob Banner Ad Unit ID (Test ID by default)
