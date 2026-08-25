@@ -1,4 +1,3 @@
-import MarketplaceKit
 import SwiftUI
 import UIKit
 
@@ -11,7 +10,7 @@ struct SettingsView: View {
     @State private var showDeleteAccount = false
     @State private var showChangeEmail = false
     @State private var hasCopiedVersion = false
-    @State private var installedStore: String = "-"
+    @State private var installedStore: String? = StoreDetector.defaultStoreName
 
     private var currentUser: UserProfile? { appState.currentUser }
     private var appVersionString: String? {
@@ -245,11 +244,13 @@ struct SettingsView: View {
                         }
                     }
 
-                    HStack {
-                        Text("Store")
-                        Spacer()
-                        Text(verbatim: installedStore)
-                            .foregroundStyle(.secondary)
+                    if let installedStore {
+                        HStack {
+                            Text("Store")
+                            Spacer()
+                            Text(verbatim: installedStore)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
 
@@ -297,37 +298,15 @@ struct SettingsView: View {
                 Text("Are you sure you want to sign out?")
             }
             .task {
-                await loadStoreInfo()
+                if StoreDetector.isSupported {
+                    if let store = await StoreDetector.fetchStoreName() {
+                        installedStore = store
+                    }
+                }
                 if let profile = try? await APIClient.getMyProfile() {
                     appState.updateCurrentUser(profile)
                 }
             }
-        }
-    }
-
-    private func loadStoreInfo() async {
-        do {
-            let distributor = try await AppDistributor.current
-            switch distributor {
-            case .appStore:
-                installedStore = "App Store"
-            case .testFlight:
-                installedStore = "TestFlight"
-            case .marketplace(let name):
-                installedStore = name.isEmpty ? "Alternative Marketplace" : name
-            case .web:
-                installedStore = "Web"
-            case .other:
-                installedStore = "Other"
-            @unknown default:
-                installedStore = "Unknown"
-            }
-        } catch {
-            #if targetEnvironment(simulator)
-            installedStore = "Simulator"
-            #else
-            installedStore = "Unknown"
-            #endif
         }
     }
 
@@ -336,8 +315,6 @@ struct SettingsView: View {
         await appState.signOut()
     }
 }
-
-extension AppDistributor: @retroactive @unchecked Sendable {}
 
 #Preview {
     SettingsView()
