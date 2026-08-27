@@ -289,7 +289,12 @@ struct UserProfileView: View {
 
     @ViewBuilder
     private func postRow(_ post: Post) -> some View {
-        let base = PostRow(post: post)
+        let base = PostRow(
+            post: post,
+            onToggleLike: { isLiked, count in
+                updatePostLike(id: post.id, isLiked: isLiked, likeCount: count)
+            }
+        )
             .onAppear {
                 if post.id == posts.last?.id { loadMorePosts() }
             }
@@ -392,10 +397,19 @@ struct UserProfileView: View {
         do {
             try await APIClient.deletePost(id: post.id)
             posts.removeAll { $0.id == post.id }
+            PostsCache.save(posts, scopeKey: "user_\(userId)")
         } catch {
             if !error.isCancellation {
                 errorMessage = error.localizedDescription
             }
+        }
+    }
+
+    private func updatePostLike(id: String, isLiked: Bool, likeCount: Int) {
+        if let idx = posts.firstIndex(where: { $0.id == id }) {
+            posts[idx].isLiked = isLiked
+            posts[idx].likeCount = likeCount
+            PostsCache.save(posts, scopeKey: "user_\(userId)")
         }
     }
 

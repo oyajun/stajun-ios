@@ -109,13 +109,57 @@ struct StudyPost: Codable, Identifiable {
 }
 
 /// A timeline post, including its author summary. Used by GET /api/v1/posts.
-struct Post: Codable, Identifiable {
+struct Post: Codable, Identifiable, Equatable {
     let id: String
     let userId: String
     let minutes: Int
     let comment: String?
     let createdAt: Date
     let user: UserProfile
+    var likeCount: Int
+    var isLiked: Bool
+
+    init(
+        id: String,
+        userId: String,
+        minutes: Int,
+        comment: String?,
+        createdAt: Date,
+        user: UserProfile,
+        likeCount: Int = 0,
+        isLiked: Bool = false
+    ) {
+        self.id = id
+        self.userId = userId
+        self.minutes = minutes
+        self.comment = comment
+        self.createdAt = createdAt
+        self.user = user
+        self.likeCount = likeCount
+        self.isLiked = isLiked
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, userId, minutes, comment, createdAt, user, likeCount, isLiked
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        userId = try container.decode(String.self, forKey: .userId)
+        minutes = try container.decode(Int.self, forKey: .minutes)
+        comment = try container.decodeIfPresent(String.self, forKey: .comment)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        user = try container.decode(UserProfile.self, forKey: .user)
+        likeCount = try container.decodeIfPresent(Int.self, forKey: .likeCount) ?? 0
+        isLiked = try container.decodeIfPresent(Bool.self, forKey: .isLiked) ?? false
+    }
+}
+
+/// Response of POST/DELETE /api/v1/posts/:id/like
+struct LikePostResponse: Codable {
+    let likeCount: Int
+    let isLiked: Bool
 }
 
 /// Cursor-paginated list of posts

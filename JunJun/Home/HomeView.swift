@@ -496,7 +496,13 @@ struct HomeView: View {
 
     @ViewBuilder
     private func timelinePostRow(_ post: Post) -> some View {
-        let base = PostRow(post: post, onTapAuthor: { path.append(post.userId) })
+        let base = PostRow(
+            post: post,
+            onTapAuthor: { path.append(post.userId) },
+            onToggleLike: { isLiked, count in
+                updatePostLike(id: post.id, isLiked: isLiked, likeCount: count)
+            }
+        )
             .onAppear {
                 if post.id == currentPosts.last?.id { loadMoreCurrentPosts() }
             }
@@ -798,6 +804,19 @@ struct HomeView: View {
             if !error.isCancellation {
                 postsError = error.localizedDescription
             }
+        }
+    }
+
+    private func updatePostLike(id: String, isLiked: Bool, likeCount: Int) {
+        if let idx = followingPosts.firstIndex(where: { $0.id == id }) {
+            followingPosts[idx].isLiked = isLiked
+            followingPosts[idx].likeCount = likeCount
+            PostsCache.save(followingPosts, scopeKey: "following")
+        }
+        if let idx = myPosts.firstIndex(where: { $0.id == id }) {
+            myPosts[idx].isLiked = isLiked
+            myPosts[idx].likeCount = likeCount
+            PostsCache.save(myPosts, scopeKey: "mine")
         }
     }
 
