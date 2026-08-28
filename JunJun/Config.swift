@@ -133,6 +133,11 @@ enum Config {
     static var appleRefundURL: URL {
         URL(string: "https://reportaproblem.apple.com/")!
     }
+
+    /// Specified Commercial Transactions Act (Commercial Disclosure) URL
+    static var tokushohoURL: URL {
+        documentURL(for: "tokushoho")
+    }
 }
 
 struct AffiliateItem: Identifiable, Sendable {

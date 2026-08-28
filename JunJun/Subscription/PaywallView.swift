@@ -313,16 +313,22 @@ struct PaywallView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 8)
 
-                        HStack(spacing: 16) {
-                            Link("Terms of Service", destination: Config.termsOfServiceURL)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.primary)
+                        VStack(spacing: 8) {
+                            HStack(spacing: 16) {
+                                Link("Terms of Service", destination: Config.termsOfServiceURL)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.primary)
 
-                            Text("•")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                Text("•")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
 
-                            Link("Privacy Policy", destination: Config.privacyPolicyURL)
+                                Link("Privacy Policy", destination: Config.privacyPolicyURL)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                            }
+
+                            Link("Specified Commercial Transactions Act", destination: Config.tokushohoURL)
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.primary)
                         }

@@ -329,6 +329,17 @@ struct SettingsView: View {
                         }
                     }
                     .foregroundStyle(.blue)
+
+                    Link(destination: Config.tokushohoURL) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "globe")
+                            Text("Specified Commercial Transactions Act (Out of App)")
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .foregroundStyle(.blue)
                 }
                 
                 // Developer

@@ -758,6 +758,23 @@
         }
       }
     },
+    "Commercial Disclosure" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "特定商取引法"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "특정상거래법"
+          }
+        }
+      }
+    },
     "Completely remove all banner and promotional ads across the entire app." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3284,6 +3301,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "부드러운 색"
+          }
+        }
+      }
+    },
+    "Specified Commercial Transactions Act" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "特定商取引法に基づく表記"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "특정상거래법에 따른 표기"
+          }
+        }
+      }
+    },
+    "Specified Commercial Transactions Act (Out of App)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "特定商取引法に基づく表記 (アプリ外へ遷移)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "특정상거래법에 따른 표기 (앱 외부로 이동)"
           }
         }
       }
