@@ -282,6 +282,10 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                } footer: {
+                    if isPro {
+                        Text("Uninstalling the app or deleting your account does not cancel your subscription! If you no longer use the app, please cancel your subscription beforehand.")
+                    }
                 }
 
                 // About

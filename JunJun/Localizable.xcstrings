@@ -1041,6 +1041,38 @@
         }
       }
     },
+    "Delete Account" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントを削除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "계정 탈퇴"
+          }
+        }
+      }
+    },
+    "For JunJun Pro Subscribers" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JunJun Proを契約中の方へ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JunJun Pro를 구독 중이신 분께"
+          }
+        }
+      }
+    },
     "Delete Account…" : {
       "localizations" : {
         "ja" : {
@@ -2944,6 +2976,22 @@
         }
       }
     },
+    "Registration Complete" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登録完了"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "등록 완료"
+          }
+        }
+      }
+    },
     "Report" : {
       "localizations" : {
         "ja" : {
@@ -3515,9 +3563,6 @@
         }
       }
     },
-    "Success" : {
-
-    },
     "Support" : {
       "localizations" : {
         "ja" : {
@@ -3946,6 +3991,22 @@
         }
       }
     },
+    "Uninstalling the app or deleting your account does not cancel your subscription! If you no longer use the app, please cancel your subscription beforehand." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリをアンインストールしたりアカウントを削除しただけでは解約されません！もし使わなくなった場合は、事前にJunJun Proの解約手続きを行ってください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앱을 삭제하거나 계정을 탈퇴하는 것만으로는 구독이 해지되지 않습니다! 더 이상 이용하지 않으실 경우, 사전에 JunJun Pro 구독을 해지해 주세요."
+          }
+        }
+      }
+    },
     "Unlike" : {
       "localizations" : {
         "ja" : {
@@ -4195,6 +4256,7 @@
       }
     },
     "Welcome to JunJun Pro!" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -4206,6 +4268,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "JunJun Pro에 오신 것을 환영합니다!"
+          }
+        }
+      }
+    },
+    "Welcome to JunJun Pro.\n\nNote: Uninstalling the app or deleting your account does not cancel your subscription! If you no longer use the app, please cancel your subscription beforehand." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JunJun Pro へようこそ！\n\n【重要】\nアプリをアンインストールしたりアカウントを削除しただけでは解約されません！もし使わなくなった場合は、事前にJunJun Proの解約手続きを行ってください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JunJun Pro에 오신 것을 환영합니다!\n\n【중요】\n앱을 삭제하거나 계정을 탈퇴하는 것만으로는 구독이 해지되지 않습니다! 더 이상 이용하지 않으실 경우, 사전에 JunJun Pro 구독을 해지해 주세요."
           }
         }
       }

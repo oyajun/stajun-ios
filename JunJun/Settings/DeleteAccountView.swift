@@ -69,7 +69,7 @@ struct DeleteAccountView: View {
     // MARK: - Sections
 
     private var confirmView: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: 24) {
             VStack(spacing: 16) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 64))
@@ -80,6 +80,8 @@ struct DeleteAccountView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
+
+            proNoticeCard
 
             if let errorMessage {
                 Text(errorMessage)
@@ -128,7 +130,7 @@ struct DeleteAccountView: View {
     }
 
     private var anonymousDeleteView: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: 24) {
             VStack(spacing: 16) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 64))
@@ -139,6 +141,8 @@ struct DeleteAccountView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
+
+            proNoticeCard
 
             if let errorMessage {
                 Text(errorMessage)
@@ -182,6 +186,29 @@ struct DeleteAccountView: View {
                 .disabled(isLoading)
             }
         }
+    }
+
+    private var proNoticeCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .font(.subheadline)
+                Text("For JunJun Pro Subscribers")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.primary)
+            }
+
+            Text("Uninstalling the app or deleting your account does not cancel your subscription! If you no longer use the app, please cancel your subscription beforehand.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.horizontal)
     }
 
     // MARK: - Actions

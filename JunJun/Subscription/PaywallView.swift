@@ -313,6 +313,12 @@ struct PaywallView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 8)
 
+                        Text("Uninstalling the app or deleting your account does not cancel your subscription! If you no longer use the app, please cancel your subscription beforehand.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 8)
+
                         VStack(spacing: 8) {
                             HStack(spacing: 16) {
                                 Link("Terms of Service", destination: Config.termsOfServiceURL)
@@ -354,12 +360,12 @@ struct PaywallView: View {
             } message: {
                 Text(errorMessage)
             }
-            .alert("Success", isPresented: $showSuccessAlert) {
+            .alert("Registration Complete", isPresented: $showSuccessAlert) {
                 Button("OK") {
                     dismiss()
                 }
             } message: {
-                Text("Welcome to JunJun Pro!")
+                Text("Welcome to JunJun Pro.\n\nNote: Uninstalling the app or deleting your account does not cancel your subscription! If you no longer use the app, please cancel your subscription beforehand.")
             }
             .manageSubscriptionsSheet(isPresented: $showManageSubscriptionsSheet)
             .task {
