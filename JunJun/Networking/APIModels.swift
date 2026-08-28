@@ -79,6 +79,15 @@ struct HomeFeedResponse: Codable {
     let users: [UserWithStudyStatus]
 }
 
+// MARK: - Polling
+
+struct PollingResponse: Codable {
+    let unreadCount: Int
+    let unreadNotificationCount: Int?
+    let users: [UserWithStudyStatus]
+    let studySession: MyStudyStatus
+}
+
 // MARK: - Following
 
 struct FollowActionResponse: Codable {

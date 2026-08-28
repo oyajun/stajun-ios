@@ -174,8 +174,7 @@ struct HomeView: View {
             .listStyle(.plain)
             .animation(.easeInOut, value: network.isOnline)
             .refreshable {
-                await refreshStudyState()
-                await loadFeed()
+                await pollHome()
                 await loadFollowingPosts()
                 await loadMyPosts()
             }
@@ -202,8 +201,7 @@ struct HomeView: View {
                         hasLoadedMyPosts = true
                     }
                 }
-                await refreshStudyState()
-                await loadFeed()
+                await pollHome()
                 await loadFollowingPosts()
                 await loadMyPosts()
                 await startPolling()
@@ -213,14 +211,13 @@ struct HomeView: View {
             }
             .onChange(of: network.isOnline) { _, online in
                 if online {
-                    Task { await refreshStudyState() }
+                    Task { await pollHome() }
                 }
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
                     Task {
-                        await refreshStudyState()
-                        await loadFeed()
+                        await pollHome()
                     }
                 }
             }
@@ -558,29 +555,8 @@ struct HomeView: View {
 
     // MARK: - Study Actions
 
-    /// Reconcile the study state against the server. The server flag is the shared
-    /// "studying" signal across devices; the device's local timer is what we measure
-    /// with (seeded from the server for sessions started on another device).
-    private func refreshStudyState() async {
-        guard !isRefreshingStudyState else { return }
-        isRefreshingStudyState = true
-        defer { isRefreshingStudyState = false }
-
-        // Offline (or server unreachable): trust the local session; it keeps ticking.
-        guard network.isOnline else {
-            applyLocalSession()
-            return
-        }
-
-        let status: MyStudyStatus
-        do {
-            status = try await APIClient.getMyStudyStatus()
-        } catch {
-            // Couldn't reach the server: fall back to the local session.
-            applyLocalSession()
-            return
-        }
-
+    /// Reconcile study status received from server against local state.
+    private func applyStudyStatus(_ status: MyStudyStatus) async {
         if let local = LocalStudyStore.localStartedAt {
             // Studying locally: the local timer stays the measured one either way.
             isStudying = true
@@ -612,6 +588,32 @@ struct HomeView: View {
             isStudying = false
             studyStartedAt = nil
         }
+    }
+
+    /// Reconcile the study state against the server. The server flag is the shared
+    /// "studying" signal across devices; the device's local timer is what we measure
+    /// with (seeded from the server for sessions started on another device).
+    private func refreshStudyState() async {
+        guard !isRefreshingStudyState else { return }
+        isRefreshingStudyState = true
+        defer { isRefreshingStudyState = false }
+
+        // Offline (or server unreachable): trust the local session; it keeps ticking.
+        guard network.isOnline else {
+            applyLocalSession()
+            return
+        }
+
+        let status: MyStudyStatus
+        do {
+            status = try await APIClient.getMyStudyStatus()
+        } catch {
+            // Couldn't reach the server: fall back to the local session.
+            applyLocalSession()
+            return
+        }
+
+        await applyStudyStatus(status)
     }
 
     private func applyLocalSession() {
@@ -646,12 +648,41 @@ struct HomeView: View {
         }
     }
 
+    /// Unified polling: fetch following users, own study status, and unread notification count in 1 request.
+    private func pollHome() async {
+        guard !isLoadingFeed else { return }
+        isLoadingFeed = true
+        defer {
+            isLoadingFeed = false
+            hasLoadedFeed = true
+        }
+
+        guard network.isOnline else {
+            applyLocalSession()
+            return
+        }
+
+        do {
+            feedError = nil
+            let poll = try await APIClient.poll()
+            feedUsers = poll.users
+            FeedCache.save(poll.users)
+            await applyStudyStatus(poll.studySession)
+            appState.unreadNotificationCount = poll.unreadCount
+        } catch APIError.networkError {
+            feedError = nil
+            applyLocalSession()
+        } catch {
+            if !error.isCancellation {
+                feedError = error.localizedDescription
+            }
+        }
+    }
+
     private func startPolling() async {
         while !Task.isCancelled {
             try? await Task.sleep(for: .seconds(Config.feedPollingInterval))
-            await refreshStudyState()
-            await loadFeed()
-            await appState.fetchUnreadNotificationCount()
+            await pollHome()
         }
     }
 

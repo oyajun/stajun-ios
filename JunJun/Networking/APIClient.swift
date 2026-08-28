@@ -370,6 +370,13 @@ enum APIClient {
         try await getFollowing(userId: "me")
     }
 
+    // MARK: - Polling
+
+    /// Poll combined status (unread notifications count, following users with study status, and own study session)
+    static func poll() async throws -> PollingResponse {
+        try await perform(path: "/api/v1/polling", method: "GET", as: PollingResponse.self)
+    }
+
     // MARK: - Posts (Study Time Posts)
 
     /// Create a study-time post. Study time is entered manually (minutes),
