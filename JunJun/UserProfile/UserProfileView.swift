@@ -199,7 +199,7 @@ struct UserProfileView: View {
     private func profileHeader(_ user: UserWithStudyStatus) -> some View {
         let isUserPro = !isBlocked && ((isOwnProfile && appState.isPro) || (user.isPro ?? false))
 
-        return VStack(spacing: 12) {
+        VStack(spacing: 12) {
             UserIconView(
                 emoji: user.iconEmoji,
                 backgroundColor: user.iconBackgroundColor,

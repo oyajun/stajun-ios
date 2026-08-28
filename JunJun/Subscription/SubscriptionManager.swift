@@ -75,22 +75,11 @@ final class SubscriptionManager: NSObject, PurchasesDelegate {
         isAlternativeMarketplace = false
         return
         #else
-        // If running in Sandbox, TestFlight, or Simulator, never treat as alternative marketplace
-        if let receiptURL = Bundle.main.appStoreReceiptURL {
-            let path = receiptURL.path.lowercased()
-            if path.contains("sandbox") || path.contains("coresimulator") {
-                isAlternativeMarketplace = false
-                return
-            }
-        }
-
         do {
             let result = try await AppTransaction.shared
             switch result {
             case .verified(let transaction):
-                if transaction.environment == .sandbox || transaction.environment == .xcode {
-                    isAlternativeMarketplace = false
-                } else if transaction.environment == .production {
+                if transaction.environment == .sandbox || transaction.environment == .xcode || transaction.environment == .production {
                     isAlternativeMarketplace = false
                 }
             case .unverified:
