@@ -7,6 +7,8 @@ struct JunJunApp: App {
     @State private var appState = AppState()
 
     init() {
+        SubscriptionManager.shared.initialize()
+
         if Config.showAds {
             GADMobileAds.sharedInstance().requestConfiguration.testDeviceIdentifiers = [
                 "abebb238e58136dd84e55df6f9fddec9"

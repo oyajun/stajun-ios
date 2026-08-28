@@ -46,7 +46,8 @@ struct MainTabView: View {
         .overlay {
             if appState.isStudying {
                 StudyingBorderOverlay(
-                    backgroundColor: appState.currentUser?.iconBackgroundColor ?? "#FFD54F"
+                    backgroundColor: appState.currentUser?.iconBackgroundColor ?? "#FFD54F",
+                    isPro: appState.isPro
                 )
             }
         }
@@ -57,16 +58,15 @@ struct MainTabView: View {
 
 private struct StudyingBorderOverlay: View {
     var backgroundColor: String = "#FFD54F"
+    var isPro: Bool = false
     @State private var rotation: Double = 0
     @State private var cornerRadius: CGFloat = 44
 
-    // Rainbow colors (preserved)
-    private static let rainbowColors: [Color] = [
-        .red, .orange, .yellow, .green, .cyan, .blue, .purple, .pink, .red
-    ]
-
     private var glowColors: [Color] {
-        Color.neighboringColors(from: backgroundColor)
+        if isPro {
+            return IconPresets.rainbowColors
+        }
+        return Color.neighboringColors(from: backgroundColor)
     }
 
     var body: some View {

@@ -34,7 +34,9 @@ struct BlockedUsersView: View {
                             UserIconView(
                                 emoji: user.iconEmoji,
                                 backgroundColor: user.iconBackgroundColor,
-                                size: 44
+                                size: 44,
+                                isStudying: false,
+                                isPro: false
                             )
                             Text(user.name)
                                 .font(.body)

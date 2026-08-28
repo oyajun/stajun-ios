@@ -68,7 +68,8 @@ struct PostRow: View {
                     UserIconView(
                         emoji: post.user.iconEmoji,
                         backgroundColor: post.user.iconBackgroundColor,
-                        size: iconSize
+                        size: iconSize,
+                        isPro: post.user.isPro ?? false
                     )
                 }
 

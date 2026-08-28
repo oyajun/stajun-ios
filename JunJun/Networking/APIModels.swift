@@ -30,14 +30,16 @@ struct UserProfile: Codable, Identifiable, Equatable {
     let iconBackgroundColor: String
     let isAnonymous: Bool?
     let email: String?
+    let isPro: Bool?
 
-    init(id: String, name: String, iconEmoji: String, iconBackgroundColor: String, isAnonymous: Bool? = nil, email: String? = nil) {
+    init(id: String, name: String, iconEmoji: String, iconBackgroundColor: String, isAnonymous: Bool? = nil, email: String? = nil, isPro: Bool? = nil) {
         self.id = id
         self.name = name
         self.iconEmoji = iconEmoji
         self.iconBackgroundColor = iconBackgroundColor
         self.isAnonymous = isAnonymous
         self.email = email
+        self.isPro = isPro
     }
 }
 
@@ -51,6 +53,7 @@ struct UserWithFollowStatus: Codable, Identifiable {
     var isMuted: Bool?
     let isStudying: Bool?
     let studyingSince: Date?
+    let isPro: Bool?
 }
 
 
@@ -64,6 +67,20 @@ struct UserWithStudyStatus: Codable, Identifiable {
     var isMuted: Bool?
     let isStudying: Bool
     let studyingSince: Date?
+    let isPro: Bool?
+}
+
+// MARK: - Pro Subscription
+
+struct SyncProStatusRequest: Encodable {
+    let isPro: Bool
+    let proExpiresAt: String?
+}
+
+struct SyncProStatusResponse: Codable {
+    let id: String
+    let isPro: Bool
+    let proExpiresAt: String?
 }
 
 // MARK: - Study Session

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		BF6531923007AA2A00699A40 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = BF6531913007AA2A00699A40 /* GoogleMobileAds */; };
+		BF6531943007AA2A00699A40 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = BF6531933007AA2A00699A40 /* RevenueCat */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +29,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BF6531923007AA2A00699A40 /* GoogleMobileAds in Frameworks */,
+				BF6531943007AA2A00699A40 /* RevenueCat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +73,7 @@
 			name = JunJun;
 			packageProductDependencies = (
 				BF6531913007AA2A00699A40 /* GoogleMobileAds */,
+				BF6531933007AA2A00699A40 /* RevenueCat */,
 			);
 			productName = StaJun;
 			productReference = BF6531733007AA2900699A40 /* JunJun.app */;
@@ -102,6 +105,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				BF6531903007AA2A00699A40 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+				BF6531953007AA2A00699A40 /* XCRemoteSwiftPackageReference "purchases-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BF6531743007AA2900699A40 /* Products */;
@@ -394,6 +398,14 @@
 				minimumVersion = 11.0.0;
 			};
 		};
+		BF6531953007AA2A00699A40 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -401,6 +413,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = BF6531903007AA2A00699A40 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
 			productName = GoogleMobileAds;
+		};
+		BF6531933007AA2A00699A40 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BF6531953007AA2A00699A40 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCat;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

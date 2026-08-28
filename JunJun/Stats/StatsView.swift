@@ -2,6 +2,7 @@ import SwiftUI
 import Charts
 
 struct StatsView: View {
+    @Environment(AppState.self) private var appState
     @State private var model = StatsModel()
 
     var body: some View {
@@ -41,7 +42,9 @@ struct StatsView: View {
                 summarySection
                 heatmapSection
                 chartCard
-                AdSmallBannerCard()
+                if Config.showAds && !appState.isPro {
+                    AdSmallBannerCard()
+                }
             }
             .padding()
         }

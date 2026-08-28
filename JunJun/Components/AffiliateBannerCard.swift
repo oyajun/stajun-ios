@@ -119,6 +119,7 @@ struct AffiliateBannerCard: View {
     let items: [AffiliateItem]
     private let item: AffiliateItem?
     @Environment(\.openURL) private var openURL
+    @Environment(AppState.self) private var appState
 
     init(cacheKey: String? = nil, items: [AffiliateItem] = Config.affiliateItems) {
         self.cacheKey = cacheKey
@@ -131,14 +132,14 @@ struct AffiliateBannerCard: View {
     }
 
     var body: some View {
-        if Config.isAffiliateAdVisible, let item {
+        if Config.isAffiliateAdVisible && !appState.isPro, let item {
             HStack(alignment: .center, spacing: 12) {
                 // キャッシュ付き商品画像
                 CachedAffiliateImage(url: item.imageURL)
 
                 // 商品情報
                 VStack(alignment: .leading, spacing: 6) {
-                    // タイトル + 右上の青い広告バッジ
+                    // タイトル + 右上の×ボタン＆広告バッジ（縦並び）
                     HStack(alignment: .top, spacing: 6) {
                         Text(item.title)
                             .font(.system(size: 14, weight: .bold))
@@ -149,13 +150,17 @@ struct AffiliateBannerCard: View {
                         
                         Spacer(minLength: 4)
                         
-                        Text(LocalizedStringKey("Ad"))
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color(red: 0.0, green: 0.68, blue: 0.85), in: Capsule())
-                            .fixedSize()
+                        VStack(alignment: .trailing, spacing: 4) {
+                            AdCloseButton()
+
+                            Text(LocalizedStringKey("Ad"))
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color(red: 0.0, green: 0.68, blue: 0.85), in: Capsule())
+                                .fixedSize()
+                        }
                     }
 
                     // 値段

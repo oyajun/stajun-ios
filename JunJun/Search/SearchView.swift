@@ -43,6 +43,7 @@ struct SearchView: View {
                                         iconBackgroundColor: user.iconBackgroundColor,
                                         name: user.name,
                                         isStudying: user.isStudying,
+                                        isPro: user.id == appState.currentUser?.id ? appState.isPro : (user.isPro ?? false),
                                         isFollowing: user.isFollowing ?? false,
                                         onFollowToggle: { toggleFollowRecommended(user: user) }
                                     )
@@ -75,6 +76,7 @@ struct SearchView: View {
                                         iconBackgroundColor: user.iconBackgroundColor,
                                         name: user.name,
                                         isStudying: user.isStudying ?? false,
+                                        isPro: user.id == appState.currentUser?.id ? appState.isPro : (user.isPro ?? false),
                                         isFollowing: user.isFollowing,
                                         onFollowToggle: { toggleFollow(user: user) }
                                     )

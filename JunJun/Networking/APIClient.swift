@@ -520,5 +520,26 @@ enum APIClient {
         let res = try await perform(path: "/api/v1/notifications/unread-count", method: "GET", as: UnreadNotificationCountResponse.self)
         return res.unreadCount
     }
+
+    // MARK: - Subscriptions (JunJun Pro)
+
+    /// Sync Pro status with server
+    static func syncProStatus(isPro: Bool, proExpiresAt: Date? = nil) async throws -> SyncProStatusResponse {
+        let expiresAtString: String?
+        if let proExpiresAt {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            expiresAtString = formatter.string(from: proExpiresAt)
+        } else {
+            expiresAtString = nil
+        }
+        let body = SyncProStatusRequest(isPro: isPro, proExpiresAt: expiresAtString)
+        return try await perform(path: "/api/v1/users/me/pro-status", method: "POST", body: body, as: SyncProStatusResponse.self)
+    }
+
+    /// Fetch Pro status from server
+    static func getProStatus() async throws -> SyncProStatusResponse {
+        try await perform(path: "/api/v1/users/me/pro-status", method: "GET", as: SyncProStatusResponse.self)
+    }
 }
 

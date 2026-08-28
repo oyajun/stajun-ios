@@ -15,7 +15,19 @@ enum AuthState: Equatable {
 @Observable
 final class AppState {
     var authState: AuthState = .checking
-    var currentUser: UserProfile?
+    var currentUser: UserProfile? {
+        didSet {
+            if let user = currentUser {
+                if user.isPro == true {
+                    self.isPro = true
+                }
+                Task { await SubscriptionManager.shared.identifyUser(id: user.id) }
+            }
+        }
+    }
+
+    /// Whether the current user is a Pro subscriber
+    var isPro: Bool = false
 
     /// Whether the user is currently studying — initialised from LocalStudyStore so
     /// the border overlay is correct immediately on launch before HomeView appears.
@@ -55,7 +67,16 @@ final class AppState {
         self.userEmail = KeychainHelper.email
         checkExpiration()
         setupNotificationObservers()
+        setupSubscriptionObserver()
         Task { await checkExistingSession() }
+    }
+
+    private func setupSubscriptionObserver() {
+        SubscriptionManager.shared.onProStatusChanged = { [weak self] isPro in
+            Task { @MainActor in
+                self?.isPro = isPro || (self?.currentUser?.isPro == true)
+            }
+        }
     }
 
     private func setupNotificationObservers() {
@@ -246,6 +267,7 @@ final class AppState {
         currentUser = nil
         isStudying = false
         authState = .unauthenticated
+        await SubscriptionManager.shared.resetUser()
     }
 
     /// Clean up after account deletion
@@ -263,6 +285,7 @@ final class AppState {
         currentUser = nil
         isStudying = false
         authState = .unauthenticated
+        Task { await SubscriptionManager.shared.resetUser() }
     }
 
     // MARK: - Push Notifications

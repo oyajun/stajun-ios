@@ -114,6 +114,7 @@ struct UserIconView: View {
     let backgroundColor: String
     var size: CGFloat = 44
     var isStudying: Bool = false
+    var isPro: Bool = false
 
     @State private var rotation: Double = 0
 
@@ -122,7 +123,10 @@ struct UserIconView: View {
     }
 
     private var glowColors: [Color] {
-        Color.neighboringColors(from: backgroundColor)
+        if isPro {
+            return IconPresets.rainbowColors
+        }
+        return Color.neighboringColors(from: backgroundColor)
     }
 
     var body: some View {

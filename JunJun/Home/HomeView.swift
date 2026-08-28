@@ -157,7 +157,7 @@ struct HomeView: View {
                             .listRowSeparator(.hidden)
                             .listRowInsets(EdgeInsets())
 
-                        if Config.showAds && index >= firstAdIndex && (index - firstAdIndex) % adInterval == 0 {
+                        if Config.showAds && !appState.isPro && index >= firstAdIndex && (index - firstAdIndex) % adInterval == 0 {
                             timelineAdRow(for: index)
                         }
                     }
@@ -315,7 +315,8 @@ struct HomeView: View {
                         emoji: appState.currentUser?.iconEmoji ?? "📚",
                         backgroundColor: appState.currentUser?.iconBackgroundColor ?? "#FFD54F",
                         size: 52,
-                        isStudying: isStudying
+                        isStudying: isStudying,
+                        isPro: appState.isPro
                     )
                     Text(appState.currentUser?.name ?? "")
                         .font(.caption)
@@ -358,11 +359,12 @@ struct HomeView: View {
                 .tint(isStudying ? .red : .accentColor)
                 .disabled(studyActionLoading)
                 .background {
-                    if isStudying {
-                        StudyingButtonGlow(
-                            backgroundColor: appState.currentUser?.iconBackgroundColor ?? "#FFD54F"
-                        )
-                    }
+                    StudyingButtonGlow(
+                        backgroundColor: appState.currentUser?.iconBackgroundColor ?? "#FFD54F",
+                        isPro: appState.isPro
+                    )
+                    .opacity(isStudying ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.3), value: isStudying)
                 }
 
                 if let studyError {
@@ -417,7 +419,8 @@ struct HomeView: View {
                                     emoji: user.iconEmoji,
                                     backgroundColor: user.iconBackgroundColor,
                                     size: 52,
-                                    isStudying: user.isStudying
+                                    isStudying: user.isStudying,
+                                    isPro: user.isPro ?? false
                                 )
                                 Text(user.name)
                                     .font(.caption)
@@ -547,6 +550,7 @@ struct HomeView: View {
                 AdBannerCard(cacheKey: "timeline-admob-\(index)")
             }
             Divider()
+                .padding(.horizontal, 16)
         }
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
@@ -892,16 +896,15 @@ struct HomeView: View {
 
 private struct StudyingButtonGlow: View {
     var backgroundColor: String = "#FFD54F"
-    var cornerRadius: CGFloat = 16
+    var isPro: Bool = false
     @State private var rotation: Double = 0
 
-    // Rainbow colors (preserved)
-    private static let rainbowColors: [Color] = [
-        .red, .orange, .yellow, .green, .cyan, .blue, .purple, .pink, .red
-    ]
-
     private var glowColors: [Color] {
-        Color.neighboringColors(from: backgroundColor)
+        if isPro {
+            return IconPresets.rainbowColors
+        } else {
+            return Color.neighboringColors(from: backgroundColor)
+        }
     }
 
     var body: some View {
@@ -912,23 +915,13 @@ private struct StudyingButtonGlow: View {
             endAngle: .degrees(rotation + 360)
         )
 
-        /*
-        // --- Original Rainbow Gradient (Preserved) ---
-        let rainbowGradient = AngularGradient(
-            colors: Self.rainbowColors,
-            center: .center,
-            startAngle: .degrees(rotation),
-            endAngle: .degrees(rotation + 360)
-        )
-        */
-
-        // Soft, frameless ambient glow behind the button
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        // Clean, single ambient glow behind the button matching screen edge glow intensity
+        Capsule(style: .continuous)
             .fill(gradient)
-            .padding(-6)
+            .padding(-8)
             .drawingGroup() // Offload rendering pass to Metal (GPU)
             .blur(radius: 16)
-            .opacity(0.70)
+            .opacity(0.60)
             .allowsHitTesting(false)
             .onAppear {
                 withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {

@@ -157,7 +157,8 @@ struct NotificationsView: View {
                     UserIconView(
                         emoji: actor.iconEmoji,
                         backgroundColor: actor.iconBackgroundColor,
-                        size: 44
+                        size: 44,
+                        isPro: actor.isPro ?? false
                     )
                 } else {
                     Circle()

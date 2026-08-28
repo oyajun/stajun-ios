@@ -25,6 +25,7 @@ struct UserProfileView: View {
 
     @State private var isBlocked: Bool
     @State private var showBlockConfirmation = false
+    @State private var showPaywall = false
 
     init(userId: String, initialIsBlocked: Bool = false) {
         self.userId = userId
@@ -33,6 +34,12 @@ struct UserProfileView: View {
 
     private var isOwnProfile: Bool {
         appState.currentUser?.id == userId
+    }
+
+    private var shareURL: URL? {
+        guard let user else { return nil }
+        let shortId = String(user.id.prefix(10))
+        return URL(string: "https://junjun.oyajun.com/u/\(shortId)")
     }
 
     var body: some View {
@@ -49,74 +56,13 @@ struct UserProfileView: View {
         .navigationTitle(user?.name ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if let user, let shareURL = URL(string: "https://junjun.oyajun.com/u/\(String(user.id.prefix(10)))") {
-                ToolbarItem(placement: .topBarTrailing) {
-                    ShareLink(item: shareURL) {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                }
-            }
-            if !isOwnProfile {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        if isBlocked {
-                            Button("Unblock", role: .destructive) {
-                                Task { await unblock() }
-                            }
-                        } else {
-                            if user?.isFollowing ?? false {
-                                Button {
-                                    Task { await toggleMute() }
-                                } label: {
-                                    Label(
-                                        (user?.isMuted ?? false) ? "Unmute Notifications" : "Mute Notifications",
-                                        systemImage: (user?.isMuted ?? false) ? "bell" : "bell.slash"
-                                    )
-                                }
-                            }
-
-                            Button("Block", role: .destructive) {
-                                showBlockConfirmation = true
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                    }
-                }
-            }
+            profileToolbar
         }
         .navigationDestination(item: $followListTab) { tab in
             FollowListView(userId: userId, userName: user?.name, initialTab: tab)
         }
         .task {
-            if user == nil {
-                if let cached = UserProfileCache.load(userId: userId) {
-                    user = cached
-                    isLoading = false
-                } else if isOwnProfile, let me = appState.currentUser {
-                    user = UserWithStudyStatus(
-                        id: me.id,
-                        name: me.name,
-                        iconEmoji: me.iconEmoji,
-                        iconBackgroundColor: me.iconBackgroundColor,
-                        isFollowing: nil,
-                        isStudying: appState.isStudying,
-                        studyingSince: nil
-                    )
-                    isLoading = false
-                }
-            }
-            if !isBlocked && posts.isEmpty {
-                let cachedPosts = PostsCache.load(scopeKey: "user_\(userId)")
-                if !cachedPosts.isEmpty {
-                    posts = cachedPosts
-                    hasLoadedPosts = true
-                }
-            }
-            await load()
-            if !isBlocked {
-                await loadPosts()
-            }
+            await onAppearTask()
         }
         .alert("Delete Post", isPresented: Binding(
             get: { postToDelete != nil },
@@ -155,6 +101,9 @@ struct UserProfileView: View {
         }
         .alert(LocalizedStringKey(muteAlertTitle), isPresented: $showMuteAlert) {
             Button("OK", role: .cancel) { }
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView()
         }
     }
 
@@ -207,19 +156,71 @@ struct UserProfileView: View {
         }
     }
 
+    @ToolbarContentBuilder
+    private var profileToolbar: some ToolbarContent {
+        if let shareURL {
+            ToolbarItem(placement: .topBarTrailing) {
+                ShareLink(item: shareURL) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+            }
+        }
+        if !isOwnProfile {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    if isBlocked {
+                        Button("Unblock", role: .destructive) {
+                            Task { await unblock() }
+                        }
+                    } else {
+                        if user?.isFollowing ?? false {
+                            Button {
+                                Task { await toggleMute() }
+                            } label: {
+                                Label(
+                                    (user?.isMuted ?? false) ? "Unmute Notifications" : "Mute Notifications",
+                                    systemImage: (user?.isMuted ?? false) ? "bell" : "bell.slash"
+                                )
+                            }
+                        }
+
+                        Button("Block", role: .destructive) {
+                            showBlockConfirmation = true
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                }
+            }
+        }
+    }
+
     @ViewBuilder
     private func profileHeader(_ user: UserWithStudyStatus) -> some View {
-        VStack(spacing: 16) {
+        let isUserPro = !isBlocked && ((isOwnProfile && appState.isPro) || (user.isPro ?? false))
+
+        return VStack(spacing: 12) {
             UserIconView(
                 emoji: user.iconEmoji,
                 backgroundColor: user.iconBackgroundColor,
                 size: 80,
-                isStudying: isBlocked ? false : user.isStudying
+                isStudying: isBlocked ? false : user.isStudying,
+                isPro: isUserPro
             )
 
             VStack(spacing: 6) {
                 Text(user.name)
                     .font(.title2.bold())
+                    .lineLimit(1)
+
+                if isUserPro {
+                    Button {
+                        showPaywall = true
+                    } label: {
+                        ProBadge()
+                    }
+                    .buttonStyle(.plain)
+                }
 
                 if !isBlocked, user.isStudying, let since = user.studyingSince {
                     TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -358,6 +359,38 @@ struct UserProfileView: View {
             if !error.isCancellation {
                 errorMessage = error.localizedDescription
             }
+        }
+    }
+
+    private func onAppearTask() async {
+        if user == nil {
+            if let cached = UserProfileCache.load(userId: userId) {
+                user = cached
+                isLoading = false
+            } else if isOwnProfile, let me = appState.currentUser {
+                user = UserWithStudyStatus(
+                    id: me.id,
+                    name: me.name,
+                    iconEmoji: me.iconEmoji,
+                    iconBackgroundColor: me.iconBackgroundColor,
+                    isFollowing: nil,
+                    isStudying: appState.isStudying,
+                    studyingSince: nil,
+                    isPro: appState.isPro
+                )
+                isLoading = false
+            }
+        }
+        if !isBlocked && posts.isEmpty {
+            let cachedPosts = PostsCache.load(scopeKey: "user_\(userId)")
+            if !cachedPosts.isEmpty {
+                posts = cachedPosts
+                hasLoadedPosts = true
+            }
+        }
+        await load()
+        if !isBlocked {
+            await loadPosts()
         }
     }
 

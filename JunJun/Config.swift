@@ -11,6 +11,16 @@ enum Config {
     /// Home feed polling interval (seconds)
     static let feedPollingInterval: TimeInterval = 60
     
+    // MARK: - RevenueCat / Subscriptions
+    /// RevenueCat Public iOS API Key
+    static let revenueCatAPIKey: String = "appl_xiFBjWtErZPknXMcktQCnDoRyym"
+    /// RevenueCat Entitlement ID for Pro subscription
+    static let proEntitlementID: String = "junjun_pro"
+    /// App Store Product ID for Monthly Pro Subscription
+    static let proProductID: String = "com.oyajun.junjunapp.pro.monthly"
+    /// Default fallback price display
+    static let proMonthlyFallbackPrice: String = "¥300"
+    
     /// Global flag to enable or disable ad displays app-wide
     static let showAds: Bool = true
 
@@ -117,6 +127,11 @@ enum Config {
     
     static var supportURL: URL {
         documentURL(for: "support")
+    }
+
+    /// Official Apple Refund Request URL
+    static var appleRefundURL: URL {
+        URL(string: "https://reportaproblem.apple.com/")!
     }
 }
 

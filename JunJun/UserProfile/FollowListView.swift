@@ -66,6 +66,8 @@ struct FollowListView: View {
                             iconEmoji: user.iconEmoji,
                             iconBackgroundColor: user.iconBackgroundColor,
                             name: user.name,
+                            isStudying: user.isStudying,
+                            isPro: user.id == appState.currentUser?.id ? appState.isPro : (user.isPro ?? false),
                             isFollowing: user.isFollowing ?? false,
                             onFollowToggle: user.id == appState.currentUser?.id
                                 ? nil

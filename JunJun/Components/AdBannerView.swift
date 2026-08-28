@@ -101,17 +101,41 @@ struct AdBannerView: UIViewRepresentable {
     }
 }
 
+/// 広告右上に表示する × ボタン（タップすると JunJun Pro ペイウォールを表示）
+struct AdCloseButton: View {
+    var size: CGFloat = 24
+
+    var body: some View {
+        Button {
+            SubscriptionManager.shared.showPaywall = true
+        } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.secondary)
+                .frame(width: size, height: size)
+                .background(Color(uiColor: .tertiarySystemFill), in: Circle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 /// タイムライン用の大型広告 (300×250 Medium Rectangle)
 /// cacheKey を渡すことでスクロール復帰時の再読み込みを防ぐ
 struct AdBannerCard: View {
     let cacheKey: String
+    @Environment(AppState.self) private var appState
 
     var body: some View {
-        if Config.showAds {
-            HStack(alignment: .bottom, spacing: 0) {
+        if Config.showAds && !appState.isPro {
+            HStack(alignment: .bottom, spacing: 2) {
                 AdBannerView(cacheKey: cacheKey)
                     .frame(width: 300, height: 250)
-                AdBadge()
+                VStack(alignment: .trailing, spacing: 6) {
+                    AdCloseButton()
+                    Spacer()
+                    AdBadge()
+                }
+                .frame(height: 250)
             }
             .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -121,17 +145,23 @@ struct AdBannerCard: View {
 /// タイムライン最初の広告向けの中間バナー (320×100 Large Banner)
 struct AdLargeBannerCard: View {
     let cacheKey: String
+    @Environment(AppState.self) private var appState
 
     var body: some View {
-        if Config.showAds {
-            HStack(alignment: .bottom, spacing: 0) {
+        if Config.showAds && !appState.isPro {
+            HStack(alignment: .bottom, spacing: 2) {
                 AdBannerView(
                     adUnitID: Config.adMobBannerUnitID,
                     adSize: GADAdSizeLargeBanner,
                     cacheKey: cacheKey
                 )
                 .frame(width: 320, height: 100)
-                AdBadge()
+                VStack(alignment: .trailing, spacing: 6) {
+                    AdCloseButton()
+                    Spacer()
+                    AdBadge()
+                }
+                .frame(height: 100)
             }
             .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -140,16 +170,23 @@ struct AdLargeBannerCard: View {
 
 /// Stats 画面など小さいスペース向けの通常バナー (320×50)
 struct AdSmallBannerCard: View {
+    @Environment(AppState.self) private var appState
+
     var body: some View {
-        if Config.showAds {
-            HStack(alignment: .bottom, spacing: 0) {
+        if Config.showAds && !appState.isPro {
+            HStack(alignment: .bottom, spacing: 2) {
                 AdBannerView(
                     adUnitID: Config.adMobBannerUnitID,
                     adSize: GADAdSizeBanner
                 )
                 // SE など幅が狭い端末でバッジが潰れないよう maxWidth で柔軟に
                 .frame(minWidth: 0, idealWidth: 320, maxWidth: 320, minHeight: 50, maxHeight: 50)
-                AdBadge()
+                VStack(alignment: .trailing, spacing: 4) {
+                    AdCloseButton()
+                    Spacer()
+                    AdBadge()
+                }
+                .frame(height: 50)
             }
             .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -165,7 +202,7 @@ struct AdBadge: View {
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(Color(red: 0.0, green: 0.68, blue: 0.85), in: Capsule())
-            .padding(.top, 6)
+            .padding(.bottom, 2)
             .padding(.trailing, 4)
             .fixedSize()          // 潰れ防止: 常に intrinsic サイズを維持
             .layoutPriority(1)    // HStack 内でバナーより優先的にスペースを確保

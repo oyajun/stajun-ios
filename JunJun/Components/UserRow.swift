@@ -7,6 +7,7 @@ struct UserRow: View {
     let iconBackgroundColor: String
     let name: String
     var isStudying: Bool = false
+    var isPro: Bool = false
     let isFollowing: Bool
     let onFollowToggle: (() -> Void)?
 
@@ -16,7 +17,8 @@ struct UserRow: View {
                 emoji: iconEmoji,
                 backgroundColor: iconBackgroundColor,
                 size: 44,
-                isStudying: isStudying
+                isStudying: isStudying,
+                isPro: isPro
             )
 
             Text(name)

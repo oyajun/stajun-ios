@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import StoreKit
 
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
@@ -9,10 +10,16 @@ struct SettingsView: View {
     @State private var showEditProfile = false
     @State private var showDeleteAccount = false
     @State private var showChangeEmail = false
+    @State private var showPaywall = false
+    @State private var showManageSubscriptionsSheet = false
     @State private var hasCopiedVersion = false
     @State private var installedStore: String? = StoreDetector.defaultStoreName
 
     private var currentUser: UserProfile? { appState.currentUser }
+    private var subscriptionManager = SubscriptionManager.shared
+    private var isPro: Bool {
+        appState.isPro || subscriptionManager.isPro || currentUser?.isPro == true
+    }
     private var appVersionString: String? {
         guard let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
               let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String else {
@@ -34,7 +41,8 @@ struct SettingsView: View {
                                 emoji: currentUser?.iconEmoji ?? "",
                                 backgroundColor: currentUser?.iconBackgroundColor ?? "#FFD54F",
                                 size: 80,
-                                isStudying: appState.isStudying
+                                isStudying: appState.isStudying,
+                                isPro: isPro
                             )
                             .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
                             .overlay(alignment: .center) {
@@ -58,6 +66,15 @@ struct SettingsView: View {
                                 .font(.title2.bold())
                                 .foregroundStyle(.primary)
                                 .lineLimit(1)
+                        }
+
+                        if isPro {
+                            Button {
+                                showPaywall = true
+                            } label: {
+                                ProBadge()
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     Spacer()
@@ -146,6 +163,124 @@ struct SettingsView: View {
                     if currentUser?.isAnonymous == true {
                         Text("By registering an email address, you can log in from other devices, and you can easily log back in if your current device is lost or damaged.")
                             .textCase(.none)
+                    }
+                }
+
+                // Plan Section
+                Section {
+                    HStack {
+                        Text("Current Plan")
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        if isPro {
+                            HStack(spacing: 4) {
+                                Image(systemName: "crown.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.orange)
+                                Text("JunJun Pro")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                            }
+                        } else {
+                            Text("Free Plan")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    // JunJun Pro Details Card (always visible)
+                    Button {
+                        showPaywall = true
+                    } label: {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "crown.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [.orange, .yellow, .pink],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                    Text("JunJun Pro")
+                                        .font(.body.weight(.bold))
+                                        .foregroundStyle(.primary)
+                                }
+
+                                Spacer()
+
+                                Text(SubscriptionManager.shared.localizedPriceString + " / " + String(localized: "month"))
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(Color.accentColor)
+                            }
+
+                            Text("No ads & Rainbow icon")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+
+                            HStack {
+                                Text("View Details (In-App Purchase)")
+                                    .font(.system(size: 17))
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .foregroundStyle(.blue)
+                            .padding(.top, 4)
+                        }
+                        .padding(.vertical, 4)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    // Manage Subscription & Refund buttons (shown when subscribed)
+                    if isPro {
+                        Button {
+                            showManageSubscriptionsSheet = true
+                        } label: {
+                            HStack {
+                                Text("Manage Subscription")
+                                    .foregroundStyle(.primary)
+
+                                Spacer()
+
+                                Text("App Store")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        Link(destination: Config.appleRefundURL) {
+                            HStack {
+                                Text("Request Refund")
+                                    .foregroundStyle(.primary)
+
+                                Spacer()
+
+                                Text("Apple")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+
+                                Image(systemName: "arrow.up.right")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
 
@@ -289,6 +424,10 @@ struct SettingsView: View {
             .sheet(isPresented: $showDeleteAccount) {
                 DeleteAccountView()
             }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+            }
+            .manageSubscriptionsSheet(isPresented: $showManageSubscriptionsSheet)
             .alert("Sign Out", isPresented: $showSignOutConfirmation) {
                 Button("Cancel", role: .cancel) { }
                 Button("Sign Out", role: .destructive) {

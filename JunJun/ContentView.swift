@@ -42,6 +42,7 @@ private struct DeepLinkTargetUser: Identifiable {
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(AppState.self) private var appState
+    @State private var subscriptionManager = SubscriptionManager.shared
     @State private var showUnauthenticatedDeepLinkAlert = false
 
     var body: some View {
@@ -87,6 +88,9 @@ struct ContentView: View {
                         }
                     }
             }
+        }
+        .sheet(isPresented: $subscriptionManager.showPaywall) {
+            PaywallView()
         }
         .alert("Please create an account or log in before opening this link again.", isPresented: $showUnauthenticatedDeepLinkAlert) {
             Button("OK", role: .cancel) { }
