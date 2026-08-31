@@ -426,6 +426,11 @@ enum APIClient {
         try await perform(path: "/api/v1/posts/\(id)/like", method: "DELETE", as: LikePostResponse.self)
     }
 
+    /// Get users who liked a post.
+    static func getPostLikes(postId: String, limit: Int = 20, offset: Int = 0) async throws -> PostLikersResponse {
+        try await perform(path: "/api/v1/posts/\(postId)/likes?limit=\(limit)&offset=\(offset)", method: "GET", as: PostLikersResponse.self)
+    }
+
     /// Build a GET /api/v1/posts path with optional userId filter and cursor.
     private static func postsPath(userId: String?, cursor: String?, limit: Int) -> String {
         var query = ["limit=\(limit)"]

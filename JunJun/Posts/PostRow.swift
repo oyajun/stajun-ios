@@ -9,6 +9,10 @@ struct PostRow: View {
     var onTapAuthor: (() -> Void)? = nil
     /// Called when like status or count changes (for updating parent cache).
     var onToggleLike: ((_ isLiked: Bool, _ likeCount: Int) -> Void)? = nil
+    /// Called when the post body (outside author/like button) is tapped to open details.
+    var onTapDetail: (() -> Void)? = nil
+    /// Whether to show the bottom divider.
+    var showDivider: Bool = true
 
     private let iconSize: CGFloat = 44
 
@@ -20,11 +24,15 @@ struct PostRow: View {
     init(
         post: Post,
         onTapAuthor: (() -> Void)? = nil,
-        onToggleLike: ((_ isLiked: Bool, _ likeCount: Int) -> Void)? = nil
+        onToggleLike: ((_ isLiked: Bool, _ likeCount: Int) -> Void)? = nil,
+        onTapDetail: (() -> Void)? = nil,
+        showDivider: Bool = true
     ) {
         self.post = post
         self.onTapAuthor = onTapAuthor
         self.onToggleLike = onToggleLike
+        self.onTapDetail = onTapDetail
+        self.showDivider = showDivider
         _isLiked = State(initialValue: post.isLiked)
         _likeCount = State(initialValue: post.likeCount)
     }
@@ -121,9 +129,15 @@ struct PostRow: View {
             }
             .padding(.horizontal, 32)
             .padding(.vertical, 10)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onTapDetail?()
+            }
 
-            Divider()
-                .padding(.horizontal, 16)
+            if showDivider {
+                Divider()
+                    .padding(.horizontal, 16)
+            }
         }
         .onChange(of: post.isLiked) { _, newValue in
             isLiked = newValue

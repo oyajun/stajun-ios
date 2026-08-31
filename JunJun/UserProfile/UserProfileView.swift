@@ -19,6 +19,7 @@ struct UserProfileView: View {
     @State private var postToDelete: Post?
     @State private var postToReport: Post?
     @State private var showReportSuccessAlert = false
+    @State private var selectedPost: Post? = nil
 
     @State private var showMuteAlert = false
     @State private var muteAlertTitle: String = ""
@@ -60,6 +61,18 @@ struct UserProfileView: View {
         }
         .navigationDestination(item: $followListTab) { tab in
             FollowListView(userId: userId, userName: user?.name, initialTab: tab)
+        }
+        .navigationDestination(item: $selectedPost) { post in
+            PostDetailView(
+                post: post,
+                onDelete: {
+                    posts.removeAll { $0.id == post.id }
+                    PostsCache.save(posts, scopeKey: "user_\(userId)")
+                },
+                onToggleLike: { isLiked, count in
+                    updatePostLike(id: post.id, isLiked: isLiked, likeCount: count)
+                }
+            )
         }
         .task {
             await onAppearTask()
@@ -294,6 +307,9 @@ struct UserProfileView: View {
             post: post,
             onToggleLike: { isLiked, count in
                 updatePostLike(id: post.id, isLiked: isLiked, likeCount: count)
+            },
+            onTapDetail: {
+                selectedPost = post
             }
         )
             .onAppear {

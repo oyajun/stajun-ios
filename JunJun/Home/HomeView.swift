@@ -229,6 +229,20 @@ struct HomeView: View {
             .navigationDestination(for: String.self) { userId in
                 UserProfileView(userId: userId)
             }
+            .navigationDestination(for: Post.self) { post in
+                PostDetailView(
+                    post: post,
+                    onDelete: {
+                        myPosts.removeAll { $0.id == post.id }
+                        followingPosts.removeAll { $0.id == post.id }
+                        PostsCache.save(myPosts, scopeKey: "mine")
+                        PostsCache.save(followingPosts, scopeKey: "following")
+                    },
+                    onToggleLike: { isLiked, count in
+                        updatePostLike(id: post.id, isLiked: isLiked, likeCount: count)
+                    }
+                )
+            }
             .sheet(isPresented: $showComposePost) {
                 ComposePostView(initialMinutes: composeInitialMinutes) { newPost in
                     prependPost(newPost)
@@ -501,6 +515,9 @@ struct HomeView: View {
             onTapAuthor: { path.append(post.userId) },
             onToggleLike: { isLiked, count in
                 updatePostLike(id: post.id, isLiked: isLiked, likeCount: count)
+            },
+            onTapDetail: {
+                path.append(post)
             }
         )
             .onAppear {

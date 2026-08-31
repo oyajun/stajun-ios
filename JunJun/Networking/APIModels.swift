@@ -23,7 +23,7 @@ struct RequestEmailChangeRequest: Encodable {
 
 // MARK: - User
 
-struct UserProfile: Codable, Identifiable, Equatable {
+struct UserProfile: Codable, Identifiable, Equatable, Hashable {
     let id: String
     let name: String
     let iconEmoji: String
@@ -57,7 +57,7 @@ struct UserWithFollowStatus: Codable, Identifiable {
 }
 
 
-struct UserWithStudyStatus: Codable, Identifiable {
+struct UserWithStudyStatus: Codable, Identifiable, Equatable, Hashable {
     let id: String
     let name: String
     let iconEmoji: String
@@ -135,7 +135,7 @@ struct StudyPost: Codable, Identifiable {
 }
 
 /// A timeline post, including its author summary. Used by GET /api/v1/posts.
-struct Post: Codable, Identifiable, Equatable {
+struct Post: Codable, Identifiable, Equatable, Hashable {
     let id: String
     let userId: String
     let minutes: Int
@@ -186,6 +186,12 @@ struct Post: Codable, Identifiable, Equatable {
 struct LikePostResponse: Codable {
     let likeCount: Int
     let isLiked: Bool
+}
+
+/// Response of GET /api/v1/posts/:id/likes
+struct PostLikersResponse: Codable {
+    let users: [UserWithStudyStatus]
+    let pagination: Pagination
 }
 
 /// Cursor-paginated list of posts
