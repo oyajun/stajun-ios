@@ -457,6 +457,7 @@ struct SettingsView: View {
                         installedStore = store
                     }
                 }
+                await subscriptionManager.checkMarketplaceStatus()
                 if let profile = try? await APIClient.getMyProfile() {
                     appState.updateCurrentUser(profile)
                 }

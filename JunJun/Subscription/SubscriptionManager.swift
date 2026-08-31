@@ -71,25 +71,7 @@ final class SubscriptionManager: NSObject, PurchasesDelegate {
 
     /// Checks if the app was installed from an alternative app marketplace or if StoreKit payments are unavailable
     func checkMarketplaceStatus() async {
-        #if DEBUG
-        isAlternativeMarketplace = false
-        return
-        #else
-        do {
-            let result = try await AppTransaction.shared
-            switch result {
-            case .verified(let transaction):
-                if transaction.environment == .sandbox || transaction.environment == .xcode || transaction.environment == .production {
-                    isAlternativeMarketplace = false
-                }
-            case .unverified:
-                isAlternativeMarketplace = true
-            }
-        } catch {
-            // AppTransaction is not available in local developer installs; do not block testing
-            isAlternativeMarketplace = false
-        }
-        #endif
+        isAlternativeMarketplace = await StoreDetector.checkIsAlternativeMarketplace()
     }
 
     /// Link RevenueCat with JunJun user ID

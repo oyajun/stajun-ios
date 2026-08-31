@@ -307,17 +307,19 @@ struct PaywallView: View {
 
                     // MARK: - Legal / Terms & Privacy
                     VStack(spacing: 10) {
-                        Text("Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 8)
+                        if !subscriptionManager.isAlternativeMarketplace {
+                            Text("Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 8)
 
-                        Text("Uninstalling the app or deleting your account does not cancel your subscription! If you no longer use the app, please cancel your subscription beforehand.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 8)
+                            Text("Uninstalling the app or deleting your account does not cancel your subscription! If you no longer use the app, please cancel your subscription beforehand.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 8)
+                        }
 
                         VStack(spacing: 8) {
                             HStack(spacing: 16) {
@@ -369,6 +371,7 @@ struct PaywallView: View {
             }
             .manageSubscriptionsSheet(isPresented: $showManageSubscriptionsSheet)
             .task {
+                await subscriptionManager.checkMarketplaceStatus()
                 await subscriptionManager.fetchOfferings()
             }
         }
