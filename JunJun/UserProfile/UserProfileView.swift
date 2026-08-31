@@ -20,6 +20,7 @@ struct UserProfileView: View {
     @State private var postToReport: Post?
     @State private var showReportSuccessAlert = false
     @State private var selectedPost: Post? = nil
+    @State private var postToEdit: Post? = nil
 
     @State private var showMuteAlert = false
     @State private var muteAlertTitle: String = ""
@@ -71,8 +72,16 @@ struct UserProfileView: View {
                 },
                 onToggleLike: { isLiked, count in
                     updatePostLike(id: post.id, isLiked: isLiked, likeCount: count)
+                },
+                onUpdate: { updated in
+                    updatePostContent(id: updated.id, minutes: updated.minutes, comment: updated.comment)
                 }
             )
+        }
+        .sheet(item: $postToEdit) { post in
+            EditPostView(post: post) { updated in
+                updatePostContent(id: updated.id, minutes: updated.minutes, comment: updated.comment)
+            }
         }
         .task {
             await onAppearTask()
@@ -323,8 +332,19 @@ struct UserProfileView: View {
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
+                    Button {
+                        postToEdit = post
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
+                    .tint(.orange)
                 }
                 .contextMenu {
+                    Button {
+                        postToEdit = post
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
                     Button(role: .destructive) {
                         postToDelete = post
                     } label: {
@@ -458,6 +478,23 @@ struct UserProfileView: View {
         if let idx = posts.firstIndex(where: { $0.id == id }) {
             posts[idx].isLiked = isLiked
             posts[idx].likeCount = likeCount
+            PostsCache.save(posts, scopeKey: "user_\(userId)")
+        }
+    }
+
+    private func updatePostContent(id: String, minutes: Int, comment: String?) {
+        if let idx = posts.firstIndex(where: { $0.id == id }) {
+            let old = posts[idx]
+            posts[idx] = Post(
+                id: old.id,
+                userId: old.userId,
+                minutes: minutes,
+                comment: comment,
+                createdAt: old.createdAt,
+                user: old.user,
+                likeCount: old.likeCount,
+                isLiked: old.isLiked
+            )
             PostsCache.save(posts, scopeKey: "user_\(userId)")
         }
     }

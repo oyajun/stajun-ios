@@ -4,6 +4,7 @@ struct PostDetailView: View {
     let post: Post
     var onDelete: (() -> Void)? = nil
     var onToggleLike: ((_ isLiked: Bool, _ likeCount: Int) -> Void)? = nil
+    var onUpdate: ((Post) -> Void)? = nil
 
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
@@ -20,6 +21,7 @@ struct PostDetailView: View {
     @State private var showDeleteAlert = false
     @State private var showReportAlert = false
     @State private var showReportSuccessAlert = false
+    @State private var showEditSheet = false
     @State private var isDeleting = false
     @State private var isReporting = false
     @State private var errorMessage: String?
@@ -28,11 +30,13 @@ struct PostDetailView: View {
     init(
         post: Post,
         onDelete: (() -> Void)? = nil,
-        onToggleLike: ((_ isLiked: Bool, _ likeCount: Int) -> Void)? = nil
+        onToggleLike: ((_ isLiked: Bool, _ likeCount: Int) -> Void)? = nil,
+        onUpdate: ((Post) -> Void)? = nil
     ) {
         self.post = post
         self.onDelete = onDelete
         self.onToggleLike = onToggleLike
+        self.onUpdate = onUpdate
         _currentPost = State(initialValue: post)
     }
 
@@ -131,12 +135,20 @@ struct PostDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if isOwnPost {
-                    Button(role: .destructive) {
-                        showDeleteAlert = true
-                    } label: {
-                        Image(systemName: "trash")
+                    HStack(spacing: 16) {
+                        Button {
+                            showEditSheet = true
+                        } label: {
+                            Image(systemName: "pencil")
+                        }
+
+                        Button(role: .destructive) {
+                            showDeleteAlert = true
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .disabled(isDeleting)
                     }
-                    .disabled(isDeleting)
                 } else {
                     Button {
                         showReportAlert = true
@@ -149,6 +161,22 @@ struct PostDetailView: View {
         }
         .task {
             await loadLikers()
+        }
+        .sheet(isPresented: $showEditSheet) {
+            EditPostView(post: currentPost) { updated in
+                let newPost = Post(
+                    id: currentPost.id,
+                    userId: currentPost.userId,
+                    minutes: updated.minutes,
+                    comment: updated.comment,
+                    createdAt: currentPost.createdAt,
+                    user: currentPost.user,
+                    likeCount: currentPost.likeCount,
+                    isLiked: currentPost.isLiked
+                )
+                currentPost = newPost
+                onUpdate?(newPost)
+            }
         }
         .alert("Delete Post", isPresented: $showDeleteAlert) {
             Button("Cancel", role: .cancel) { }

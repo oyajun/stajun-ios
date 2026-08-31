@@ -41,6 +41,7 @@ struct HomeView: View {
     @State private var postsError: String?
     @State private var postScope: PostScope = .following
     @State private var showCompose = false
+    @State private var postToEdit: Post?
     @State private var postToDelete: Post?
     @State private var postToReport: Post?
     @State private var showReportSuccessAlert = false
@@ -240,8 +241,16 @@ struct HomeView: View {
                     },
                     onToggleLike: { isLiked, count in
                         updatePostLike(id: post.id, isLiked: isLiked, likeCount: count)
+                    },
+                    onUpdate: { updated in
+                        updatePostContent(id: updated.id, minutes: updated.minutes, comment: updated.comment)
                     }
                 )
+            }
+            .sheet(item: $postToEdit) { post in
+                EditPostView(post: post) { updated in
+                    updatePostContent(id: updated.id, minutes: updated.minutes, comment: updated.comment)
+                }
             }
             .sheet(isPresented: $showComposePost) {
                 ComposePostView(initialMinutes: composeInitialMinutes) { newPost in
@@ -531,8 +540,19 @@ struct HomeView: View {
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
+                    Button {
+                        postToEdit = post
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
+                    .tint(.orange)
                 }
                 .contextMenu {
+                    Button {
+                        postToEdit = post
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
                     Button(role: .destructive) {
                         postToDelete = post
                     } label: {
@@ -868,6 +888,37 @@ struct HomeView: View {
         if let idx = myPosts.firstIndex(where: { $0.id == id }) {
             myPosts[idx].isLiked = isLiked
             myPosts[idx].likeCount = likeCount
+            PostsCache.save(myPosts, scopeKey: "mine")
+        }
+    }
+
+    private func updatePostContent(id: String, minutes: Int, comment: String?) {
+        if let idx = followingPosts.firstIndex(where: { $0.id == id }) {
+            let old = followingPosts[idx]
+            followingPosts[idx] = Post(
+                id: old.id,
+                userId: old.userId,
+                minutes: minutes,
+                comment: comment,
+                createdAt: old.createdAt,
+                user: old.user,
+                likeCount: old.likeCount,
+                isLiked: old.isLiked
+            )
+            PostsCache.save(followingPosts, scopeKey: "following")
+        }
+        if let idx = myPosts.firstIndex(where: { $0.id == id }) {
+            let old = myPosts[idx]
+            myPosts[idx] = Post(
+                id: old.id,
+                userId: old.userId,
+                minutes: minutes,
+                comment: comment,
+                createdAt: old.createdAt,
+                user: old.user,
+                likeCount: old.likeCount,
+                isLiked: old.isLiked
+            )
             PostsCache.save(myPosts, scopeKey: "mine")
         }
     }

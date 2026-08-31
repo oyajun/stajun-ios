@@ -126,6 +126,12 @@ struct CreatePostRequest: Encodable {
     let comment: String?
 }
 
+/// Request body for PATCH /api/v1/posts/:id
+struct UpdatePostRequest: Encodable {
+    let minutes: Int?
+    let comment: String?
+}
+
 /// Response of POST /api/v1/posts (a newly created study-time post)
 struct StudyPost: Codable, Identifiable {
     let id: String

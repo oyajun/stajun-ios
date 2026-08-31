@@ -406,6 +406,20 @@ enum APIClient {
         try await perform(path: postsPath(userId: userId, cursor: cursor, limit: limit), method: "GET", as: PostsResponse.self)
     }
 
+    /// Update own post (minutes and/or comment).
+    static func updatePost(id: String, minutes: Int? = nil, comment: String? = nil) async throws -> StudyPost {
+        let sanitized = comment?
+            .replacingOccurrences(of: "\r\n", with: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let body = UpdatePostRequest(
+            minutes: minutes,
+            comment: sanitized
+        )
+        return try await perform(path: "/api/v1/posts/\(id)", method: "PATCH", body: body, as: StudyPost.self)
+    }
+
     /// Delete own post.
     static func deletePost(id: String) async throws {
         try await perform(path: "/api/v1/posts/\(id)", method: "DELETE", as: EmptyResponse.self)
