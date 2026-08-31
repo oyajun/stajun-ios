@@ -357,6 +357,16 @@ enum APIClient {
         try await perform(path: "/api/v1/study-sessions/start", method: "POST", as: EmptyResponse.self)
     }
 
+    /// Pause studying.
+    static func pauseStudy() async throws {
+        try await perform(path: "/api/v1/study-sessions/pause", method: "POST", as: EmptyResponse.self)
+    }
+
+    /// Resume studying.
+    static func resumeStudy() async throws {
+        try await perform(path: "/api/v1/study-sessions/resume", method: "POST", as: EmptyResponse.self)
+    }
+
     /// Stop studying. Clears the server flag (idempotent).
     static func stopStudy() async throws {
         try await perform(path: "/api/v1/study-sessions/stop", method: "POST", as: EmptyResponse.self)

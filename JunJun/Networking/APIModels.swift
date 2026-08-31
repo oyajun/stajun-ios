@@ -67,7 +67,37 @@ struct UserWithStudyStatus: Codable, Identifiable, Equatable, Hashable {
     var isMuted: Bool?
     let isStudying: Bool
     let studyingSince: Date?
+    let isPaused: Bool?
+    let accumulatedSeconds: Int?
     let isPro: Bool?
+
+    init(
+        id: String,
+        name: String,
+        iconEmoji: String,
+        iconBackgroundColor: String,
+        isFollowing: Bool? = nil,
+        muteStudyStartNotification: Int? = nil,
+        isMuted: Bool? = nil,
+        isStudying: Bool,
+        studyingSince: Date? = nil,
+        isPaused: Bool? = nil,
+        accumulatedSeconds: Int? = nil,
+        isPro: Bool? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.iconEmoji = iconEmoji
+        self.iconBackgroundColor = iconBackgroundColor
+        self.isFollowing = isFollowing
+        self.muteStudyStartNotification = muteStudyStartNotification
+        self.isMuted = isMuted
+        self.isStudying = isStudying
+        self.studyingSince = studyingSince
+        self.isPaused = isPaused
+        self.accumulatedSeconds = accumulatedSeconds
+        self.isPro = isPro
+    }
 }
 
 // MARK: - Pro Subscription
@@ -88,6 +118,8 @@ struct SyncProStatusResponse: Codable {
 struct MyStudyStatus: Codable {
     let isStudying: Bool
     let startedAt: Date?
+    let isPaused: Bool?
+    let accumulatedSeconds: Int?
 }
 
 // MARK: - Home Feed

@@ -11,6 +11,7 @@ struct HomeView: View {
 
     // Study status — initialise from local store so the border appears immediately on launch
     @State private var isStudying = LocalStudyStore.localStartedAt != nil
+    @State private var isPaused = LocalStudyStore.isPaused
     @State private var studyStartedAt: Date?
     @State private var studyActionLoading = false
     @State private var studyError: String?
@@ -353,41 +354,101 @@ struct HomeView: View {
             // Right: timer + button
             VStack(spacing: 12) {
                 HStack {
-                    Text(isStudying ? elapsedString(from: studyStartedAt ?? now, to: now) : "--:--")
+                    Text(isStudying ? formatElapsed(seconds: LocalStudyStore.totalElapsedSeconds(at: now)) : "--:--")
                         .font(.title3.monospacedDigit().bold())
-                        .foregroundStyle(isStudying ? .orange : .secondary)
+                        .foregroundStyle(isStudying ? (isPaused ? Color.secondary : Color.orange) : Color.secondary)
                     Spacer()
-                    Text(isStudying ? "Studying" : "Not Studying")
+                    Text(isStudying ? (isPaused ? LocalizedStringKey("Paused") : LocalizedStringKey("Studying")) : LocalizedStringKey("Not Studying"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
 
-                Button {
-                    UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
-                    Task { await toggleStudy() }
-                } label: {
-                    Group {
-                        if studyActionLoading {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Text(isStudying ? "Stop Studying" : "Start Studying")
-                                .fontWeight(.semibold)
+                if !isStudying {
+                    // Not studying: [ Start ] (Full width, accent, text only)
+                    Button {
+                        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                        Task { await startStudying() }
+                    } label: {
+                        Group {
+                            if studyActionLoading {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Text(LocalizedStringKey("Start"))
+                                    .fontWeight(.semibold)
+                            }
                         }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                }
-                .buttonStyle(.glassProminent)
-                .tint(isStudying ? .red : .accentColor)
-                .disabled(studyActionLoading)
-                .background {
-                    StudyingButtonGlow(
-                        backgroundColor: appState.currentUser?.iconBackgroundColor ?? "#FFD54F",
-                        isPro: appState.isPro
-                    )
-                    .opacity(isStudying ? 1 : 0)
-                    .animation(.easeInOut(duration: 0.3), value: isStudying)
+                    .buttonStyle(.glassProminent)
+                    .tint(.accentColor)
+                    .disabled(studyActionLoading)
+                } else if isPaused {
+                    // Paused: [ Resume ] (Full width, accent, text only)
+                    Button {
+                        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                        Task { await resumeStudying() }
+                    } label: {
+                        Group {
+                            if studyActionLoading {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Text(LocalizedStringKey("Resume"))
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                    }
+                    .buttonStyle(.glassProminent)
+                    .tint(.accentColor)
+                    .disabled(studyActionLoading)
+                } else {
+                    // Studying active: [ pause.fill ] (Neutral, circular) + [ Stop ] (Red, text only)
+                    HStack(spacing: 8) {
+                        Button {
+                            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                            Task { await pauseStudying() }
+                        } label: {
+                            Image(systemName: "pause.fill")
+                                .font(.subheadline.bold())
+                                .frame(width: 44, height: 44)
+                        }
+                        .buttonStyle(.glass)
+                        .buttonBorderShape(.circle)
+                        .accessibilityLabel(LocalizedStringKey("Pause"))
+                        .disabled(studyActionLoading)
+
+                        Button {
+                            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                            stopStudying()
+                        } label: {
+                            Group {
+                                if studyActionLoading {
+                                    ProgressView()
+                                        .tint(.white)
+                                } else {
+                                    Text(LocalizedStringKey("Stop"))
+                                        .fontWeight(.semibold)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                        }
+                        .buttonStyle(.glassProminent)
+                        .tint(.red)
+                        .disabled(studyActionLoading)
+                    }
+                    .background {
+                        StudyingButtonGlow(
+                            backgroundColor: appState.currentUser?.iconBackgroundColor ?? "#FFD54F",
+                            isPro: appState.isPro
+                        )
+                        .opacity(1)
+                        .animation(.easeInOut(duration: 0.3), value: isStudying)
+                    }
                 }
 
                 if let studyError {
@@ -450,12 +511,25 @@ struct HomeView: View {
                                     .foregroundStyle(.primary)
                                     .lineLimit(1)
                                     .padding(.top, 8)
-                                if user.isStudying, let since = user.studyingSince {
-                                    Text(elapsedString(from: since, to: now))
-                                        .font(.caption2)
-                                        .monospacedDigit()
-                                        .foregroundStyle(.orange)
-                                        .padding(.top, 2)
+                                if user.isStudying {
+                                    if user.isPaused == true {
+                                        let acc = Double(user.accumulatedSeconds ?? 0)
+                                        Text(formatElapsed(seconds: acc))
+                                            .font(.caption2)
+                                            .monospacedDigit()
+                                            .foregroundStyle(.secondary)
+                                            .padding(.top, 2)
+                                    } else if let since = user.studyingSince {
+                                        Text(elapsedString(from: since, to: now))
+                                            .font(.caption2)
+                                            .monospacedDigit()
+                                            .foregroundStyle(.orange)
+                                            .padding(.top, 2)
+                                    } else {
+                                        Text(" ")
+                                            .font(.caption2)
+                                            .padding(.top, 2)
+                                    }
                                 } else {
                                     Text(" ")
                                         .font(.caption2)
@@ -601,6 +675,7 @@ struct HomeView: View {
         if let local = LocalStudyStore.localStartedAt {
             // Studying locally: the local timer stays the measured one either way.
             isStudying = true
+            isPaused = LocalStudyStore.isPaused
             studyStartedAt = local
 
             if status.isStudying {
@@ -616,17 +691,27 @@ struct HomeView: View {
                 // The server knew about this session and it's gone: ended on another device.
                 LocalStudyStore.clear()
                 isStudying = false
+                isPaused = false
                 studyStartedAt = nil
             }
         } else if status.isStudying {
             // Not studying locally but the server says we are (started on another device).
             let start = status.startedAt ?? Date()
+            let paused = status.isPaused ?? false
+            let acc = Double(status.accumulatedSeconds ?? 0)
             LocalStudyStore.localStartedAt = start
+            LocalStudyStore.isPaused = paused
+            LocalStudyStore.accumulatedSeconds = acc
+            if !paused {
+                LocalStudyStore.segmentStartedAt = start
+            }
             LocalStudyStore.startedOffline = false
             isStudying = true
+            isPaused = paused
             studyStartedAt = start
         } else {
             isStudying = false
+            isPaused = false
             studyStartedAt = nil
         }
     }
@@ -660,9 +745,11 @@ struct HomeView: View {
     private func applyLocalSession() {
         if let local = LocalStudyStore.localStartedAt {
             isStudying = true
+            isPaused = LocalStudyStore.isPaused
             studyStartedAt = local
         } else {
             isStudying = false
+            isPaused = false
             studyStartedAt = nil
         }
     }
@@ -727,19 +814,11 @@ struct HomeView: View {
         }
     }
 
-    private func toggleStudy() async {
-        studyError = nil
-        if isStudying {
-            stopStudying()
-        } else {
-            await startStudying()
-        }
-    }
-
     private func startStudying() async {
         let now = Date()
-        LocalStudyStore.localStartedAt = now
+        LocalStudyStore.start(at: now)
         isStudying = true
+        isPaused = false
         studyStartedAt = now
 
         do {
@@ -750,17 +829,34 @@ struct HomeView: View {
         }
     }
 
+    private func pauseStudying() async {
+        LocalStudyStore.pause()
+        isPaused = true
+
+        if network.isOnline {
+            Task { try? await APIClient.pauseStudy() }
+        }
+    }
+
+    private func resumeStudying() async {
+        LocalStudyStore.resume()
+        isPaused = false
+
+        if network.isOnline {
+            Task { try? await APIClient.resumeStudy() }
+        }
+    }
+
     private func stopStudying() {
-        let start = LocalStudyStore.localStartedAt ?? studyStartedAt
+        let totalElapsed = LocalStudyStore.totalElapsedSeconds()
+        let elapsedMinutes = Int(totalElapsed / 60)
         LocalStudyStore.clear()
         isStudying = false
+        isPaused = false
         studyStartedAt = nil
 
-        if let start {
-            let elapsed = Int(Date().timeIntervalSince(start) / 60)
-            composeInitialMinutes = max(1, elapsed)
-            showComposePost = true
-        }
+        composeInitialMinutes = max(1, elapsedMinutes)
+        showComposePost = true
 
         if network.isOnline {
             Task { try? await APIClient.stopStudy() }
@@ -946,6 +1042,18 @@ struct HomeView: View {
     }
 
     // MARK: - Helpers
+
+    private func formatElapsed(seconds: TimeInterval) -> String {
+        let total = max(0, Int(seconds))
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        let s = total % 60
+        if h > 0 {
+            return String(format: "%d:%02d:%02d", h, m, s)
+        } else {
+            return String(format: "%02d:%02d", m, s)
+        }
+    }
 
     private func elapsedString(from start: Date, to current: Date) -> String {
         let seconds = Int(current.timeIntervalSince(start))
