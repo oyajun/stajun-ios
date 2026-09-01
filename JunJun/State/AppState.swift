@@ -90,7 +90,7 @@ final class AppState {
                 self.deepLinkedUserId = userId
             }
             Task {
-                await self.fetchUnreadNotificationCount()
+                await self.poll()
             }
         }
 
@@ -101,7 +101,7 @@ final class AppState {
         ) { [weak self] _ in
             guard let self else { return }
             Task {
-                await self.fetchUnreadNotificationCount()
+                await self.poll()
             }
         }
     }
@@ -125,7 +125,7 @@ final class AppState {
             currentUser = cached
             authState = .authenticated
             NotificationHandler.syncPendingTokenIfNeeded()
-            Task { await self.fetchUnreadNotificationCount() }
+            Task { await self.poll() }
         }
 
         do {
@@ -135,7 +135,7 @@ final class AppState {
             authState = .authenticated
             checkFollowingAndRequestPushPermission()
             NotificationHandler.syncPendingTokenIfNeeded()
-            await fetchUnreadNotificationCount()
+            await poll()
         } catch APIError.unauthorized {
             // Token actually invalid → sign out
             KeychainHelper.token = nil
@@ -155,17 +155,18 @@ final class AppState {
         }
     }
 
-    // MARK: - Notifications
+    // MARK: - Polling & Notifications
 
-    /// Fetch latest unread notifications count from server
-    func fetchUnreadNotificationCount() async {
+    /// Polling: fetches unread notifications count, latest following presence, etc.
+    func poll() async {
         guard authState == .authenticated else { return }
         do {
-            let count = try await APIClient.getUnreadNotificationCount()
-            unreadNotificationCount = count
+            let res = try await APIClient.poll()
+            unreadNotificationCount = res.unreadCount
+            FeedCache.save(res.users)
         } catch {
             #if DEBUG
-            print("[Notifications] Failed to fetch unread count: \(error)")
+            print("[Polling] Failed: \(error)")
             #endif
         }
     }
@@ -205,7 +206,7 @@ final class AppState {
             authState = .authenticated
             checkFollowingAndRequestPushPermission()
             NotificationHandler.syncPendingTokenIfNeeded()
-            await fetchUnreadNotificationCount()
+            await poll()
 
         case .registerEmail, .changeEmail:
             try await APIClient.changeEmail(newEmail: email, otp: otp)
@@ -232,7 +233,7 @@ final class AppState {
         ProfileCache.save(profile)
         authState = .authenticated
         NotificationHandler.syncPendingTokenIfNeeded()
-        Task { await fetchUnreadNotificationCount() }
+        Task { await poll() }
     }
 
     /// Create an anonymous profile

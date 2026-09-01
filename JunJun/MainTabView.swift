@@ -24,23 +24,11 @@ struct MainTabView: View {
                 SettingsView()
             }
         }
-        .task {
-            await appState.fetchUnreadNotificationCount()
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(15))
-                if scenePhase == .active {
-                    await appState.fetchUnreadNotificationCount()
-                }
-            }
-        }
-        .onChange(of: selectedTab) { _, newTab in
-            if newTab == .notifications {
-                Task { await appState.fetchUnreadNotificationCount() }
-            }
-        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
-                Task { await appState.fetchUnreadNotificationCount() }
+                if selectedTab != .home {
+                    Task { await appState.poll() }
+                }
             }
         }
         .overlay {
