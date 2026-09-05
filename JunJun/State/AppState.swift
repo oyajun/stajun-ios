@@ -21,7 +21,9 @@ final class AppState {
                 if user.isPro == true {
                     self.isPro = true
                 }
-                Task { await SubscriptionManager.shared.identifyUser(id: user.id) }
+                if oldValue?.id != user.id {
+                    Task { await SubscriptionManager.shared.identifyUser(id: user.id) }
+                }
             }
         }
     }

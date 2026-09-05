@@ -38,6 +38,12 @@ final class SubscriptionManager: NSObject, PurchasesDelegate {
     /// Error message for UI feedback
     var errorMessage: String?
 
+    // Cache to prevent duplicate sync requests to backend
+    private var lastSyncedIsPro: Bool?
+    private var lastSyncedExpiresAt: Date?
+    private var lastSyncedUserId: String?
+    private var isSyncing: Bool = false
+
     /// Localized monthly price string (e.g., "¥300 / 月")
     var localizedPriceString: String {
         if let pkg = proPackage {
@@ -98,6 +104,9 @@ final class SubscriptionManager: NSObject, PurchasesDelegate {
             _ = try await Purchases.shared.logOut()
             isPro = false
             proExpiresAt = nil
+            lastSyncedIsPro = nil
+            lastSyncedExpiresAt = nil
+            lastSyncedUserId = nil
             onProStatusChanged?(false)
         } catch {
             #if DEBUG
@@ -152,7 +161,7 @@ final class SubscriptionManager: NSObject, PurchasesDelegate {
             let purchaseResult = try await Purchases.shared.purchase(package: package)
             if !purchaseResult.userCancelled {
                 updateProStatus(from: purchaseResult.customerInfo)
-                await syncWithServer()
+                await syncWithServer(force: true)
                 return isPro
             }
             return false
@@ -174,7 +183,7 @@ final class SubscriptionManager: NSObject, PurchasesDelegate {
         do {
             let customerInfo = try await Purchases.shared.restorePurchases()
             updateProStatus(from: customerInfo)
-            await syncWithServer()
+            await syncWithServer(force: true)
             return isPro
         } catch {
             #if DEBUG
@@ -185,10 +194,36 @@ final class SubscriptionManager: NSObject, PurchasesDelegate {
         }
     }
 
-    /// Sync active Pro status with backend server
-    func syncWithServer() async {
+    /// Sync active Pro status with backend server (skips if unchanged or not authenticated)
+    func syncWithServer(force: Bool = false) async {
+        // Skip if not signed in yet
+        guard KeychainHelper.token != nil else { return }
+
+        let currentUserId = Purchases.shared.appUserID
+
+        // Skip if nothing changed since last successful sync
+        if !force,
+           lastSyncedUserId == currentUserId,
+           lastSyncedIsPro == isPro,
+           lastSyncedExpiresAt == proExpiresAt {
+            #if DEBUG
+            print("[SubscriptionManager] Pro status unchanged (isPro=\(isPro)). Skipping server sync.")
+            #endif
+            return
+        }
+
+        guard !isSyncing else { return }
+        isSyncing = true
+        defer { isSyncing = false }
+
         do {
             _ = try await APIClient.syncProStatus(isPro: isPro, proExpiresAt: proExpiresAt)
+            lastSyncedIsPro = isPro
+            lastSyncedExpiresAt = proExpiresAt
+            lastSyncedUserId = currentUserId
+            #if DEBUG
+            print("[SubscriptionManager] Successfully synced Pro status with server: isPro=\(isPro)")
+            #endif
         } catch {
             #if DEBUG
             print("[SubscriptionManager] Failed to sync Pro status with server: \(error)")
