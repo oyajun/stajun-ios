@@ -176,7 +176,7 @@ struct HomeView: View {
             .listStyle(.plain)
             .animation(.easeInOut, value: network.isOnline)
             .refreshable {
-                await pollHome()
+                await pollHome(force: true)
                 await loadFollowingPosts()
                 await loadMyPosts()
             }
@@ -652,9 +652,12 @@ struct HomeView: View {
         let slotIndex = (index - firstAdIndex) / adInterval
         VStack(spacing: 0) {
             if Config.isJapanRegion {
-                if slotIndex % 2 == 0 {
+                switch TimelineAdSlotManager.shared.adType(for: slotIndex) {
+                case .primeStudent:
+                    PrimeStudentBannerView()
+                case .adMob:
                     AdBannerCard(cacheKey: "timeline-admob-\(index)")
-                } else {
+                case .affiliate:
                     AffiliateBannerCard(cacheKey: "timeline-affiliate-\(index)")
                 }
             } else {
@@ -777,7 +780,7 @@ struct HomeView: View {
     }
 
     /// Unified polling: fetch following users, own study status, and unread notification count in 1 request.
-    private func pollHome() async {
+    private func pollHome(force: Bool = false) async {
         guard !isLoadingFeed else { return }
         isLoadingFeed = true
         defer {
@@ -792,7 +795,7 @@ struct HomeView: View {
 
         do {
             feedError = nil
-            let poll = try await APIClient.poll()
+            let poll = try await APIClient.poll(force: force)
             feedUsers = poll.users
             FeedCache.save(poll.users)
             await applyStudyStatus(poll.studySession)

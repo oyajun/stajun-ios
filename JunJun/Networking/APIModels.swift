@@ -57,7 +57,7 @@ struct UserWithFollowStatus: Codable, Identifiable {
 }
 
 
-struct UserWithStudyStatus: Codable, Identifiable, Equatable, Hashable {
+struct UserWithStudyStatus: Codable, Identifiable, Equatable, Hashable, Sendable {
     let id: String
     let name: String
     let iconEmoji: String
@@ -102,12 +102,12 @@ struct UserWithStudyStatus: Codable, Identifiable, Equatable, Hashable {
 
 // MARK: - Pro Subscription
 
-struct SyncProStatusRequest: Encodable {
+struct SyncProStatusRequest: Encodable, Sendable {
     let isPro: Bool
     let proExpiresAt: String?
 }
 
-struct SyncProStatusResponse: Codable {
+struct SyncProStatusResponse: Codable, Sendable {
     let id: String
     let isPro: Bool
     let proExpiresAt: String?
@@ -115,7 +115,7 @@ struct SyncProStatusResponse: Codable {
 
 // MARK: - Study Session
 
-struct MyStudyStatus: Codable {
+struct MyStudyStatus: Codable, Sendable {
     let isStudying: Bool
     let startedAt: Date?
     let isPaused: Bool?
@@ -124,13 +124,13 @@ struct MyStudyStatus: Codable {
 
 // MARK: - Home Feed
 
-struct HomeFeedResponse: Codable {
+struct HomeFeedResponse: Codable, Sendable {
     let users: [UserWithStudyStatus]
 }
 
 // MARK: - Polling
 
-struct PollingResponse: Codable {
+struct PollingResponse: Codable, Sendable {
     let unreadCount: Int
     let unreadNotificationCount: Int?
     let users: [UserWithStudyStatus]

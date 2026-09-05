@@ -160,10 +160,10 @@ final class AppState {
     // MARK: - Polling & Notifications
 
     /// Polling: fetches unread notifications count, latest following presence, etc.
-    func poll() async {
+    func poll(force: Bool = false) async {
         guard authState == .authenticated else { return }
         do {
-            let res = try await APIClient.poll()
+            let res = try await APIClient.poll(force: force)
             unreadNotificationCount = res.unreadCount
             FeedCache.save(res.users)
         } catch {
@@ -267,6 +267,7 @@ final class AppState {
         StatsCache.clear()
         UserProfileCache.clear()
         NotificationsCache.clear()
+        await APIClient.clearPollingCache()
         currentUser = nil
         isStudying = false
         authState = .unauthenticated
@@ -285,6 +286,7 @@ final class AppState {
         StatsCache.clear()
         UserProfileCache.clear()
         NotificationsCache.clear()
+        Task { await APIClient.clearPollingCache() }
         currentUser = nil
         isStudying = false
         authState = .unauthenticated

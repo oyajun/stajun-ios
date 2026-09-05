@@ -9,7 +9,10 @@ enum Config {
     #endif
 
     /// Home feed polling interval (seconds)
-    static let feedPollingInterval: TimeInterval = 60
+    static let feedPollingInterval: TimeInterval = 90
+
+    /// Short-term memory cache TTL for polling requests to prevent redundant API calls (seconds)
+    static let pollCacheTTL: TimeInterval = 5
     
     // MARK: - RevenueCat / Subscriptions
     /// RevenueCat Public iOS API Key
@@ -39,6 +42,9 @@ enum Config {
     
     /// Keywords passed to AdMob to prioritize study & education related ads
     static let adMobKeywords: [String] = ["TOEIC", "book", "apple", "student"]
+    
+    /// Amazon Prime Student promotion URL
+    static let primeStudentURL: URL = URL(string: "https://www.amazon.co.jp/b?node=2410972051&tag=junjun0962-22")!
     
     /// Affiliate items displayed in banners
     static let affiliateItems: [AffiliateItem] = [

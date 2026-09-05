@@ -382,9 +382,44 @@ enum APIClient {
 
     // MARK: - Polling
 
-    /// Poll combined status (unread notifications count, following users with study status, and own study session)
-    static func poll() async throws -> PollingResponse {
-        try await perform(path: "/api/v1/polling", method: "GET", as: PollingResponse.self)
+    /// Poll combined status (unread notifications count, following users with study status, and own study session).
+    /// Deduplicates concurrent requests and caches response for `Config.pollCacheTTL` seconds unless `force` is true.
+    static func poll(force: Bool = false) async throws -> PollingResponse {
+        // 1. Return cached response if within TTL and not forced
+        if !force, let cached = await PollingCoordinator.shared.getCached(ttl: Config.pollCacheTTL) {
+            #if DEBUG
+            print("[Polling] Returning cached response")
+            #endif
+            return cached
+        }
+
+        // 2. Await in-flight task if another request is currently running
+        if let inFlight = await PollingCoordinator.shared.getInFlight() {
+            #if DEBUG
+            print("[Polling] Joining in-flight polling request")
+            #endif
+            return try await inFlight.value
+        }
+
+        // 3. Initiate request task and register with coordinator
+        let task = Task { () throws -> PollingResponse in
+            try await perform(path: "/api/v1/polling", method: "GET", as: PollingResponse.self)
+        }
+        await PollingCoordinator.shared.setInFlight(task)
+
+        do {
+            let result = try await task.value
+            await PollingCoordinator.shared.finish(result)
+            return result
+        } catch {
+            await PollingCoordinator.shared.finishWithError()
+            throw error
+        }
+    }
+
+    /// Clear in-memory polling cache (e.g. on sign-out)
+    static func clearPollingCache() async {
+        await PollingCoordinator.shared.clear()
     }
 
     // MARK: - Posts (Study Time Posts)
@@ -569,6 +604,48 @@ enum APIClient {
     /// Fetch Pro status from server
     static func getProStatus() async throws -> SyncProStatusResponse {
         try await perform(path: "/api/v1/users/me/pro-status", method: "GET", as: SyncProStatusResponse.self)
+    }
+}
+
+// MARK: - Polling Coordinator
+
+private actor PollingCoordinator {
+    static let shared = PollingCoordinator()
+
+    private var cachedResponse: PollingResponse?
+    private var lastFetchedAt: Date?
+    private var inFlightTask: Task<PollingResponse, Error>?
+
+    func getCached(ttl: TimeInterval) -> PollingResponse? {
+        guard let cachedResponse, let lastFetchedAt else { return nil }
+        if Date().timeIntervalSince(lastFetchedAt) < ttl {
+            return cachedResponse
+        }
+        return nil
+    }
+
+    func getInFlight() -> Task<PollingResponse, Error>? {
+        inFlightTask
+    }
+
+    func setInFlight(_ task: Task<PollingResponse, Error>) {
+        inFlightTask = task
+    }
+
+    func finish(_ response: PollingResponse) {
+        self.cachedResponse = response
+        self.lastFetchedAt = Date()
+        self.inFlightTask = nil
+    }
+
+    func finishWithError() {
+        self.inFlightTask = nil
+    }
+
+    func clear() {
+        self.cachedResponse = nil
+        self.lastFetchedAt = nil
+        self.inFlightTask = nil
     }
 }
 
