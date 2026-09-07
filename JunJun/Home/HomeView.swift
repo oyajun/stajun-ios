@@ -111,20 +111,20 @@ struct HomeView: View {
                         .listRowInsets(EdgeInsets(top: 8, leading: 32, bottom: 0, trailing: 32))
                 }
 
-                // Study start/stop card
-                studyCard
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 20, leading: 32, bottom: 0, trailing: 32))
+                // Study start/stop card + My active activity bubble
+                VStack(alignment: .leading, spacing: 4) {
+                    studyCard
+                        .animation(nil, value: isStudying)
 
-                // My active activity bubble (animates in when studying)
-                if isStudying {
-                    myActivitySection
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 32, bottom: 0, trailing: 32))
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    if isStudying {
+                        myActivitySection
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 20, leading: 32, bottom: 0, trailing: 32))
 
                 // Following users (loads independently)
                 followingContent
@@ -372,6 +372,7 @@ struct HomeView: View {
                 }
             }
             .buttonStyle(.plain)
+            .animation(nil, value: isStudying)
 
             // Right: timer + button
             VStack(spacing: 12) {
@@ -511,9 +512,11 @@ struct HomeView: View {
     @ViewBuilder
     private var myActivitySection: some View {
         HStack {
+            let myTintColor = Color(hex: appState.currentUser?.iconBackgroundColor ?? "") ?? .orange
             MyActivityBubble(
                 activity: currentActivity,
                 tailX: myAvatarCenter,
+                tintColor: myTintColor,
                 onEdit: {
                     showEditActivitySheet = true
                 }
@@ -616,7 +619,7 @@ struct HomeView: View {
 
     private var followingTopPadding: CGFloat {
         if isStudying {
-            return hasAnyTopBubble ? 10 : 18
+            return hasAnyTopBubble ? 18 : 30
         } else {
             return hasAnyTopBubble ? 20 : 38
         }
@@ -631,6 +634,7 @@ struct HomeView: View {
                         let isSingle = user.activity.map { FollowingActivityBubble.isSingleCell(for: $0) } ?? true
                         let alignment: Alignment = isSingle ? .center : ((config?.extendsRight ?? true) ? .leading : .trailing)
                         let offsetX: CGFloat = isSingle ? 0 : ((config?.extendsRight ?? true) ? 2.5 : -2.5)
+                        let userColor = Color(hex: user.iconBackgroundColor) ?? .orange
 
                         NavigationLink(value: user.id) {
                             VStack(spacing: 0) {
@@ -638,8 +642,13 @@ struct HomeView: View {
                                     // Top bubble slot (36pt)
                                     ZStack(alignment: alignment) {
                                         if let config, config.isTop, let act = user.activity {
-                                            FollowingActivityBubble(text: act, isTop: true, extendsRight: config.extendsRight)
-                                                .offset(x: offsetX)
+                                            FollowingActivityBubble(
+                                                text: act,
+                                                isTop: true,
+                                                extendsRight: config.extendsRight,
+                                                tintColor: userColor
+                                            )
+                                            .offset(x: offsetX)
                                         }
                                     }
                                     .frame(width: 74, height: 36, alignment: alignment)
@@ -687,12 +696,17 @@ struct HomeView: View {
                                     // Bottom bubble slot (36pt)
                                     ZStack(alignment: alignment) {
                                         if let config, !config.isTop, let act = user.activity {
-                                            FollowingActivityBubble(text: act, isTop: false, extendsRight: config.extendsRight)
-                                                .offset(x: offsetX)
+                                            FollowingActivityBubble(
+                                                text: act,
+                                                isTop: false,
+                                                extendsRight: config.extendsRight,
+                                                tintColor: userColor
+                                            )
+                                            .offset(x: offsetX)
                                         }
                                     }
                                     .frame(width: 74, height: 36, alignment: alignment)
-                                    .padding(.top, 6)
+                                    .padding(.top, 2)
                                 }
                             }
                             .frame(width: 74)

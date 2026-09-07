@@ -249,9 +249,11 @@ struct UserProfileView: View {
 
         VStack(spacing: 12) {
             if hasProfileBubble(user) {
+                let userColor = Color(hex: isOwnProfile ? (appState.currentUser?.iconBackgroundColor ?? user.iconBackgroundColor) : user.iconBackgroundColor) ?? .orange
                 ProfileActivityBubble(
                     activity: effectiveActivity,
                     isOwnProfile: isOwnProfile,
+                    tintColor: userColor,
                     onEdit: {
                         showEditActivitySheet = true
                     }
