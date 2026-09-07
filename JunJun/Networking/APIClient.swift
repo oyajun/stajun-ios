@@ -353,8 +353,27 @@ enum APIClient {
 
     /// Start studying. Idempotent upsert on the server (the server flag is only
     /// an approximate signal for others; the device holds the real timer).
-    static func startStudy() async throws {
-        try await perform(path: "/api/v1/study-sessions/start", method: "POST", as: EmptyResponse.self)
+    static func startStudy(activity: String? = nil) async throws {
+        if let activity = activity?.trimmingCharacters(in: .whitespacesAndNewlines), !activity.isEmpty {
+            try await perform(
+                path: "/api/v1/study-sessions/start",
+                method: "POST",
+                body: StartStudySessionRequest(activity: activity),
+                as: EmptyResponse.self
+            )
+        } else {
+            try await perform(path: "/api/v1/study-sessions/start", method: "POST", as: EmptyResponse.self)
+        }
+    }
+
+    /// Update current study activity (what you are doing)
+    static func updateStudyActivity(_ activity: String?) async throws {
+        try await perform(
+            path: "/api/v1/study-sessions/activity",
+            method: "PUT",
+            body: UpdateActivityRequest(activity: activity),
+            as: EmptyResponse.self
+        )
     }
 
     /// Pause studying.

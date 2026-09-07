@@ -28,6 +28,7 @@ struct UserProfileView: View {
     @State private var isBlocked: Bool
     @State private var showBlockConfirmation = false
     @State private var showPaywall = false
+    @State private var showEditActivitySheet = false
 
     init(userId: String, initialIsBlocked: Bool = false) {
         self.userId = userId
@@ -64,68 +65,85 @@ struct UserProfileView: View {
             FollowListView(userId: userId, userName: user?.name, initialTab: tab)
         }
         .navigationDestination(item: $selectedPost) { post in
-            PostDetailView(
-                post: post,
-                onDelete: {
-                    posts.removeAll { $0.id == post.id }
-                    PostsCache.save(posts, scopeKey: "user_\(userId)")
-                },
-                onToggleLike: { isLiked, count in
-                    updatePostLike(id: post.id, isLiked: isLiked, likeCount: count)
-                },
-                onUpdate: { updated in
-                    updatePostContent(id: updated.id, minutes: updated.minutes, comment: updated.comment)
-                }
-            )
+            postDetailDestination(for: post)
         }
         .sheet(item: $postToEdit) { post in
             EditPostView(post: post) { updated in
                 updatePostContent(id: updated.id, minutes: updated.minutes, comment: updated.comment)
             }
         }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView()
+        }
+        .sheet(isPresented: $showEditActivitySheet) {
+            activityEditSheet
+        }
         .task {
             await onAppearTask()
         }
-        .alert("Delete Post", isPresented: Binding(
-            get: { postToDelete != nil },
-            set: { if !$0 { postToDelete = nil } }
-        ), presenting: postToDelete) { post in
-            Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
-                Task { await deletePost(post) }
+        .modifier(
+            ProfileAlertsModifier(
+                postToDelete: $postToDelete,
+                postToReport: $postToReport,
+                showReportSuccessAlert: $showReportSuccessAlert,
+                showBlockConfirmation: $showBlockConfirmation,
+                showMuteAlert: $showMuteAlert,
+                muteAlertTitle: muteAlertTitle,
+                onDeletePost: { post in Task { await deletePost(post) } },
+                onReportPost: { post in Task { await reportPost(post) } },
+                onBlock: { Task { await block() } }
+            )
+        )
+    }
+
+    @ViewBuilder
+    private func postDetailDestination(for post: Post) -> some View {
+        PostDetailView(
+            post: post,
+            onDelete: {
+                posts.removeAll { $0.id == post.id }
+                PostsCache.save(posts, scopeKey: "user_\(userId)")
+            },
+            onToggleLike: { isLiked, count in
+                updatePostLike(id: post.id, isLiked: isLiked, likeCount: count)
+            },
+            onUpdate: { updated in
+                updatePostContent(id: updated.id, minutes: updated.minutes, comment: updated.comment)
             }
-        } message: { _ in
-            Text("Are you sure you want to delete this post?")
+        )
+    }
+
+    @ViewBuilder
+    private var activityEditSheet: some View {
+        let current = isOwnProfile ? (LocalStudyStore.currentActivity ?? user?.activity) : user?.activity
+        ActivityEditSheet(initialActivity: current) { newActivity in
+            saveActivity(newActivity)
         }
-        .alert("Report Post", isPresented: Binding(
-            get: { postToReport != nil },
-            set: { if !$0 { postToReport = nil } }
-        ), presenting: postToReport) { post in
-            Button("Cancel", role: .cancel) { }
-            Button("Report", role: .destructive) {
-                Task { await reportPost(post) }
+    }
+
+    private func saveActivity(_ newActivity: String?) {
+        Task {
+            try? await APIClient.updateStudyActivity(newActivity)
+            LocalStudyStore.currentActivity = newActivity
+            if var u = user {
+                u = UserWithStudyStatus(
+                    id: u.id,
+                    name: u.name,
+                    iconEmoji: u.iconEmoji,
+                    iconBackgroundColor: u.iconBackgroundColor,
+                    isFollowing: u.isFollowing,
+                    muteStudyStartNotification: u.muteStudyStartNotification,
+                    isMuted: u.isMuted,
+                    isStudying: u.isStudying,
+                    studyingSince: u.studyingSince,
+                    isPaused: u.isPaused,
+                    accumulatedSeconds: u.accumulatedSeconds,
+                    isPro: u.isPro,
+                    activity: newActivity
+                )
+                user = u
+                UserProfileCache.save(u, userId: userId)
             }
-        } message: { _ in
-            Text("Are you sure you want to report this post?")
-        }
-        .alert("Report Submitted", isPresented: $showReportSuccessAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text("Thank you for reporting this post.")
-        }
-        .alert("Block User", isPresented: $showBlockConfirmation) {
-            Button("Cancel", role: .cancel) { }
-            Button("Block", role: .destructive) {
-                Task { await block() }
-            }
-        } message: {
-            Text("Are you sure you want to block this user?")
-        }
-        .alert(LocalizedStringKey(muteAlertTitle), isPresented: $showMuteAlert) {
-            Button("OK", role: .cancel) { }
-        }
-        .sheet(isPresented: $showPaywall) {
-            PaywallView()
         }
     }
 
@@ -136,7 +154,7 @@ struct UserProfileView: View {
             profileHeader(user)
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 36, leading: 32, bottom: 24, trailing: 32))
+                .listRowInsets(EdgeInsets(top: hasProfileBubble(user) ? 14 : 36, leading: 32, bottom: 24, trailing: 32))
 
             // Posts
             if isBlocked {
@@ -217,16 +235,35 @@ struct UserProfileView: View {
         }
     }
 
+    private func hasProfileBubble(_ user: UserWithStudyStatus) -> Bool {
+        guard !isBlocked else { return false }
+        let effectiveActivity = isOwnProfile ? (LocalStudyStore.currentActivity ?? user.activity) : user.activity
+        return isOwnProfile || !(effectiveActivity?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+    }
+
     @ViewBuilder
     private func profileHeader(_ user: UserWithStudyStatus) -> some View {
         let isUserPro = !isBlocked && ((isOwnProfile && appState.isPro) || (user.isPro ?? false))
+        let isUserStudying = !isBlocked && (isOwnProfile ? (appState.isStudying || LocalStudyStore.localStartedAt != nil || user.isStudying) : user.isStudying)
+        let effectiveActivity = isOwnProfile ? (LocalStudyStore.currentActivity ?? user.activity) : user.activity
 
         VStack(spacing: 12) {
+            if hasProfileBubble(user) {
+                ProfileActivityBubble(
+                    activity: effectiveActivity,
+                    isOwnProfile: isOwnProfile,
+                    onEdit: {
+                        showEditActivitySheet = true
+                    }
+                )
+                .padding(.bottom, 16) // Clear separation from avatar glow (extends ~21.6pt above avatar frame)
+            }
+
             UserIconView(
                 emoji: user.iconEmoji,
                 backgroundColor: user.iconBackgroundColor,
                 size: 80,
-                isStudying: isBlocked ? false : user.isStudying,
+                isStudying: isUserStudying,
                 isPro: isUserPro
             )
 
@@ -385,8 +422,24 @@ struct UserProfileView: View {
         defer { isLoading = false }
         do {
             let fetched = try await APIClient.getUser(id: userId)
-            user = fetched
-            UserProfileCache.save(fetched, userId: userId)
+            let mergedActivity = fetched.activity ?? user?.activity
+            let merged = UserWithStudyStatus(
+                id: fetched.id,
+                name: fetched.name,
+                iconEmoji: fetched.iconEmoji,
+                iconBackgroundColor: fetched.iconBackgroundColor,
+                isFollowing: fetched.isFollowing,
+                muteStudyStartNotification: fetched.muteStudyStartNotification,
+                isMuted: fetched.isMuted,
+                isStudying: fetched.isStudying,
+                studyingSince: fetched.studyingSince,
+                isPaused: fetched.isPaused,
+                accumulatedSeconds: fetched.accumulatedSeconds,
+                isPro: fetched.isPro,
+                activity: mergedActivity
+            )
+            user = merged
+            UserProfileCache.save(merged, userId: userId)
             let blockedResp = try? await APIClient.getBlockedUsers(limit: 50, offset: 0)
             if let resp = blockedResp, resp.users.contains(where: { $0.id == userId }) {
                 isBlocked = true
@@ -412,7 +465,8 @@ struct UserProfileView: View {
                     isFollowing: nil,
                     isStudying: appState.isStudying,
                     studyingSince: nil,
-                    isPro: appState.isPro
+                    isPro: appState.isPro,
+                    activity: LocalStudyStore.currentActivity
                 )
                 isLoading = false
             }
@@ -581,6 +635,70 @@ struct UserProfileView: View {
                 errorMessage = error.localizedDescription
             }
         }
+    }
+}
+
+// MARK: - Profile Alerts ViewModifier
+
+private struct ProfileAlertsModifier: ViewModifier {
+    @Binding var postToDelete: Post?
+    @Binding var postToReport: Post?
+    @Binding var showReportSuccessAlert: Bool
+    @Binding var showBlockConfirmation: Bool
+    @Binding var showMuteAlert: Bool
+    let muteAlertTitle: String
+    let onDeletePost: (Post) -> Void
+    let onReportPost: (Post) -> Void
+    let onBlock: () -> Void
+
+    private var deleteBinding: Binding<Bool> {
+        Binding(
+            get: { postToDelete != nil },
+            set: { if !$0 { postToDelete = nil } }
+        )
+    }
+
+    private var reportBinding: Binding<Bool> {
+        Binding(
+            get: { postToReport != nil },
+            set: { if !$0 { postToReport = nil } }
+        )
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .alert("Delete Post", isPresented: deleteBinding, presenting: postToDelete) { post in
+                Button("Cancel", role: .cancel) { }
+                Button("Delete", role: .destructive) {
+                    onDeletePost(post)
+                }
+            } message: { _ in
+                Text("Are you sure you want to delete this post?")
+            }
+            .alert("Report Post", isPresented: reportBinding, presenting: postToReport) { post in
+                Button("Cancel", role: .cancel) { }
+                Button("Report", role: .destructive) {
+                    onReportPost(post)
+                }
+            } message: { _ in
+                Text("Are you sure you want to report this post?")
+            }
+            .alert("Report Submitted", isPresented: $showReportSuccessAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Thank you for reporting this post.")
+            }
+            .alert("Block User", isPresented: $showBlockConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Block", role: .destructive) {
+                    onBlock()
+                }
+            } message: {
+                Text("Are you sure you want to block this user?")
+            }
+            .alert(LocalizedStringKey(muteAlertTitle), isPresented: $showMuteAlert) {
+                Button("OK", role: .cancel) { }
+            }
     }
 }
 

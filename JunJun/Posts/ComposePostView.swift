@@ -17,11 +17,12 @@ struct ComposePostView: View {
 
     private let maxCommentLength = 50
 
-    init(initialMinutes: Int = 0, onPosted: ((StudyPost) -> Void)? = nil) {
+    init(initialMinutes: Int = 0, initialComment: String? = nil, onPosted: ((StudyPost) -> Void)? = nil) {
         self.onPosted = onPosted
         let clamped = min(max(initialMinutes, 0), 1440)
         _hours = State(initialValue: clamped / 60)
         _mins = State(initialValue: clamped % 60)
+        _comment = State(initialValue: initialComment ?? "")
     }
 
     private var totalMinutes: Int { hours * 60 + mins }

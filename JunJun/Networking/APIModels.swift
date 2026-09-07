@@ -54,6 +54,7 @@ struct UserWithFollowStatus: Codable, Identifiable {
     let isStudying: Bool?
     let studyingSince: Date?
     let isPro: Bool?
+    let activity: String?
 }
 
 
@@ -70,6 +71,7 @@ struct UserWithStudyStatus: Codable, Identifiable, Equatable, Hashable, Sendable
     let isPaused: Bool?
     let accumulatedSeconds: Int?
     let isPro: Bool?
+    let activity: String?
 
     init(
         id: String,
@@ -83,7 +85,8 @@ struct UserWithStudyStatus: Codable, Identifiable, Equatable, Hashable, Sendable
         studyingSince: Date? = nil,
         isPaused: Bool? = nil,
         accumulatedSeconds: Int? = nil,
-        isPro: Bool? = nil
+        isPro: Bool? = nil,
+        activity: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -97,6 +100,7 @@ struct UserWithStudyStatus: Codable, Identifiable, Equatable, Hashable, Sendable
         self.isPaused = isPaused
         self.accumulatedSeconds = accumulatedSeconds
         self.isPro = isPro
+        self.activity = activity
     }
 }
 
@@ -120,6 +124,28 @@ struct MyStudyStatus: Codable, Sendable {
     let startedAt: Date?
     let isPaused: Bool?
     let accumulatedSeconds: Int?
+    let activity: String?
+}
+
+struct UpdateActivityRequest: Encodable, Sendable {
+    let activity: String?
+
+    enum CodingKeys: String, CodingKey {
+        case activity
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        if let activity {
+            try container.encode(activity, forKey: .activity)
+        } else {
+            try container.encodeNil(forKey: .activity)
+        }
+    }
+}
+
+struct StartStudySessionRequest: Encodable, Sendable {
+    let activity: String?
 }
 
 // MARK: - Home Feed

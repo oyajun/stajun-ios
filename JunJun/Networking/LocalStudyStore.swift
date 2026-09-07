@@ -101,12 +101,27 @@ enum LocalStudyStore {
         }
     }
 
+    private static let currentActivityKey = "local_study_current_activity"
+
+    /// The current study activity text (e.g. "English", "Swift").
+    static var currentActivity: String? {
+        get { UserDefaults.standard.string(forKey: currentActivityKey) }
+        set {
+            if let newValue = newValue?.trimmingCharacters(in: .whitespacesAndNewlines), !newValue.isEmpty {
+                UserDefaults.standard.set(newValue, forKey: currentActivityKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: currentActivityKey)
+            }
+        }
+    }
+
     static func clear() {
         UserDefaults.standard.removeObject(forKey: startKey)
         UserDefaults.standard.removeObject(forKey: offlineKey)
         UserDefaults.standard.removeObject(forKey: accumulatedKey)
         UserDefaults.standard.removeObject(forKey: segmentStartKey)
         UserDefaults.standard.removeObject(forKey: isPausedKey)
+        UserDefaults.standard.removeObject(forKey: currentActivityKey)
     }
 }
 

@@ -78,6 +78,11 @@ struct HomeView: View {
     // Post composer (shown after stopping a study session)
     @State private var showComposePost = false
     @State private var composeInitialMinutes = 0
+    @State private var composeInitialComment: String?
+
+    // Study activity
+    @State private var currentActivity: String? = LocalStudyStore.currentActivity
+    @State private var showEditActivitySheet = false
 
     private enum PostScope: Hashable {
         case following, mine
@@ -111,6 +116,15 @@ struct HomeView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 20, leading: 32, bottom: 0, trailing: 32))
+
+                // My active activity bubble (animates in when studying)
+                if isStudying {
+                    myActivitySection
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 32, bottom: 0, trailing: 32))
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
 
                 // Following users (loads independently)
                 followingContent
@@ -254,7 +268,7 @@ struct HomeView: View {
                 }
             }
             .sheet(isPresented: $showComposePost) {
-                ComposePostView(initialMinutes: composeInitialMinutes) { newPost in
+                ComposePostView(initialMinutes: composeInitialMinutes, initialComment: composeInitialComment) { newPost in
                     prependPost(newPost)
                     Task {
                         await loadFollowingPosts()
@@ -263,6 +277,14 @@ struct HomeView: View {
                     }
                     handlePostMilestone()
                 }
+            }
+            .sheet(isPresented: $showEditActivitySheet) {
+                ActivityEditSheet(
+                    initialActivity: currentActivity,
+                    onSave: { newActivity in
+                        updateActivity(newActivity)
+                    }
+                )
             }
             .sheet(isPresented: $showCompose) {
                 ComposePostView { newPost in
@@ -476,6 +498,30 @@ struct HomeView: View {
         .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
     }
 
+    // MARK: - My Activity Section
+
+    private var myAvatarCenter: CGFloat {
+        let name = appState.currentUser?.name ?? ""
+        let font = UIFont.systemFont(ofSize: 12)
+        let nameWidth = (name as NSString).size(withAttributes: [.font: font]).width
+        let columnWidth = max(52, nameWidth)
+        return columnWidth / 2
+    }
+
+    @ViewBuilder
+    private var myActivitySection: some View {
+        HStack {
+            MyActivityBubble(
+                activity: currentActivity,
+                tailX: myAvatarCenter,
+                onEdit: {
+                    showEditActivitySheet = true
+                }
+            )
+            Spacer()
+        }
+    }
+
     // MARK: - Following Content
 
     @ViewBuilder
@@ -492,13 +538,114 @@ struct HomeView: View {
 
     // MARK: - Following Section
 
+    private struct BubbleConfig: Equatable {
+        let isTop: Bool        // true: top slot, false: bottom slot
+        let extendsRight: Bool // true: extends to the right, false: extends to the left
+    }
+
+    private var bubbleConfigs: [String: BubbleConfig] {
+        var configs: [String: BubbleConfig] = [:]
+        var topOccupied: Set<Int> = []
+        var bottomOccupied: Set<Int> = []
+
+        for i in 0..<feedUsers.count {
+            let user = feedUsers[i]
+            guard user.isStudying,
+                  let act = user.activity?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !act.isEmpty else {
+                continue
+            }
+
+            // 1. Determine Top vs Bottom:
+            // Prefer Top slot if not occupied by a preceding user's bubble.
+            let isTop = !topOccupied.contains(i)
+
+            // 2. Determine Left vs Right:
+            // Prefer Left if left neighbor (i - 1) has no bubble and that slot is not occupied.
+            let leftNeighborHasBubble = (i > 0) && {
+                let neighbor = feedUsers[i - 1]
+                return neighbor.isStudying && !(neighbor.activity?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            }()
+
+            let extendsRight: Bool
+            if i > 0 && !leftNeighborHasBubble {
+                let slotOccupied = isTop ? topOccupied.contains(i - 1) : bottomOccupied.contains(i - 1)
+                extendsRight = slotOccupied
+            } else {
+                extendsRight = true
+            }
+
+            configs[user.id] = BubbleConfig(isTop: isTop, extendsRight: extendsRight)
+
+            // Mark occupied slots:
+            // Self slot (i) is always occupied.
+            // Neighbor slot is only marked occupied if the bubble actually spans into the neighbor slot (> 1 cell width).
+            let occupiesNeighbor = FollowingActivityBubble.occupiesNeighbor(for: act)
+
+            if isTop {
+                topOccupied.insert(i)
+                if occupiesNeighbor {
+                    if extendsRight {
+                        topOccupied.insert(i + 1)
+                    } else if i > 0 {
+                        topOccupied.insert(i - 1)
+                    }
+                }
+            } else {
+                bottomOccupied.insert(i)
+                if occupiesNeighbor {
+                    if extendsRight {
+                        bottomOccupied.insert(i + 1)
+                    } else if i > 0 {
+                        bottomOccupied.insert(i - 1)
+                    }
+                }
+            }
+        }
+
+        return configs
+    }
+
+    private var hasAnyTopBubble: Bool {
+        bubbleConfigs.values.contains { $0.isTop }
+    }
+
+    private var hasAnyBottomBubble: Bool {
+        bubbleConfigs.values.contains { !$0.isTop }
+    }
+
+    private var followingTopPadding: CGFloat {
+        if isStudying {
+            return hasAnyTopBubble ? 10 : 18
+        } else {
+            return hasAnyTopBubble ? 20 : 38
+        }
+    }
+
     private var followingSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 14) {
                     ForEach(feedUsers) { user in
+                        let config = bubbleConfigs[user.id]
+                        let isSingle = user.activity.map { FollowingActivityBubble.isSingleCell(for: $0) } ?? true
+                        let alignment: Alignment = isSingle ? .center : ((config?.extendsRight ?? true) ? .leading : .trailing)
+                        let offsetX: CGFloat = isSingle ? 0 : ((config?.extendsRight ?? true) ? 2.5 : -2.5)
+
                         NavigationLink(value: user.id) {
                             VStack(spacing: 0) {
+                                if hasAnyTopBubble {
+                                    // Top bubble slot (36pt)
+                                    ZStack(alignment: alignment) {
+                                        if let config, config.isTop, let act = user.activity {
+                                            FollowingActivityBubble(text: act, isTop: true, extendsRight: config.extendsRight)
+                                                .offset(x: offsetX)
+                                        }
+                                    }
+                                    .frame(width: 74, height: 36, alignment: alignment)
+                                    .padding(.bottom, 14) // Clear separation from avatar and its glowing halo
+                                }
+
                                 UserIconView(
                                     emoji: user.iconEmoji,
                                     backgroundColor: user.iconBackgroundColor,
@@ -535,6 +682,18 @@ struct HomeView: View {
                                         .font(.caption2)
                                         .padding(.top, 2)
                                 }
+
+                                if hasAnyBottomBubble {
+                                    // Bottom bubble slot (36pt)
+                                    ZStack(alignment: alignment) {
+                                        if let config, !config.isTop, let act = user.activity {
+                                            FollowingActivityBubble(text: act, isTop: false, extendsRight: config.extendsRight)
+                                                .offset(x: offsetX)
+                                        }
+                                    }
+                                    .frame(width: 74, height: 36, alignment: alignment)
+                                    .padding(.top, 6)
+                                }
                             }
                             .frame(width: 74)
                         }
@@ -542,8 +701,11 @@ struct HomeView: View {
                     }
                 }
                 .padding(.horizontal, 32)
-                .padding(.top, 42)
-                .padding(.bottom, 10)
+                .padding(.top, followingTopPadding)
+                .padding(.bottom, hasAnyBottomBubble ? 8 : 12)
+                .animation(.easeInOut(duration: 0.25), value: hasAnyTopBubble)
+                .animation(.easeInOut(duration: 0.25), value: hasAnyBottomBubble)
+                .animation(.easeInOut(duration: 0.25), value: isStudying)
             }
             .scrollClipDisabled()
         }
@@ -680,6 +842,7 @@ struct HomeView: View {
             isStudying = true
             isPaused = LocalStudyStore.isPaused
             studyStartedAt = local
+            currentActivity = LocalStudyStore.currentActivity
 
             if status.isStudying {
                 // Already shared; nothing to announce.
@@ -687,15 +850,18 @@ struct HomeView: View {
             } else if LocalStudyStore.startedOffline {
                 // Began offline and was never announced. Publish it now.
                 do {
-                    try await APIClient.startStudy()
+                    try await APIClient.startStudy(activity: LocalStudyStore.currentActivity)
                     LocalStudyStore.startedOffline = false
                 } catch { }
             } else {
                 // The server knew about this session and it's gone: ended on another device.
                 LocalStudyStore.clear()
-                isStudying = false
-                isPaused = false
-                studyStartedAt = nil
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    isStudying = false
+                    isPaused = false
+                    studyStartedAt = nil
+                    currentActivity = nil
+                }
             }
         } else if status.isStudying {
             // Not studying locally but the server says we are (started on another device).
@@ -705,17 +871,24 @@ struct HomeView: View {
             LocalStudyStore.localStartedAt = start
             LocalStudyStore.isPaused = paused
             LocalStudyStore.accumulatedSeconds = acc
+            LocalStudyStore.currentActivity = status.activity
             if !paused {
                 LocalStudyStore.segmentStartedAt = start
             }
             LocalStudyStore.startedOffline = false
-            isStudying = true
-            isPaused = paused
-            studyStartedAt = start
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                isStudying = true
+                isPaused = paused
+                studyStartedAt = start
+                currentActivity = status.activity
+            }
         } else {
-            isStudying = false
-            isPaused = false
-            studyStartedAt = nil
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                isStudying = false
+                isPaused = false
+                studyStartedAt = nil
+                currentActivity = nil
+            }
         }
     }
 
@@ -750,10 +923,12 @@ struct HomeView: View {
             isStudying = true
             isPaused = LocalStudyStore.isPaused
             studyStartedAt = local
+            currentActivity = LocalStudyStore.currentActivity
         } else {
             isStudying = false
             isPaused = false
             studyStartedAt = nil
+            currentActivity = nil
         }
     }
 
@@ -770,6 +945,9 @@ struct HomeView: View {
             let response = try await APIClient.getHomeFeed()
             feedUsers = response.users
             FeedCache.save(response.users)
+            for u in response.users {
+                UserProfileCache.save(u, userId: u.id)
+            }
         } catch APIError.networkError {
             feedError = nil
         } catch {
@@ -798,6 +976,9 @@ struct HomeView: View {
             let poll = try await APIClient.poll(force: force)
             feedUsers = poll.users
             FeedCache.save(poll.users)
+            for u in poll.users {
+                UserProfileCache.save(u, userId: u.id)
+            }
             await applyStudyStatus(poll.studySession)
             appState.unreadNotificationCount = poll.unreadCount
         } catch APIError.networkError {
@@ -820,15 +1001,37 @@ struct HomeView: View {
     private func startStudying() async {
         let now = Date()
         LocalStudyStore.start(at: now)
-        isStudying = true
-        isPaused = false
-        studyStartedAt = now
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            isStudying = true
+            isPaused = false
+            studyStartedAt = now
+            currentActivity = nil
+        }
 
         do {
             try await APIClient.startStudy()
             LocalStudyStore.startedOffline = false
         } catch {
             LocalStudyStore.startedOffline = true
+        }
+    }
+
+    private func updateActivity(_ newActivity: String?) {
+        LocalStudyStore.currentActivity = newActivity
+        withAnimation(.easeInOut(duration: 0.2)) {
+            currentActivity = newActivity
+        }
+
+        if network.isOnline {
+            Task {
+                do {
+                    try await APIClient.updateStudyActivity(newActivity)
+                } catch {
+                    #if DEBUG
+                    print("[HomeView] updateStudyActivity failed: \(error)")
+                    #endif
+                }
+            }
         }
     }
 
@@ -853,12 +1056,18 @@ struct HomeView: View {
     private func stopStudying() {
         let totalElapsed = LocalStudyStore.totalElapsedSeconds()
         let elapsedMinutes = Int(totalElapsed / 60)
+        let lastActivity = currentActivity
+
         LocalStudyStore.clear()
-        isStudying = false
-        isPaused = false
-        studyStartedAt = nil
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            isStudying = false
+            isPaused = false
+            studyStartedAt = nil
+            currentActivity = nil
+        }
 
         composeInitialMinutes = max(1, elapsedMinutes)
+        composeInitialComment = lastActivity
         showComposePost = true
 
         if network.isOnline {

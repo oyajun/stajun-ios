@@ -883,6 +883,29 @@
         }
       }
     },
+    "Clear Activity" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Activity"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "やっていることをクリア"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "활동 삭제"
+          }
+        }
+      }
+    },
     "Comment (optional)" : {
       "localizations" : {
         "ja" : {
@@ -3252,6 +3275,29 @@
         }
       }
     },
+    "Recent" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近の履歴"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "최근 기록"
+          }
+        }
+      }
+    },
     "Recommended Users" : {
       "localizations" : {
         "ja" : {
@@ -3837,6 +3883,28 @@
         }
       }
     },
+    "Status" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ステータス"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "상태"
+          }
+        }
+      }
+    },
     "Stop" : {
       "localizations" : {
         "en" : {
@@ -4002,6 +4070,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "기호"
+          }
+        }
+      }
+    },
+    "Tap to add what you are doing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to add what you are doing"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タップして、今やっていることを追加しよう"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "탭하여 지금 하는 일을 추가해 보세요"
           }
         }
       }
@@ -4678,6 +4768,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "JunJun Pro에 오신 것을 환영합니다!\n\n【중요】\n앱을 삭제하거나 계정을 탈퇴하는 것만으로는 구독이 해지되지 않습니다! 더 이상 이용하지 않으실 경우, 사전에 JunJun Pro 구독을 해지해 주세요."
+          }
+        }
+      }
+    },
+    "What are you doing?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What are you doing?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "何してる？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지금 뭐해요?"
           }
         }
       }
