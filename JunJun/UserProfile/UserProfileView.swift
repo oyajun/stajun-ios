@@ -235,8 +235,13 @@ struct UserProfileView: View {
         }
     }
 
-    private func hasProfileBubble(_ user: UserWithStudyStatus) -> Bool {
+    private func isUserStudying(_ user: UserWithStudyStatus) -> Bool {
         guard !isBlocked else { return false }
+        return isOwnProfile ? (appState.isStudying || LocalStudyStore.localStartedAt != nil || user.isStudying) : user.isStudying
+    }
+
+    private func hasProfileBubble(_ user: UserWithStudyStatus) -> Bool {
+        guard isUserStudying(user) else { return false }
         let effectiveActivity = isOwnProfile ? (LocalStudyStore.currentActivity ?? user.activity) : user.activity
         return isOwnProfile || !(effectiveActivity?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
     }
@@ -244,7 +249,7 @@ struct UserProfileView: View {
     @ViewBuilder
     private func profileHeader(_ user: UserWithStudyStatus) -> some View {
         let isUserPro = !isBlocked && ((isOwnProfile && appState.isPro) || (user.isPro ?? false))
-        let isUserStudying = !isBlocked && (isOwnProfile ? (appState.isStudying || LocalStudyStore.localStartedAt != nil || user.isStudying) : user.isStudying)
+        let isStudying = isUserStudying(user)
         let effectiveActivity = isOwnProfile ? (LocalStudyStore.currentActivity ?? user.activity) : user.activity
 
         VStack(spacing: 12) {
@@ -265,7 +270,7 @@ struct UserProfileView: View {
                 emoji: user.iconEmoji,
                 backgroundColor: user.iconBackgroundColor,
                 size: 80,
-                isStudying: isUserStudying,
+                isStudying: isStudying,
                 isPro: isUserPro
             )
 
