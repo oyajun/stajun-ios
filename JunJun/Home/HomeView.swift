@@ -14,6 +14,7 @@ struct HomeView: View {
     @State private var isPaused = LocalStudyStore.isPaused
     @State private var studyStartedAt: Date?
     @State private var studyActionLoading = false
+    @State private var isStartingStudy = false
     @State private var studyError: String?
 
     // Feed (following users study status)
@@ -868,17 +869,31 @@ struct HomeView: View {
                     LocalStudyStore.startedOffline = false
                 } catch { }
             } else {
-                // The server knew about this session and it's gone: ended on another device.
-                LocalStudyStore.clear()
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    isStudying = false
-                    isPaused = false
-                    studyStartedAt = nil
-                    currentActivity = nil
+                let sessionAge = Date().timeIntervalSince(local)
+                let isRecentlyStarted = sessionAge < 60 // Grace period: protect sessions started within 60 seconds
+
+                if isStartingStudy || isRecentlyStarted {
+                    // Just started on this device: protect against race condition or laggy server response.
+                    // If startStudy already completed but server returned stale false, re-announce.
+                    if !isStartingStudy {
+                        Task {
+                            try? await APIClient.startStudy(activity: LocalStudyStore.currentActivity)
+                        }
+                    }
+                } else {
+                    // The server knew about this session and it's gone after grace period: ended on another device.
+                    LocalStudyStore.clear()
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        isStudying = false
+                        isPaused = false
+                        studyStartedAt = nil
+                        currentActivity = nil
+                    }
                 }
             }
         } else if status.isStudying {
-            // Not studying locally but the server says we are (started on another device).
+            // Started on another device: only accept if we are not in the middle of starting locally
+            guard !isStartingStudy else { return }
             let start = status.startedAt ?? Date()
             let paused = status.isPaused ?? false
             let acc = Double(status.accumulatedSeconds ?? 0)
@@ -897,6 +912,8 @@ struct HomeView: View {
                 currentActivity = status.activity
             }
         } else {
+            // Server says not studying and we have no local timer
+            guard !isStartingStudy else { return }
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 isStudying = false
                 isPaused = false
@@ -1013,8 +1030,16 @@ struct HomeView: View {
     }
 
     private func startStudying() async {
+        guard !studyActionLoading else { return }
+        studyActionLoading = true
+        isStartingStudy = true
+        defer {
+            studyActionLoading = false
+            isStartingStudy = false
+        }
+
         let now = Date()
-        LocalStudyStore.start(at: now)
+        LocalStudyStore.start(at: now, offline: true)
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             isStudying = true
             isPaused = false
