@@ -4074,7 +4074,30 @@
         }
       }
     },
+    "Tap the bubble to add what you are doing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the bubble to add what you are doing"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "吹き出しをタップして、今やっていることを追加しよう"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "말풍선을 탭하여 지금 하는 일을 추가해 보세요"
+          }
+        }
+      }
+    },
     "Tap to add what you are doing" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4085,13 +4108,13 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "タップして、今やっていることを追加しよう"
+            "value" : "吹き出しをタップして、今やっていることを追加しよう"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "탭하여 지금 하는 일을 추가해 보세요"
+            "value" : "말풍선을 탭하여 지금 하는 일을 추가해 보세요"
           }
         }
       }

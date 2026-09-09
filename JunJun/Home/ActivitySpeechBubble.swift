@@ -343,7 +343,7 @@ struct MyActivityBubble: View {
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                 } else {
-                    Text("Tap to add what you are doing")
+                    Text("Tap the bubble to add what you are doing")
                         .font(.caption.weight(.medium)) // Same size as user name
                         .foregroundStyle(Color.blue)
                 }
@@ -403,7 +403,7 @@ struct ProfileActivityBubble: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
             } else {
-                Text("Tap to add what you are doing")
+                Text("Tap the bubble to add what you are doing")
                     .font(.caption.weight(.medium))
                     .foregroundStyle(Color.blue)
                     .lineLimit(2)
