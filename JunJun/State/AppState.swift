@@ -126,8 +126,7 @@ final class AppState {
         if let cached = ProfileCache.load() {
             currentUser = cached
             authState = .authenticated
-            NotificationHandler.syncPendingTokenIfNeeded()
-            Task { await self.poll() }
+            Task { await self.poll(syncToken: true) }
         }
 
         do {
@@ -135,9 +134,8 @@ final class AppState {
             currentUser = profile
             ProfileCache.save(profile)
             authState = .authenticated
-            checkFollowingAndRequestPushPermission()
-            NotificationHandler.syncPendingTokenIfNeeded()
-            await poll()
+            requestPushPermissionIfAppropriate()
+            await poll(syncToken: true)
         } catch APIError.unauthorized {
             // Token actually invalid → sign out
             KeychainHelper.token = nil
@@ -152,16 +150,27 @@ final class AppState {
             // because the server is down. Use the cached profile if we have one.
             currentUser = ProfileCache.load()
             authState = .authenticated
-            checkFollowingAndRequestPushPermission()
-            NotificationHandler.syncPendingTokenIfNeeded()
+            requestPushPermissionIfAppropriate()
+            Task { await self.poll(syncToken: true) }
         }
     }
 
     // MARK: - Polling & Notifications
 
     /// Polling: fetches unread notifications count, latest following presence, etc.
-    func poll(force: Bool = false) async {
+    /// - Parameters:
+    ///   - force: Whether to bypass client-side polling cache
+    ///   - syncToken: Whether to deliver APNs device token to the server (safe to call even if token is nil)
+    func poll(force: Bool = false, syncToken: Bool = false) async {
         guard authState == .authenticated else { return }
+
+        // 必要なタイミングでのみトークンセット関数を実行（トークンなしでもスルー）
+        if syncToken {
+            Task {
+                await NotificationHandler.setDeviceToken()
+            }
+        }
+
         do {
             let res = try await APIClient.poll(force: force)
             unreadNotificationCount = res.unreadCount
@@ -206,9 +215,8 @@ final class AppState {
             let profile = try await APIClient.getMyProfile()
             currentUser = profile
             authState = .authenticated
-            checkFollowingAndRequestPushPermission()
-            NotificationHandler.syncPendingTokenIfNeeded()
-            await poll()
+            requestPushPermissionIfAppropriate()
+            await poll(syncToken: true)
 
         case .registerEmail, .changeEmail:
             try await APIClient.changeEmail(newEmail: email, otp: otp)
@@ -234,8 +242,8 @@ final class AppState {
         currentUser = profile
         ProfileCache.save(profile)
         authState = .authenticated
-        NotificationHandler.syncPendingTokenIfNeeded()
-        Task { await poll() }
+        requestPushPermissionIfAppropriate()
+        Task { await poll(syncToken: true) }
     }
 
     /// Create an anonymous profile

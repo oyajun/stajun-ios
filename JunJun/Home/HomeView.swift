@@ -235,6 +235,7 @@ struct HomeView: View {
                 if phase == .active {
                     Task {
                         await pollHome()
+                        await NotificationHandler.setDeviceToken()
                     }
                 }
             }

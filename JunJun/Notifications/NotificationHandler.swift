@@ -8,43 +8,69 @@ final class NotificationHandler: NSObject, UIApplicationDelegate, UNUserNotifica
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        // アプリ起動時にリモート通知登録を要求（権限がある場合は最新トークンが発行される）
+        UIApplication.shared.registerForRemoteNotifications()
         return true
     }
 
-    private static let lastRegisteredTokenKey = "com.oyajun.StaJun.lastRegisteredAPNsToken"
-
-    /// 最後にサーバーへの登録に成功した APNs トークン（UserDefaults で永続化）
-    private static var lastRegisteredToken: String? {
-        get {
-            UserDefaults.standard.string(forKey: lastRegisteredTokenKey)
-        }
-        set {
-            if let value = newValue {
-                UserDefaults.standard.set(value, forKey: lastRegisteredTokenKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: lastRegisteredTokenKey)
-            }
-        }
-    }
-
-    /// OS から受信した最新の APNs トークン（未ログイン時などの保留用）
-    private static var pendingDeviceToken: String?
+    /// OS から受信した最新の APNs トークン（メモリ保持のみ・永続キャッシュなし）
+    private(set) static var currentDeviceToken: String?
 
     /// トークン登録の排他制御用（現在進行中の Task）
     private static var activeRegistrationTask: Task<Void, Never>?
 
-    /// 登録キャッシュのリセット（ログアウト時やアカウント削除時に呼び出し）
+    /// 登録タスクのリセット（ログアウト時やアカウント削除時に呼び出し）
     static func resetRegisteredToken() {
-        lastRegisteredToken = nil
-        // pendingDeviceToken（端末の最新トークン）は保持し、再ログイン時に新ユーザーへ即時紐付け可能にする
         activeRegistrationTask?.cancel()
         activeRegistrationTask = nil
     }
 
-    /// ログイン完了時などに、未送信トークンがあればサーバーへ同期する
+    /// トークンをサーバーへ登録・上書きする独立関数。
+    /// - Parameter token: 指定トークン（nil の場合は保持している currentDeviceToken を使用）
+    /// - トークンなし、または未ログインの場合は安全にスルー（エラーを投げない）
+    /// - キャッシュはせず、呼ばれたら確実に最新トークンをサーバーへ上書き同期
+    @discardableResult
+    static func setDeviceToken(_ token: String? = nil) async -> Bool {
+        let tokenToSend = (token ?? currentDeviceToken)?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // トークンなし、または未ログイン時は安全にスルー
+        guard let tokenToSend = tokenToSend, !tokenToSend.isEmpty, KeychainHelper.token != nil else {
+            #if DEBUG
+            print("[APNs] setDeviceToken: Skipped (no token or user unauthenticated)")
+            #endif
+            return false
+        }
+
+        // 現在実行中のタスクがあればそれを待機して多重実行を防止
+        if let existingTask = activeRegistrationTask {
+            await existingTask.value
+            return true
+        }
+
+        let task = Task {
+            do {
+                try await APIClient.registerAPNsToken(token: tokenToSend)
+                #if DEBUG
+                print("[APNs] Device token successfully set on server.")
+                #endif
+            } catch {
+                #if DEBUG
+                print("[APNs] Failed to set device token on server: \(error)")
+                #endif
+            }
+        }
+
+        activeRegistrationTask = task
+        await task.value
+        activeRegistrationTask = nil
+        return true
+    }
+
+    /// ログイン完了時などに、未送信トークンがあればサーバーへ同期する（後方互換性用）
     static func syncPendingTokenIfNeeded() {
-        guard let token = pendingDeviceToken ?? lastRegisteredToken else { return }
-        registerTokenIfNeeded(token: token)
+        Task {
+            await setDeviceToken()
+        }
     }
 
     enum RegistrationError: LocalizedError {
@@ -73,70 +99,14 @@ final class NotificationHandler: NSObject, UIApplicationDelegate, UNUserNotifica
             throw RegistrationError.permissionDenied
         }
 
-        // 2. 登録キャッシュをクリア
-        lastRegisteredToken = nil
-
-        // 3. APNs リモート通知の登録を OS に要求
+        // 2. APNs リモート通知の登録を OS に要求
         await MainActor.run {
             UIApplication.shared.registerForRemoteNotifications()
         }
 
-        // 4. 既に保持しているトークンがあれば直ちにサーバーへ送信
-        let tokenToSend = pendingDeviceToken ?? UserDefaults.standard.string(forKey: lastRegisteredTokenKey)
-        if let token = tokenToSend, !token.isEmpty, KeychainHelper.token != nil {
+        // 3. 既に保持しているトークンがあれば直ちにサーバーへ送信
+        if let token = currentDeviceToken, !token.isEmpty, KeychainHelper.token != nil {
             try await APIClient.registerAPNsToken(token: token)
-            lastRegisteredToken = token
-        }
-    }
-
-    /// トークンをサーバーへ登録（排他制御・重複チェック付き）
-    static func registerTokenIfNeeded(token: String) {
-        pendingDeviceToken = token
-
-        // 未ログイン時はトークンのみ保持して終了（ログイン後に syncPendingTokenIfNeeded で送信）
-        guard KeychainHelper.token != nil else {
-            #if DEBUG
-            print("[APNs] Token received but user not logged in yet. Saved as pending token.")
-            #endif
-            return
-        }
-
-        // 既に同じトークンが登録完了している場合はスキップ
-        if lastRegisteredToken == token {
-            #if DEBUG
-            print("[APNs] Token already registered on server: \(token)")
-            #endif
-            return
-        }
-
-        // すでに登録処理が進行中の場合、多重リクエストをスキップ
-        if activeRegistrationTask != nil {
-            #if DEBUG
-            print("[APNs] Registration already in progress, skipping duplicate call.")
-            #endif
-            return
-        }
-
-        #if DEBUG
-        print("[APNs] Registering device token on server: \(token)")
-        #endif
-
-        activeRegistrationTask = Task {
-            defer {
-                activeRegistrationTask = nil
-            }
-
-            do {
-                try await APIClient.registerAPNsToken(token: token)
-                lastRegisteredToken = token
-                #if DEBUG
-                print("[APNs] Device token sent to server successfully.")
-                #endif
-            } catch {
-                #if DEBUG
-                print("[APNs] Failed to send device token to server: \(error)")
-                #endif
-            }
         }
     }
 
@@ -155,8 +125,12 @@ final class NotificationHandler: NSObject, UIApplicationDelegate, UNUserNotifica
     ) {
         let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
         let token = tokenParts.joined()
+        Self.currentDeviceToken = token
 
-        Self.registerTokenIfNeeded(token: token)
+        // トークン取得時に即時サーバーへ上書き送信
+        Task {
+            await Self.setDeviceToken(token)
+        }
     }
 
     func application(
