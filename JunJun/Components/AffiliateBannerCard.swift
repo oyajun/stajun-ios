@@ -16,6 +16,13 @@ final class AffiliateCache {
         }
     }
 
+    /// Clears selected items so they can be re-shuffled on pull-to-refresh.
+    func clearItemCache() {
+        itemCache.removeAll()
+        usedItemIDs.removeAll()
+        lastAssignedID = nil
+    }
+
     func item(for key: String, from items: [AffiliateItem]) -> AffiliateItem? {
         if let cached = itemCache[key] {
             return cached

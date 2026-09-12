@@ -19,4 +19,9 @@ final class AdBannerCache {
         cache[key] = bannerView
         return (bannerView, true)
     }
+
+    /// Discards all cached banner views so fresh ads will be requested.
+    func clearCache() {
+        cache.removeAll()
+    }
 }

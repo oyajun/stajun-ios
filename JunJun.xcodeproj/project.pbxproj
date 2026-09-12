@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		BF6531923007AA2A00699A40 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = BF6531913007AA2A00699A40 /* GoogleMobileAds */; };
-		BF6531943007AA2A00699A40 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = BF6531933007AA2A00699A40 /* RevenueCat */; };
+		BFB28FAF3055496C00136D9A /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = BFB28FAE3055496C00136D9A /* RevenueCat */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,8 +28,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BFB28FAF3055496C00136D9A /* RevenueCat in Frameworks */,
 				BF6531923007AA2A00699A40 /* GoogleMobileAds in Frameworks */,
-				BF6531943007AA2A00699A40 /* RevenueCat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -40,6 +40,7 @@
 			isa = PBXGroup;
 			children = (
 				BF6531753007AA2900699A40 /* JunJun */,
+				BFB28FAD3055496C00136D9A /* Frameworks */,
 				BF6531743007AA2900699A40 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -50,6 +51,13 @@
 				BF6531733007AA2900699A40 /* JunJun.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		BFB28FAD3055496C00136D9A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -73,7 +81,7 @@
 			name = JunJun;
 			packageProductDependencies = (
 				BF6531913007AA2A00699A40 /* GoogleMobileAds */,
-				BF6531933007AA2A00699A40 /* RevenueCat */,
+				BFB28FAE3055496C00136D9A /* RevenueCat */,
 			);
 			productName = StaJun;
 			productReference = BF6531733007AA2900699A40 /* JunJun.app */;
@@ -105,7 +113,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				BF6531903007AA2A00699A40 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
-				BF6531953007AA2A00699A40 /* XCRemoteSwiftPackageReference "purchases-ios" */,
+				BF28BB2C305548B900329AC6 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BF6531743007AA2900699A40 /* Products */;
@@ -390,20 +398,20 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		BF28BB2C305548B900329AC6 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.89.0;
+			};
+		};
 		BF6531903007AA2A00699A40 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 11.0.0;
-			};
-		};
-		BF6531953007AA2A00699A40 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/RevenueCat/purchases-ios.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 5.0.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -414,9 +422,9 @@
 			package = BF6531903007AA2A00699A40 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
 			productName = GoogleMobileAds;
 		};
-		BF6531933007AA2A00699A40 /* RevenueCat */ = {
+		BFB28FAE3055496C00136D9A /* RevenueCat */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = BF6531953007AA2A00699A40 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			package = BF28BB2C305548B900329AC6 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
 			productName = RevenueCat;
 		};
 /* End XCSwiftPackageProductDependency section */

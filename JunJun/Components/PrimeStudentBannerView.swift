@@ -21,6 +21,11 @@ final class TimelineAdSlotManager {
 
     private init() {}
 
+    /// Clears cached slot decisions so that slot ad types can be re-evaluated on pull-to-refresh.
+    func reset() {
+        slotDecisions.removeAll()
+    }
+
     /// スロットインデックス（0, 1, 2...）に応じた広告種別を返す。
     /// スクロール時のちらつきを防ぐため、結果はキャッシュされる。
     func adType(for slotIndex: Int) -> TimelineSlotAdType {

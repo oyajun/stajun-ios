@@ -28,6 +28,7 @@ struct HomeView: View {
     private let pageSize = 20
     private let firstAdIndex = 1
     private let adInterval = 7
+    @State private var adRefreshID = UUID()
     @State private var followingPosts: [Post] = []
     @State private var followingNextCursor: String?
     @State private var isLoadingFollowingPosts = false
@@ -191,6 +192,12 @@ struct HomeView: View {
             .listStyle(.plain)
             .animation(.easeInOut, value: network.isOnline)
             .refreshable {
+                // Clear ad caches and rotate ads on pull-to-refresh
+                AdBannerCache.shared.clearCache()
+                TimelineAdSlotManager.shared.reset()
+                AffiliateCache.shared.clearItemCache()
+                adRefreshID = UUID()
+
                 await pollHome(force: true)
                 await loadFollowingPosts()
                 await loadMyPosts()
@@ -834,16 +841,17 @@ struct HomeView: View {
                 case .primeStudent:
                     PrimeStudentBannerView()
                 case .adMob:
-                    AdBannerCard(cacheKey: "timeline-admob-\(index)")
+                    AdBannerCard(cacheKey: "timeline-admob-\(index)-\(adRefreshID)")
                 case .affiliate:
-                    AffiliateBannerCard(cacheKey: "timeline-affiliate-\(index)")
+                    AffiliateBannerCard(cacheKey: "timeline-affiliate-\(index)-\(adRefreshID)")
                 }
             } else {
-                AdBannerCard(cacheKey: "timeline-admob-\(index)")
+                AdBannerCard(cacheKey: "timeline-admob-\(index)-\(adRefreshID)")
             }
             Divider()
                 .padding(.horizontal, 16)
         }
+        .id("ad-row-\(index)-\(adRefreshID)")
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
         .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
