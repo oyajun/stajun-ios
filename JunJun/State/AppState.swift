@@ -35,6 +35,9 @@ final class AppState {
     /// the border overlay is correct immediately on launch before HomeView appears.
     var isStudying: Bool = LocalStudyStore.localStartedAt != nil
 
+    /// Whether the user's current study session is paused.
+    var isPaused: Bool = LocalStudyStore.isPaused
+
     /// Signed-in email, persisted in Keychain so it can be reused for re-authentication (e.g. account deletion)
     var userEmail: String? {
         didSet {
@@ -278,6 +281,7 @@ final class AppState {
         await APIClient.clearPollingCache()
         currentUser = nil
         isStudying = false
+        isPaused = false
         authState = .unauthenticated
         await SubscriptionManager.shared.resetUser()
     }
@@ -297,6 +301,7 @@ final class AppState {
         Task { await APIClient.clearPollingCache() }
         currentUser = nil
         isStudying = false
+        isPaused = false
         authState = .unauthenticated
         Task { await SubscriptionManager.shared.resetUser() }
     }

@@ -126,6 +126,10 @@ struct UserProfileView: View {
             try? await APIClient.updateStudyActivity(newActivity)
             LocalStudyStore.currentActivity = newActivity
             if var u = user {
+                let isStudying = isOwnProfile ? (appState.isStudying || LocalStudyStore.localStartedAt != nil || u.isStudying) : u.isStudying
+                let studyingSince = isOwnProfile ? (LocalStudyStore.localStartedAt ?? u.studyingSince) : u.studyingSince
+                let isPaused = isOwnProfile ? (appState.isPaused || LocalStudyStore.isPaused) : u.isPaused
+                let accumulatedSeconds = isOwnProfile ? Int(LocalStudyStore.accumulatedSeconds) : u.accumulatedSeconds
                 u = UserWithStudyStatus(
                     id: u.id,
                     name: u.name,
@@ -134,10 +138,10 @@ struct UserProfileView: View {
                     isFollowing: u.isFollowing,
                     muteStudyStartNotification: u.muteStudyStartNotification,
                     isMuted: u.isMuted,
-                    isStudying: u.isStudying,
-                    studyingSince: u.studyingSince,
-                    isPaused: u.isPaused,
-                    accumulatedSeconds: u.accumulatedSeconds,
+                    isStudying: isStudying,
+                    studyingSince: studyingSince,
+                    isPaused: isPaused,
+                    accumulatedSeconds: accumulatedSeconds,
                     isPro: u.isPro,
                     activity: newActivity
                 )
@@ -240,6 +244,49 @@ struct UserProfileView: View {
         return isOwnProfile ? (appState.isStudying || LocalStudyStore.localStartedAt != nil || user.isStudying) : user.isStudying
     }
 
+    private func isUserPaused(_ user: UserWithStudyStatus) -> Bool {
+        guard !isBlocked else { return false }
+        if isOwnProfile {
+            if LocalStudyStore.localStartedAt != nil {
+                return appState.isPaused || LocalStudyStore.isPaused
+            }
+            return user.isPaused ?? false
+        } else {
+            return user.isPaused ?? false
+        }
+    }
+
+    private func hasValidStudyTimer(user: UserWithStudyStatus) -> Bool {
+        if isOwnProfile {
+            return LocalStudyStore.localStartedAt != nil || user.studyingSince != nil
+        } else {
+            return user.studyingSince != nil || user.accumulatedSeconds != nil
+        }
+    }
+
+    private func currentElapsedSeconds(user: UserWithStudyStatus, now: Date) -> TimeInterval {
+        if isOwnProfile {
+            if LocalStudyStore.localStartedAt != nil {
+                return LocalStudyStore.totalElapsedSeconds(at: now)
+            }
+            if user.isPaused == true {
+                return Double(user.accumulatedSeconds ?? 0)
+            }
+            if let since = user.studyingSince {
+                return max(0, now.timeIntervalSince(since))
+            }
+            return 0
+        } else {
+            if user.isPaused == true {
+                return Double(user.accumulatedSeconds ?? 0)
+            }
+            if let since = user.studyingSince {
+                return max(0, now.timeIntervalSince(since))
+            }
+            return 0
+        }
+    }
+
     private func hasProfileBubble(_ user: UserWithStudyStatus) -> Bool {
         guard isUserStudying(user) else { return false }
         let effectiveActivity = isOwnProfile ? (LocalStudyStore.currentActivity ?? user.activity) : user.activity
@@ -288,11 +335,20 @@ struct UserProfileView: View {
                     .buttonStyle(.plain)
                 }
 
-                if !isBlocked, user.isStudying, let since = user.studyingSince {
-                    TimelineView(.periodic(from: .now, by: 1)) { context in
-                        Text(studyingDurationString(since: since, now: context.date))
+                if !isBlocked, isStudying, hasValidStudyTimer(user: user) {
+                    let isPaused = isUserPaused(user)
+                    if isPaused {
+                        let elapsed = currentElapsedSeconds(user: user, now: .now)
+                        Text(formatDuration(seconds: elapsed))
                             .font(.title3.monospacedDigit().bold())
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        TimelineView(.periodic(from: .now, by: 1)) { context in
+                            let elapsed = currentElapsedSeconds(user: user, now: context.date)
+                            Text(formatDuration(seconds: elapsed))
+                                .font(.title3.monospacedDigit().bold())
+                                .foregroundStyle(.orange)
+                        }
                     }
                 }
             }
@@ -407,11 +463,11 @@ struct UserProfileView: View {
         }
     }
 
-    private func studyingDurationString(since: Date, now: Date) -> String {
-        let seconds = max(0, Int(now.timeIntervalSince(since)))
-        let h = seconds / 3600
-        let m = (seconds % 3600) / 60
-        let s = seconds % 60
+    private func formatDuration(seconds: TimeInterval) -> String {
+        let total = max(0, Int(seconds))
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        let s = total % 60
         if h > 0 {
             return String(format: "%d:%02d:%02d", h, m, s)
         } else {
@@ -429,7 +485,11 @@ struct UserProfileView: View {
         defer { isLoading = false }
         do {
             let fetched = try await APIClient.getUser(id: userId)
-            let mergedActivity = fetched.activity ?? user?.activity
+            let mergedActivity = isOwnProfile ? (LocalStudyStore.currentActivity ?? fetched.activity ?? user?.activity) : (fetched.activity ?? user?.activity)
+            let isStudying = isOwnProfile ? (appState.isStudying || LocalStudyStore.localStartedAt != nil || fetched.isStudying) : fetched.isStudying
+            let studyingSince = isOwnProfile ? (LocalStudyStore.localStartedAt ?? fetched.studyingSince) : fetched.studyingSince
+            let isPaused = isOwnProfile ? (appState.isPaused || LocalStudyStore.isPaused) : fetched.isPaused
+            let accumulatedSeconds = isOwnProfile ? Int(LocalStudyStore.accumulatedSeconds) : fetched.accumulatedSeconds
             let merged = UserWithStudyStatus(
                 id: fetched.id,
                 name: fetched.name,
@@ -438,10 +498,10 @@ struct UserProfileView: View {
                 isFollowing: fetched.isFollowing,
                 muteStudyStartNotification: fetched.muteStudyStartNotification,
                 isMuted: fetched.isMuted,
-                isStudying: fetched.isStudying,
-                studyingSince: fetched.studyingSince,
-                isPaused: fetched.isPaused,
-                accumulatedSeconds: fetched.accumulatedSeconds,
+                isStudying: isStudying,
+                studyingSince: studyingSince,
+                isPaused: isPaused,
+                accumulatedSeconds: accumulatedSeconds,
                 isPro: fetched.isPro,
                 activity: mergedActivity
             )
@@ -470,8 +530,10 @@ struct UserProfileView: View {
                     iconEmoji: me.iconEmoji,
                     iconBackgroundColor: me.iconBackgroundColor,
                     isFollowing: nil,
-                    isStudying: appState.isStudying,
-                    studyingSince: nil,
+                    isStudying: appState.isStudying || LocalStudyStore.localStartedAt != nil,
+                    studyingSince: LocalStudyStore.localStartedAt,
+                    isPaused: appState.isPaused || LocalStudyStore.isPaused,
+                    accumulatedSeconds: Int(LocalStudyStore.accumulatedSeconds),
                     isPro: appState.isPro,
                     activity: LocalStudyStore.currentActivity
                 )

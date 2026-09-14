@@ -233,6 +233,9 @@ struct HomeView: View {
             .onChange(of: isStudying) { _, newValue in
                 appState.isStudying = newValue
             }
+            .onChange(of: isPaused) { _, newValue in
+                appState.isPaused = newValue
+            }
             .onChange(of: network.isOnline) { _, online in
                 if online {
                     Task { await pollHome() }
