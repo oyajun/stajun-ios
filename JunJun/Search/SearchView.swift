@@ -121,7 +121,7 @@ struct SearchView: View {
                 }
             }
             .navigationTitle("Search")
-            .searchable(text: $query, prompt: "Search Users")
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search Users")
             .textInputAutocapitalization(.never)
             .task {
                 if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && recommendedUsers.isEmpty {
