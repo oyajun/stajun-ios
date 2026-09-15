@@ -6,106 +6,13 @@ struct HomeView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.scenePhase) private var scenePhase
 
-    // Navigation
+    @State private var viewModel = HomeViewModel()
     @State private var path = NavigationPath()
-
-    // Study status — initialise from local store so the border appears immediately on launch
-    @State private var isStudying = LocalStudyStore.localStartedAt != nil
-    @State private var isPaused = LocalStudyStore.isPaused
-    @State private var studyStartedAt: Date?
-    @State private var studyActionLoading = false
-    @State private var isStartingStudy = false
-    @State private var studyError: String?
-
-    // Feed (following users study status)
-    @State private var feedUsers: [UserWithStudyStatus] = []
-    @State private var feedError: String?
-    @State private var isRefreshingStudyState = false
-    @State private var isLoadingFeed = false
-    @State private var hasLoadedFeed = false
-
-    // Timeline posts (Following & Mine completely separated)
-    private let pageSize = 20
-    private let firstAdIndex = 1
-    private let adInterval = 7
-    @State private var adRefreshID = UUID()
-    @State private var followingPosts: [Post] = []
-    @State private var followingNextCursor: String?
-    @State private var isLoadingFollowingPosts = false
-    @State private var isLoadingMoreFollowingPosts = false
-    @State private var hasLoadedFollowingPosts = false
-
-    @State private var myPosts: [Post] = []
-    @State private var myNextCursor: String?
-    @State private var isLoadingMyPosts = false
-    @State private var isLoadingMoreMyPosts = false
-    @State private var hasLoadedMyPosts = false
-
-    @State private var postsError: String?
-    @State private var postScope: PostScope = .following
-    @State private var showCompose = false
-    @State private var postToEdit: Post?
-    @State private var postToDelete: Post?
-    @State private var postToReport: Post?
-    @State private var showReportSuccessAlert = false
-    @State private var showInviteFriendsAlert = false
-
-    private var currentPosts: [Post] {
-        switch postScope {
-        case .following: return followingPosts
-        case .mine:      return myPosts
-        }
-    }
-
-    private var hasLoadedCurrentPosts: Bool {
-        switch postScope {
-        case .following: return hasLoadedFollowingPosts
-        case .mine:      return hasLoadedMyPosts
-        }
-    }
-
-    private var isLoadingMoreCurrentPosts: Bool {
-        switch postScope {
-        case .following: return isLoadingMoreFollowingPosts
-        case .mine:      return isLoadingMoreMyPosts
-        }
-    }
-
-    // Timer (elapsed time display)
-    @State private var now = Date()
-
-    // Network reachability
     @State private var network = NetworkMonitor.shared
-
-    // Post composer (shown after stopping a study session)
-    @State private var showComposePost = false
-    @State private var composeInitialMinutes = 0
-    @State private var composeInitialComment: String?
-
-    // Study activity
-    @State private var currentActivity: String? = LocalStudyStore.currentActivity
-    @State private var showEditActivitySheet = false
-
-    private enum PostScope: Hashable {
-        case following, mine
-        var title: String {
-            switch self {
-            case .following: return "Following"
-            case .mine: return "Mine"
-            }
-        }
-        var cacheKey: String {
-            switch self {
-            case .following: return "following"
-            case .mine: return "mine"
-            }
-        }
-    }
 
     var body: some View {
         NavigationStack(path: $path) {
             List {
-                // Offline banner
                 if !network.isOnline {
                     offlineBanner
                         .listRowBackground(Color.clear)
@@ -115,10 +22,19 @@ struct HomeView: View {
 
                 // Study start/stop card + My active activity bubble
                 VStack(alignment: .leading, spacing: 4) {
-                    studyCard
-                        .animation(nil, value: isStudying)
+                    StudyCardView(
+                        currentUser: appState.currentUser,
+                        isPro: appState.isPro,
+                        viewModel: viewModel,
+                        onTapUser: {
+                            if let userId = appState.currentUser?.id {
+                                path.append(userId)
+                            }
+                        }
+                    )
+                    .animation(nil, value: viewModel.isStudying)
 
-                    if isStudying {
+                    if viewModel.isStudying {
                         myActivitySection
                             .transition(.opacity.combined(with: .move(edge: .top)))
                     }
@@ -128,22 +44,29 @@ struct HomeView: View {
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 20, leading: 32, bottom: 0, trailing: 32))
 
-                // Following users (loads independently)
-                followingContent
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets())
+                // Following users
+                FollowingUsersFeedView(
+                    feedUsers: viewModel.feedUsers,
+                    hasLoadedFeed: viewModel.hasLoadedFeed,
+                    isStudying: viewModel.isStudying,
+                    now: viewModel.now,
+                    onSelectUser: { path.append($0) }
+                )
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets())
 
-                // Scope picker + compose button (inline)
+                // Scope picker + compose button
                 HStack {
-                    Picker("Scope", selection: $postScope) {
-                        Text(LocalizedStringKey(PostScope.following.title)).tag(PostScope.following)
-                        Text(LocalizedStringKey(PostScope.mine.title)).tag(PostScope.mine)
+                    Picker("Scope", selection: $viewModel.postScope) {
+                        ForEach(PostScope.allCases, id: \.self) { scope in
+                            Text(LocalizedStringKey(scope.title)).tag(scope)
+                        }
                     }
                     .pickerStyle(.segmented)
 
                     Button {
-                        showCompose = true
+                        viewModel.showCompose = true
                     } label: {
                         Image(systemName: "square.and.pencil")
                             .font(.body)
@@ -155,33 +78,37 @@ struct HomeView: View {
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 0, leading: 32, bottom: 8, trailing: 32))
 
-                // Posts: loading / empty states
-                if !hasLoadedCurrentPosts && currentPosts.isEmpty {
+                // Posts list
+                if !viewModel.hasLoadedCurrentPosts && viewModel.currentPosts.isEmpty {
                     ProgressView()
                         .frame(maxWidth: .infinity)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .padding(.vertical, 48)
-                } else if currentPosts.isEmpty {
+                } else if viewModel.currentPosts.isEmpty {
                     emptyPostsSection
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets())
                 } else {
-                    // Post rows (swipe-to-delete + long-press context menu)
-                    ForEach(Array(currentPosts.enumerated()), id: \.element.id) { index, post in
+                    ForEach(Array(viewModel.currentPosts.enumerated()), id: \.element.id) { index, post in
                         timelinePostRow(post)
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                             .listRowInsets(EdgeInsets())
 
-                        if Config.showAds && !appState.isPro && index >= firstAdIndex && (index - firstAdIndex) % adInterval == 0 {
-                            timelineAdRow(for: index)
+                        if Config.showAds && !appState.isPro && index >= viewModel.firstAdIndex && (index - viewModel.firstAdIndex) % viewModel.adInterval == 0 {
+                            HomeTimelineAdRow(
+                                index: index,
+                                firstAdIndex: viewModel.firstAdIndex,
+                                adInterval: viewModel.adInterval,
+                                adRefreshID: viewModel.adRefreshID
+                            )
                         }
                     }
                 }
 
-                if isLoadingMoreCurrentPosts {
+                if viewModel.isLoadingMoreCurrentPosts {
                     ProgressView()
                         .frame(maxWidth: .infinity)
                         .listRowBackground(Color.clear)
@@ -192,59 +119,27 @@ struct HomeView: View {
             .listStyle(.plain)
             .animation(.easeInOut, value: network.isOnline)
             .refreshable {
-                // Clear ad caches and rotate ads on pull-to-refresh
-                AdBannerCache.shared.clearCache()
-                TimelineAdSlotManager.shared.reset()
-                AffiliateCache.shared.clearItemCache()
-                adRefreshID = UUID()
-
-                await pollHome(force: true)
-                await loadFollowingPosts()
-                await loadMyPosts()
+                await viewModel.refreshTimelineAndFeed(appState: appState)
             }
             .task {
-                // Show last-known feed and posts immediately (works offline)
-                if feedUsers.isEmpty {
-                    let cachedFeed = FeedCache.load()
-                    if !cachedFeed.isEmpty {
-                        feedUsers = cachedFeed
-                        hasLoadedFeed = true
-                    }
-                }
-                if followingPosts.isEmpty {
-                    let cached = PostsCache.load(scopeKey: "following")
-                    if !cached.isEmpty {
-                        followingPosts = cached
-                        hasLoadedFollowingPosts = true
-                    }
-                }
-                if myPosts.isEmpty {
-                    let cached = PostsCache.load(scopeKey: "mine")
-                    if !cached.isEmpty {
-                        myPosts = cached
-                        hasLoadedMyPosts = true
-                    }
-                }
-                await pollHome()
-                await loadFollowingPosts()
-                await loadMyPosts()
-                await startPolling()
+                viewModel.loadInitialCaches()
+                await viewModel.pollHome(appState: appState)
+                await viewModel.loadAllPosts()
+                await viewModel.startPolling(appState: appState)
             }
-            .onChange(of: isStudying) { _, newValue in
+            .onChange(of: viewModel.isStudying) { _, newValue in
                 appState.isStudying = newValue
             }
-            .onChange(of: isPaused) { _, newValue in
+            .onChange(of: viewModel.isPaused) { _, newValue in
                 appState.isPaused = newValue
             }
             .onChange(of: network.isOnline) { _, online in
-                if online {
-                    Task { await pollHome() }
-                }
+                if online { Task { await viewModel.pollHome(appState: appState) } }
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
                     Task {
-                        await pollHome()
+                        await viewModel.pollHome(appState: appState)
                         await NotificationHandler.setDeviceToken()
                     }
                 }
@@ -252,7 +147,7 @@ struct HomeView: View {
             .onReceive(
                 Timer.publish(every: 1, on: .main, in: .common).autoconnect()
             ) { _ in
-                now = Date()
+                viewModel.now = Date()
             }
             .navigationDestination(for: String.self) { userId in
                 UserProfileView(userId: userId)
@@ -261,91 +156,73 @@ struct HomeView: View {
                 PostDetailView(
                     post: post,
                     onDelete: {
-                        myPosts.removeAll { $0.id == post.id }
-                        followingPosts.removeAll { $0.id == post.id }
-                        PostsCache.save(myPosts, scopeKey: "mine")
-                        PostsCache.save(followingPosts, scopeKey: "following")
+                        Task { await viewModel.deletePost(post) }
                     },
                     onToggleLike: { isLiked, count in
-                        updatePostLike(id: post.id, isLiked: isLiked, likeCount: count)
+                        viewModel.updatePostLike(id: post.id, isLiked: isLiked, likeCount: count)
                     },
                     onUpdate: { updated in
-                        updatePostContent(id: updated.id, minutes: updated.minutes, comment: updated.comment)
+                        viewModel.updatePostContent(id: updated.id, minutes: updated.minutes, comment: updated.comment)
                     }
                 )
             }
-            .sheet(item: $postToEdit) { post in
+            .sheet(item: $viewModel.postToEdit) { post in
                 EditPostView(post: post) { updated in
-                    updatePostContent(id: updated.id, minutes: updated.minutes, comment: updated.comment)
+                    viewModel.updatePostContent(id: updated.id, minutes: updated.minutes, comment: updated.comment)
                 }
             }
-            .sheet(isPresented: $showComposePost) {
-                ComposePostView(initialMinutes: composeInitialMinutes, initialComment: composeInitialComment) { newPost in
-                    prependPost(newPost)
-                    Task {
-                        await loadFollowingPosts()
-                        await loadMyPosts()
-                        await loadFeed()
-                    }
-                    handlePostMilestone()
+            .sheet(isPresented: $viewModel.showComposePost) {
+                ComposePostView(initialMinutes: viewModel.composeInitialMinutes, initialComment: viewModel.composeInitialComment) { newPost in
+                    handleNewPost(newPost)
                 }
             }
-            .sheet(isPresented: $showEditActivitySheet) {
-                ActivityEditSheet(
-                    initialActivity: currentActivity,
-                    onSave: { newActivity in
-                        updateActivity(newActivity)
-                    }
-                )
+            .sheet(isPresented: $viewModel.showEditActivitySheet) {
+                ActivityEditSheet(initialActivity: viewModel.currentActivity) { newActivity in
+                    viewModel.updateActivity(newActivity)
+                }
             }
-            .sheet(isPresented: $showCompose) {
+            .sheet(isPresented: $viewModel.showCompose) {
                 ComposePostView { newPost in
-                    prependPost(newPost)
-                    Task {
-                        await loadFollowingPosts()
-                        await loadMyPosts()
-                        await loadFeed()
-                    }
-                    handlePostMilestone()
+                    handleNewPost(newPost)
                 }
             }
             .alert("Delete Post", isPresented: Binding(
-                get: { postToDelete != nil },
-                set: { if !$0 { postToDelete = nil } }
-            ), presenting: postToDelete) { post in
+                get: { viewModel.postToDelete != nil },
+                set: { if !$0 { viewModel.postToDelete = nil } }
+            ), presenting: viewModel.postToDelete) { post in
                 Button("Cancel", role: .cancel) { }
                 Button("Delete", role: .destructive) {
-                    Task { await deletePost(post) }
+                    Task { await viewModel.deletePost(post) }
                 }
             } message: { _ in
                 Text("Are you sure you want to delete this post?")
             }
             .alert("Report Post", isPresented: Binding(
-                get: { postToReport != nil },
-                set: { if !$0 { postToReport = nil } }
-            ), presenting: postToReport) { post in
+                get: { viewModel.postToReport != nil },
+                set: { if !$0 { viewModel.postToReport = nil } }
+            ), presenting: viewModel.postToReport) { post in
                 Button("Cancel", role: .cancel) { }
                 Button("Report", role: .destructive) {
-                    Task { await reportPost(post) }
+                    Task { await viewModel.reportPost(post) }
                 }
             } message: { _ in
                 Text("Are you sure you want to report this post?")
             }
-            .alert("Report Submitted", isPresented: $showReportSuccessAlert) {
+            .alert("Report Submitted", isPresented: $viewModel.showReportSuccessAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text("Thank you for reporting this post.")
             }
-            .alert("Invite Your Friends!", isPresented: $showInviteFriendsAlert) {
+            .alert("Invite Your Friends!", isPresented: $viewModel.showInviteFriendsAlert) {
                 Button("Share Your Profile") {
-                    shareMyProfile()
+                    viewModel.shareMyProfile(currentUser: appState.currentUser)
                 }
                 Button("Not Now", role: .cancel) { }
             } message: {
                 Text("Have your friends install the app and follow each other.\nYou'll be able to see when and what they are studying!")
             }
             .overlay(alignment: .bottom) {
-                if let postsError, !currentPosts.isEmpty {
+                if let postsError = viewModel.postsError, !viewModel.currentPosts.isEmpty {
                     Text(postsError)
                         .font(.subheadline)
                         .foregroundStyle(.white)
@@ -357,142 +234,13 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Study Card
-
-    @ViewBuilder
-    private var studyCard: some View {
-        HStack(alignment: .bottom, spacing: 40) {
-            // Left: own icon + name (fluffy animation tied to local isStudying)
-            Button {
-                if let userId = appState.currentUser?.id {
-                    path.append(userId)
-                }
-            } label: {
-                VStack(spacing: 0) {
-                    UserIconView(
-                        emoji: appState.currentUser?.iconEmoji ?? "📚",
-                        backgroundColor: appState.currentUser?.iconBackgroundColor ?? "#FFD54F",
-                        size: 52,
-                        isStudying: isStudying,
-                        isPro: appState.isPro
-                    )
-                    Text(appState.currentUser?.name ?? "")
-                        .font(.caption)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                        .padding(.top, 14)
-                }
-            }
-            .buttonStyle(.plain)
-            .animation(nil, value: isStudying)
-
-            // Right: timer + button
-            VStack(spacing: 12) {
-                HStack {
-                    Text(isStudying ? formatElapsed(seconds: LocalStudyStore.totalElapsedSeconds(at: now)) : "--:--")
-                        .font(.title3.monospacedDigit().bold())
-                        .foregroundStyle(isStudying ? (isPaused ? Color.secondary : Color.orange) : Color.secondary)
-                    Spacer()
-                    Text(isStudying ? (isPaused ? LocalizedStringKey("Paused") : LocalizedStringKey("Studying")) : LocalizedStringKey("Not Studying"))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                if !isStudying {
-                    // Not studying: [ Start ] (Full width, accent, text only)
-                    Button {
-                        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
-                        Task { await startStudying() }
-                    } label: {
-                        Group {
-                            if studyActionLoading {
-                                ProgressView()
-                                    .tint(.white)
-                            } else {
-                                Text(LocalizedStringKey("Start"))
-                                    .fontWeight(.semibold)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                    }
-                    .buttonStyle(.glassProminent)
-                    .tint(.accentColor)
-                    .disabled(studyActionLoading)
-                } else if isPaused {
-                    // Paused: [ Resume ] (Full width, accent, text only)
-                    Button {
-                        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
-                        Task { await resumeStudying() }
-                    } label: {
-                        Group {
-                            if studyActionLoading {
-                                ProgressView()
-                                    .tint(.white)
-                            } else {
-                                Text(LocalizedStringKey("Resume"))
-                                    .fontWeight(.semibold)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                    }
-                    .buttonStyle(.glassProminent)
-                    .tint(.accentColor)
-                    .disabled(studyActionLoading)
-                } else {
-                    // Studying active: [ pause.fill ] (Neutral, circular) + [ Stop ] (Red, text only)
-                    HStack(spacing: 8) {
-                        Button {
-                            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
-                            Task { await pauseStudying() }
-                        } label: {
-                            Image(systemName: "pause.fill")
-                                .font(.subheadline.bold())
-                                .frame(width: 44, height: 44)
-                        }
-                        .buttonStyle(.glass)
-                        .buttonBorderShape(.circle)
-                        .accessibilityLabel(LocalizedStringKey("Pause"))
-                        .disabled(studyActionLoading)
-
-                        Button {
-                            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
-                            stopStudying()
-                        } label: {
-                            Group {
-                                if studyActionLoading {
-                                    ProgressView()
-                                        .tint(.white)
-                                } else {
-                                    Text(LocalizedStringKey("Stop"))
-                                        .fontWeight(.semibold)
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 44)
-                        }
-                        .buttonStyle(.glassProminent)
-                        .tint(.red)
-                        .disabled(studyActionLoading)
-                    }
-                    .background {
-                        StudyingButtonGlow(
-                            backgroundColor: appState.currentUser?.iconBackgroundColor ?? "#FFD54F",
-                            isPro: appState.isPro
-                        )
-                        .opacity(1)
-                        .animation(.easeInOut(duration: 0.3), value: isStudying)
-                    }
-                }
-
-                if let studyError {
-                    Text(studyError)
-                        .font(.subheadline)
-                        .foregroundStyle(.red)
-                }
-            }
+    private func handleNewPost(_ newPost: StudyPost) {
+        viewModel.prependPost(newPost, currentUser: appState.currentUser)
+        Task {
+            await viewModel.loadAllPosts()
+            await viewModel.loadFeed()
         }
+        viewModel.handlePostMilestone()
     }
 
     // MARK: - Offline Banner
@@ -526,233 +274,15 @@ struct HomeView: View {
         HStack {
             let myTintColor = Color(hex: appState.currentUser?.iconBackgroundColor ?? "") ?? .orange
             MyActivityBubble(
-                activity: currentActivity,
+                activity: viewModel.currentActivity,
                 tailX: myAvatarCenter,
                 tintColor: myTintColor,
                 onEdit: {
-                    showEditActivitySheet = true
+                    viewModel.showEditActivitySheet = true
                 }
             )
             Spacer()
         }
-    }
-
-    // MARK: - Following Content
-
-    @ViewBuilder
-    private var followingContent: some View {
-        if !hasLoadedFeed && feedUsers.isEmpty {
-            ProgressView()
-                .frame(maxWidth: .infinity, minHeight: 117)
-        } else if feedUsers.isEmpty {
-            emptyFeedSection
-        } else {
-            followingSection
-        }
-    }
-
-    // MARK: - Following Section
-
-    private struct BubbleConfig: Equatable {
-        let isTop: Bool        // true: top slot, false: bottom slot
-        let extendsRight: Bool // true: extends to the right, false: extends to the left
-    }
-
-    private var bubbleConfigs: [String: BubbleConfig] {
-        var configs: [String: BubbleConfig] = [:]
-        var topOccupied: Set<Int> = []
-        var bottomOccupied: Set<Int> = []
-
-        for i in 0..<feedUsers.count {
-            let user = feedUsers[i]
-            guard user.isStudying,
-                  let act = user.activity?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !act.isEmpty else {
-                continue
-            }
-
-            // 1. Determine Top vs Bottom:
-            // Prefer Top slot if not occupied by a preceding user's bubble.
-            let isTop = !topOccupied.contains(i)
-
-            // 2. Determine Left vs Right:
-            // Prefer Left if left neighbor (i - 1) has no bubble and that slot is not occupied.
-            let leftNeighborHasBubble = (i > 0) && {
-                let neighbor = feedUsers[i - 1]
-                return neighbor.isStudying && !(neighbor.activity?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
-            }()
-
-            let extendsRight: Bool
-            if i > 0 && !leftNeighborHasBubble {
-                let slotOccupied = isTop ? topOccupied.contains(i - 1) : bottomOccupied.contains(i - 1)
-                extendsRight = slotOccupied
-            } else {
-                extendsRight = true
-            }
-
-            configs[user.id] = BubbleConfig(isTop: isTop, extendsRight: extendsRight)
-
-            // Mark occupied slots:
-            // Self slot (i) is always occupied.
-            // Neighbor slot is only marked occupied if the bubble actually spans into the neighbor slot (> 1 cell width).
-            let occupiesNeighbor = FollowingActivityBubble.occupiesNeighbor(for: act)
-
-            if isTop {
-                topOccupied.insert(i)
-                if occupiesNeighbor {
-                    if extendsRight {
-                        topOccupied.insert(i + 1)
-                    } else if i > 0 {
-                        topOccupied.insert(i - 1)
-                    }
-                }
-            } else {
-                bottomOccupied.insert(i)
-                if occupiesNeighbor {
-                    if extendsRight {
-                        bottomOccupied.insert(i + 1)
-                    } else if i > 0 {
-                        bottomOccupied.insert(i - 1)
-                    }
-                }
-            }
-        }
-
-        return configs
-    }
-
-    private var hasAnyTopBubble: Bool {
-        bubbleConfigs.values.contains { $0.isTop }
-    }
-
-    private var hasAnyBottomBubble: Bool {
-        bubbleConfigs.values.contains { !$0.isTop }
-    }
-
-    private var followingTopPadding: CGFloat {
-        if isStudying {
-            return hasAnyTopBubble ? 18 : 30
-        } else {
-            return hasAnyTopBubble ? 20 : 38
-        }
-    }
-
-    private var followingSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 14) {
-                    ForEach(feedUsers) { user in
-                        let config = bubbleConfigs[user.id]
-                        let isSingle = user.activity.map { FollowingActivityBubble.isSingleCell(for: $0) } ?? true
-                        let alignment: Alignment = isSingle ? .center : ((config?.extendsRight ?? true) ? .leading : .trailing)
-                        let offsetX: CGFloat = isSingle ? 0 : ((config?.extendsRight ?? true) ? 2.5 : -2.5)
-                        let userColor = Color(hex: user.iconBackgroundColor) ?? .orange
-
-                        NavigationLink(value: user.id) {
-                            VStack(spacing: 0) {
-                                if hasAnyTopBubble {
-                                    // Top bubble slot (36pt)
-                                    ZStack(alignment: alignment) {
-                                        if let config, config.isTop, let act = user.activity {
-                                            FollowingActivityBubble(
-                                                text: act,
-                                                isTop: true,
-                                                extendsRight: config.extendsRight,
-                                                tintColor: userColor
-                                            )
-                                            .offset(x: offsetX)
-                                        }
-                                    }
-                                    .frame(width: 74, height: 36, alignment: alignment)
-                                    .padding(.bottom, 14) // Clear separation from avatar and its glowing halo
-                                }
-
-                                UserIconView(
-                                    emoji: user.iconEmoji,
-                                    backgroundColor: user.iconBackgroundColor,
-                                    size: 52,
-                                    isStudying: user.isStudying,
-                                    isPro: user.isPro ?? false
-                                )
-                                Text(user.name)
-                                    .font(.caption)
-                                    .foregroundStyle(.primary)
-                                    .lineLimit(1)
-                                    .padding(.top, 8)
-                                if user.isStudying {
-                                    if user.isPaused == true {
-                                        let acc = Double(user.accumulatedSeconds ?? 0)
-                                        Text(formatElapsed(seconds: acc))
-                                            .font(.caption2)
-                                            .monospacedDigit()
-                                            .foregroundStyle(.secondary)
-                                            .padding(.top, 2)
-                                    } else if let since = user.studyingSince {
-                                        Text(elapsedString(from: since, to: now))
-                                            .font(.caption2)
-                                            .monospacedDigit()
-                                            .foregroundStyle(.orange)
-                                            .padding(.top, 2)
-                                    } else {
-                                        Text(" ")
-                                            .font(.caption2)
-                                            .padding(.top, 2)
-                                    }
-                                } else {
-                                    Text(" ")
-                                        .font(.caption2)
-                                        .padding(.top, 2)
-                                }
-
-                                if hasAnyBottomBubble {
-                                    // Bottom bubble slot (36pt)
-                                    ZStack(alignment: alignment) {
-                                        if let config, !config.isTop, let act = user.activity {
-                                            FollowingActivityBubble(
-                                                text: act,
-                                                isTop: false,
-                                                extendsRight: config.extendsRight,
-                                                tintColor: userColor
-                                            )
-                                            .offset(x: offsetX)
-                                        }
-                                    }
-                                    .frame(width: 74, height: 36, alignment: alignment)
-                                    .padding(.top, 2)
-                                }
-                            }
-                            .frame(width: 74)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 32)
-                .padding(.top, followingTopPadding)
-                .padding(.bottom, hasAnyBottomBubble ? 8 : 12)
-                .animation(.easeInOut(duration: 0.25), value: hasAnyTopBubble)
-                .animation(.easeInOut(duration: 0.25), value: hasAnyBottomBubble)
-                .animation(.easeInOut(duration: 0.25), value: isStudying)
-            }
-            .scrollClipDisabled()
-        }
-    }
-
-    // MARK: - Empty Feed
-
-    private var emptyFeedSection: some View {
-        VStack(spacing: 6) {
-            Image(systemName: "person.2")
-                .font(.title2)
-                .foregroundStyle(.secondary)
-            Text("No Following Users")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text("Find people to follow in the Search tab")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, minHeight: 117)
     }
 
     // MARK: - Empty Posts
@@ -765,7 +295,7 @@ struct HomeView: View {
             Text("No Posts Yet")
                 .font(.body)
                 .foregroundStyle(.secondary)
-            Text(postScope == .following
+            Text(viewModel.postScope == .following
                  ? "Posts from you and people you follow will appear here."
                  : "Your posts will appear here.")
                 .font(.subheadline)
@@ -785,25 +315,28 @@ struct HomeView: View {
             post: post,
             onTapAuthor: { path.append(post.userId) },
             onToggleLike: { isLiked, count in
-                updatePostLike(id: post.id, isLiked: isLiked, likeCount: count)
+                viewModel.updatePostLike(id: post.id, isLiked: isLiked, likeCount: count)
             },
             onTapDetail: {
                 path.append(post)
             }
         )
-            .onAppear {
-                if post.id == currentPosts.last?.id { loadMoreCurrentPosts() }
+        .onAppear {
+            if post.id == viewModel.currentPosts.last?.id {
+                viewModel.loadMoreCurrentPosts()
             }
+        }
+
         if post.userId == appState.currentUser?.id {
             base
                 .swipeActions(edge: .trailing) {
                     Button(role: .destructive) {
-                        postToDelete = post
+                        viewModel.postToDelete = post
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
                     Button {
-                        postToEdit = post
+                        viewModel.postToEdit = post
                     } label: {
                         Label("Edit", systemImage: "pencil")
                     }
@@ -811,12 +344,12 @@ struct HomeView: View {
                 }
                 .contextMenu {
                     Button {
-                        postToEdit = post
+                        viewModel.postToEdit = post
                     } label: {
                         Label("Edit", systemImage: "pencil")
                     }
                     Button(role: .destructive) {
-                        postToDelete = post
+                        viewModel.postToDelete = post
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
@@ -825,548 +358,12 @@ struct HomeView: View {
             base
                 .contextMenu {
                     Button(role: .destructive) {
-                        postToReport = post
+                        viewModel.postToReport = post
                     } label: {
                         Label("Report", systemImage: "exclamationmark.bubble")
                     }
                 }
         }
-    }
-
-    // MARK: - Timeline Ad Row
-
-    @ViewBuilder
-    private func timelineAdRow(for index: Int) -> some View {
-        let slotIndex = (index - firstAdIndex) / adInterval
-        VStack(spacing: 0) {
-            if Config.isJapanRegion {
-                switch TimelineAdSlotManager.shared.adType(for: slotIndex) {
-                case .primeStudent:
-                    PrimeStudentBannerView()
-                case .adMob:
-                    AdBannerCard(cacheKey: "timeline-admob-\(index)-\(adRefreshID)")
-                case .affiliate:
-                    AffiliateBannerCard(cacheKey: "timeline-affiliate-\(index)-\(adRefreshID)")
-                }
-            } else {
-                AdBannerCard(cacheKey: "timeline-admob-\(index)-\(adRefreshID)")
-            }
-            Divider()
-                .padding(.horizontal, 16)
-        }
-        .id("ad-row-\(index)-\(adRefreshID)")
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-    }
-
-    // MARK: - Study Actions
-
-    /// Reconcile study status received from server against local state.
-    private func applyStudyStatus(_ status: MyStudyStatus) async {
-        if let local = LocalStudyStore.localStartedAt {
-            // Studying locally: the local timer stays the measured one either way.
-            isStudying = true
-            isPaused = LocalStudyStore.isPaused
-            studyStartedAt = local
-            currentActivity = LocalStudyStore.currentActivity
-
-            if status.isStudying {
-                // Already shared; nothing to announce.
-                LocalStudyStore.startedOffline = false
-            } else if LocalStudyStore.startedOffline {
-                // Began offline and was never announced. Publish it now.
-                do {
-                    try await APIClient.startStudy(activity: LocalStudyStore.currentActivity)
-                    LocalStudyStore.startedOffline = false
-                } catch { }
-            } else {
-                let sessionAge = Date().timeIntervalSince(local)
-                let isRecentlyStarted = sessionAge < 60 // Grace period: protect sessions started within 60 seconds
-
-                if isStartingStudy || isRecentlyStarted {
-                    // Just started on this device: protect against race condition or laggy server response.
-                    // If startStudy already completed but server returned stale false, re-announce.
-                    if !isStartingStudy {
-                        Task {
-                            try? await APIClient.startStudy(activity: LocalStudyStore.currentActivity)
-                        }
-                    }
-                } else {
-                    // The server knew about this session and it's gone after grace period: ended on another device.
-                    LocalStudyStore.clear()
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        isStudying = false
-                        isPaused = false
-                        studyStartedAt = nil
-                        currentActivity = nil
-                    }
-                }
-            }
-        } else if status.isStudying {
-            // Started on another device: only accept if we are not in the middle of starting locally
-            guard !isStartingStudy else { return }
-            let start = status.startedAt ?? Date()
-            let paused = status.isPaused ?? false
-            let acc = Double(status.accumulatedSeconds ?? 0)
-            LocalStudyStore.localStartedAt = start
-            LocalStudyStore.isPaused = paused
-            LocalStudyStore.accumulatedSeconds = acc
-            LocalStudyStore.currentActivity = status.activity
-            if !paused {
-                LocalStudyStore.segmentStartedAt = start
-            }
-            LocalStudyStore.startedOffline = false
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                isStudying = true
-                isPaused = paused
-                studyStartedAt = start
-                currentActivity = status.activity
-            }
-        } else {
-            // Server says not studying and we have no local timer
-            guard !isStartingStudy else { return }
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                isStudying = false
-                isPaused = false
-                studyStartedAt = nil
-                currentActivity = nil
-            }
-        }
-    }
-
-    /// Reconcile the study state against the server. The server flag is the shared
-    /// "studying" signal across devices; the device's local timer is what we measure
-    /// with (seeded from the server for sessions started on another device).
-    private func refreshStudyState() async {
-        guard !isRefreshingStudyState else { return }
-        isRefreshingStudyState = true
-        defer { isRefreshingStudyState = false }
-
-        // Offline (or server unreachable): trust the local session; it keeps ticking.
-        guard network.isOnline else {
-            applyLocalSession()
-            return
-        }
-
-        let status: MyStudyStatus
-        do {
-            status = try await APIClient.getMyStudyStatus()
-        } catch {
-            // Couldn't reach the server: fall back to the local session.
-            applyLocalSession()
-            return
-        }
-
-        await applyStudyStatus(status)
-    }
-
-    private func applyLocalSession() {
-        if let local = LocalStudyStore.localStartedAt {
-            isStudying = true
-            isPaused = LocalStudyStore.isPaused
-            studyStartedAt = local
-            currentActivity = LocalStudyStore.currentActivity
-        } else {
-            isStudying = false
-            isPaused = false
-            studyStartedAt = nil
-            currentActivity = nil
-        }
-    }
-
-    private func loadFeed() async {
-        guard !isLoadingFeed else { return }
-        isLoadingFeed = true
-        defer {
-            isLoadingFeed = false
-            hasLoadedFeed = true
-        }
-
-        do {
-            feedError = nil
-            let response = try await APIClient.getHomeFeed()
-            feedUsers = response.users
-            FeedCache.save(response.users)
-            for u in response.users {
-                UserProfileCache.save(u, userId: u.id)
-            }
-        } catch APIError.networkError {
-            feedError = nil
-        } catch {
-            if !error.isCancellation {
-                feedError = error.localizedDescription
-            }
-        }
-    }
-
-    /// Unified polling: fetch following users, own study status, and unread notification count in 1 request.
-    private func pollHome(force: Bool = false) async {
-        guard !isLoadingFeed else { return }
-        isLoadingFeed = true
-        defer {
-            isLoadingFeed = false
-            hasLoadedFeed = true
-        }
-
-        guard network.isOnline else {
-            applyLocalSession()
-            return
-        }
-
-        do {
-            feedError = nil
-            let poll = try await APIClient.poll(force: force)
-            feedUsers = poll.users
-            FeedCache.save(poll.users)
-            for u in poll.users {
-                UserProfileCache.save(u, userId: u.id)
-            }
-            await applyStudyStatus(poll.studySession)
-            appState.unreadNotificationCount = poll.unreadCount
-        } catch APIError.networkError {
-            feedError = nil
-            applyLocalSession()
-        } catch {
-            if !error.isCancellation {
-                feedError = error.localizedDescription
-            }
-        }
-    }
-
-    private func startPolling() async {
-        while !Task.isCancelled {
-            try? await Task.sleep(for: .seconds(Config.feedPollingInterval))
-            await pollHome()
-        }
-    }
-
-    private func startStudying() async {
-        guard !studyActionLoading else { return }
-        studyActionLoading = true
-        isStartingStudy = true
-        defer {
-            studyActionLoading = false
-            isStartingStudy = false
-        }
-
-        let now = Date()
-        LocalStudyStore.start(at: now, offline: true)
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-            isStudying = true
-            isPaused = false
-            studyStartedAt = now
-            currentActivity = nil
-        }
-
-        do {
-            try await APIClient.startStudy()
-            LocalStudyStore.startedOffline = false
-        } catch {
-            LocalStudyStore.startedOffline = true
-        }
-    }
-
-    private func updateActivity(_ newActivity: String?) {
-        LocalStudyStore.currentActivity = newActivity
-        withAnimation(.easeInOut(duration: 0.2)) {
-            currentActivity = newActivity
-        }
-
-        if network.isOnline {
-            Task {
-                do {
-                    try await APIClient.updateStudyActivity(newActivity)
-                } catch {
-                    #if DEBUG
-                    print("[HomeView] updateStudyActivity failed: \(error)")
-                    #endif
-                }
-            }
-        }
-    }
-
-    private func pauseStudying() async {
-        LocalStudyStore.pause()
-        isPaused = true
-
-        if network.isOnline {
-            Task { try? await APIClient.pauseStudy() }
-        }
-    }
-
-    private func resumeStudying() async {
-        LocalStudyStore.resume()
-        isPaused = false
-
-        if network.isOnline {
-            Task { try? await APIClient.resumeStudy() }
-        }
-    }
-
-    private func stopStudying() {
-        let totalElapsed = LocalStudyStore.totalElapsedSeconds()
-        let elapsedMinutes = Int(totalElapsed / 60)
-        let lastActivity = currentActivity
-
-        LocalStudyStore.clear()
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-            isStudying = false
-            isPaused = false
-            studyStartedAt = nil
-            currentActivity = nil
-        }
-
-        composeInitialMinutes = max(1, elapsedMinutes)
-        composeInitialComment = lastActivity
-        showComposePost = true
-
-        if network.isOnline {
-            Task { try? await APIClient.stopStudy() }
-        }
-    }
-
-    // MARK: - Post Actions
-
-    private func loadFollowingPosts() async {
-        guard !isLoadingFollowingPosts else { return }
-        isLoadingFollowingPosts = true
-        postsError = nil
-        defer {
-            isLoadingFollowingPosts = false
-            hasLoadedFollowingPosts = true
-        }
-        do {
-            let response = try await APIClient.getTimeline(cursor: nil, limit: pageSize)
-            followingPosts = response.posts
-            followingNextCursor = response.nextCursor
-            PostsCache.save(response.posts, scopeKey: "following")
-        } catch {
-            if !error.isCancellation {
-                postsError = error.localizedDescription
-            }
-        }
-    }
-
-    private func loadMyPosts() async {
-        guard !isLoadingMyPosts else { return }
-        isLoadingMyPosts = true
-        postsError = nil
-        defer {
-            isLoadingMyPosts = false
-            hasLoadedMyPosts = true
-        }
-        do {
-            let response = try await APIClient.getUserPosts(userId: "me", cursor: nil, limit: pageSize)
-            myPosts = response.posts
-            myNextCursor = response.nextCursor
-            PostsCache.save(response.posts, scopeKey: "mine")
-        } catch {
-            if !error.isCancellation {
-                postsError = error.localizedDescription
-            }
-        }
-    }
-
-    private func loadMoreCurrentPosts() {
-        switch postScope {
-        case .following:
-            guard let cursor = followingNextCursor, !isLoadingMoreFollowingPosts, !isLoadingFollowingPosts else { return }
-            Task {
-                isLoadingMoreFollowingPosts = true
-                defer { isLoadingMoreFollowingPosts = false }
-                do {
-                    let response = try await APIClient.getTimeline(cursor: cursor, limit: pageSize)
-                    followingPosts.append(contentsOf: response.posts)
-                    followingNextCursor = response.nextCursor
-                } catch { }
-            }
-        case .mine:
-            guard let cursor = myNextCursor, !isLoadingMoreMyPosts, !isLoadingMyPosts else { return }
-            Task {
-                isLoadingMoreMyPosts = true
-                defer { isLoadingMoreMyPosts = false }
-                do {
-                    let response = try await APIClient.getUserPosts(userId: "me", cursor: cursor, limit: pageSize)
-                    myPosts.append(contentsOf: response.posts)
-                    myNextCursor = response.nextCursor
-                } catch { }
-            }
-        }
-    }
-
-    private func prependPost(_ studyPost: StudyPost) {
-        guard let me = appState.currentUser else { return }
-        let post = Post(
-            id: studyPost.id,
-            userId: me.id,
-            minutes: studyPost.minutes,
-            comment: studyPost.comment,
-            createdAt: studyPost.createdAt,
-            user: me
-        )
-        myPosts.insert(post, at: 0)
-        PostsCache.save(myPosts, scopeKey: "mine")
-
-        followingPosts.insert(post, at: 0)
-        PostsCache.save(followingPosts, scopeKey: "following")
-    }
-
-    private func deletePost(_ post: Post) async {
-        do {
-            try await APIClient.deletePost(id: post.id)
-            myPosts.removeAll { $0.id == post.id }
-            PostsCache.save(myPosts, scopeKey: "mine")
-
-            followingPosts.removeAll { $0.id == post.id }
-            PostsCache.save(followingPosts, scopeKey: "following")
-        } catch {
-            if !error.isCancellation {
-                postsError = error.localizedDescription
-            }
-        }
-    }
-
-    private func reportPost(_ post: Post) async {
-        do {
-            try await APIClient.reportPost(id: post.id)
-            showReportSuccessAlert = true
-        } catch {
-            if !error.isCancellation {
-                postsError = error.localizedDescription
-            }
-        }
-    }
-
-    private func updatePostLike(id: String, isLiked: Bool, likeCount: Int) {
-        if let idx = followingPosts.firstIndex(where: { $0.id == id }) {
-            followingPosts[idx].isLiked = isLiked
-            followingPosts[idx].likeCount = likeCount
-            PostsCache.save(followingPosts, scopeKey: "following")
-        }
-        if let idx = myPosts.firstIndex(where: { $0.id == id }) {
-            myPosts[idx].isLiked = isLiked
-            myPosts[idx].likeCount = likeCount
-            PostsCache.save(myPosts, scopeKey: "mine")
-        }
-    }
-
-    private func updatePostContent(id: String, minutes: Int, comment: String?) {
-        if let idx = followingPosts.firstIndex(where: { $0.id == id }) {
-            let old = followingPosts[idx]
-            followingPosts[idx] = Post(
-                id: old.id,
-                userId: old.userId,
-                minutes: minutes,
-                comment: comment,
-                createdAt: old.createdAt,
-                user: old.user,
-                likeCount: old.likeCount,
-                isLiked: old.isLiked
-            )
-            PostsCache.save(followingPosts, scopeKey: "following")
-        }
-        if let idx = myPosts.firstIndex(where: { $0.id == id }) {
-            let old = myPosts[idx]
-            myPosts[idx] = Post(
-                id: old.id,
-                userId: old.userId,
-                minutes: minutes,
-                comment: comment,
-                createdAt: old.createdAt,
-                user: old.user,
-                likeCount: old.likeCount,
-                isLiked: old.isLiked
-            )
-            PostsCache.save(myPosts, scopeKey: "mine")
-        }
-    }
-
-    private func handlePostMilestone() {
-        PostCountStore.handlePostCompleted(
-            onInviteFriends: {
-                showInviteFriendsAlert = true
-            }
-        )
-    }
-
-    private func shareMyProfile() {
-        guard let userId = appState.currentUser?.id ?? ProfileCache.load()?.id,
-              let url = URL(string: "https://junjun.oyajun.com/u/\(String(userId.prefix(10)))") else { return }
-        let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-        if let windowScene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
-           let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController {
-            var topVC = rootVC
-            while let presented = topVC.presentedViewController {
-                topVC = presented
-            }
-            topVC.present(activityVC, animated: true)
-        }
-    }
-
-    // MARK: - Helpers
-
-    private func formatElapsed(seconds: TimeInterval) -> String {
-        let total = max(0, Int(seconds))
-        let h = total / 3600
-        let m = (total % 3600) / 60
-        let s = total % 60
-        if h > 0 {
-            return String(format: "%d:%02d:%02d", h, m, s)
-        } else {
-            return String(format: "%02d:%02d", m, s)
-        }
-    }
-
-    private func elapsedString(from start: Date, to current: Date) -> String {
-        let seconds = Int(current.timeIntervalSince(start))
-        let h = seconds / 3600
-        let m = (seconds % 3600) / 60
-        let s = seconds % 60
-        if h > 0 {
-            return String(format: "%d:%02d:%02d", h, m, s)
-        } else {
-            return String(format: "%02d:%02d", m, s)
-        }
-    }
-}
-
-// MARK: - Studying Button Glow
-
-private struct StudyingButtonGlow: View {
-    var backgroundColor: String = "#FFD54F"
-    var isPro: Bool = false
-    @State private var rotation: Double = 0
-
-    private var glowColors: [Color] {
-        if isPro {
-            return IconPresets.rainbowColors
-        } else {
-            return Color.neighboringColors(from: backgroundColor)
-        }
-    }
-
-    var body: some View {
-        let gradient = AngularGradient(
-            colors: glowColors,
-            center: .center,
-            startAngle: .degrees(rotation),
-            endAngle: .degrees(rotation + 360)
-        )
-
-        // Clean, single ambient glow behind the button matching screen edge glow intensity
-        Capsule(style: .continuous)
-            .fill(gradient)
-            .padding(-8)
-            .drawingGroup() // Offload rendering pass to Metal (GPU)
-            .blur(radius: 16)
-            .opacity(0.60)
-            .allowsHitTesting(false)
-            .onAppear {
-                withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {
-                    rotation = 360
-                }
-            }
     }
 }
 
