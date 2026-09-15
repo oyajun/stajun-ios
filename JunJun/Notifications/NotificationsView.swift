@@ -225,7 +225,9 @@ struct NotificationsView: View {
         Task {
             do {
                 let res = try await APIClient.getNotifications(cursor: cursor, limit: pageSize)
-                notifications.append(contentsOf: res.notifications)
+                let existingIds = Set(notifications.map(\.id))
+                let uniqueNotifications = res.notifications.filter { !existingIds.contains($0.id) }
+                notifications.append(contentsOf: uniqueNotifications)
                 nextCursor = res.nextCursor
                 NotificationsCache.save(notifications)
             } catch {

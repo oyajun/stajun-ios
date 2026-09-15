@@ -9,6 +9,7 @@ enum LocalStudyStore {
     private static let accumulatedKey = "local_study_accumulated_seconds"
     private static let segmentStartKey = "local_study_segment_started_at"
     private static let isPausedKey = "local_study_is_paused"
+    private static let pendingStopKey = "local_study_pending_stop"
 
     /// The start time the device uses for measurement (nil = not studying).
     /// Independent of the server's `startedAt`.
@@ -60,6 +61,12 @@ enum LocalStudyStore {
         set { UserDefaults.standard.set(newValue, forKey: offlineKey) }
     }
 
+    /// Whether a local stop was requested and still needs to be acknowledged by the server.
+    static var pendingStop: Bool {
+        get { UserDefaults.standard.bool(forKey: pendingStopKey) }
+        set { UserDefaults.standard.set(newValue, forKey: pendingStopKey) }
+    }
+
     /// Calculate the current total elapsed study time in seconds.
     static func totalElapsedSeconds(at now: Date = Date()) -> TimeInterval {
         guard localStartedAt != nil else { return 0 }
@@ -79,6 +86,7 @@ enum LocalStudyStore {
         UserDefaults.standard.set(0.0, forKey: accumulatedKey)
         UserDefaults.standard.set(false, forKey: isPausedKey)
         UserDefaults.standard.set(offline, forKey: offlineKey)
+        UserDefaults.standard.set(false, forKey: pendingStopKey)
     }
 
     static func pause(at date: Date = Date()) {

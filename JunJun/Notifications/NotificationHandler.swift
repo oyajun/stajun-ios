@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import UserNotifications
 
+@MainActor
 final class NotificationHandler: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(
         _ application: UIApplication,

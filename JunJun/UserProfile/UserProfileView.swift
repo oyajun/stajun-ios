@@ -576,7 +576,9 @@ struct UserProfileView: View {
             defer { isLoadingPosts = false }
             do {
                 let response = try await APIClient.getUserPosts(userId: userId, cursor: cursor)
-                posts.append(contentsOf: response.posts)
+                let existingIds = Set(posts.map(\.id))
+                let uniquePosts = response.posts.filter { !existingIds.contains($0.id) }
+                posts.append(contentsOf: uniquePosts)
                 postsCursor = response.nextCursor
                 PostsCache.save(posts, scopeKey: "user_\(userId)")
             } catch {

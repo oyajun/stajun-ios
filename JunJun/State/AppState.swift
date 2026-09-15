@@ -12,6 +12,7 @@ enum AuthState: Equatable {
 
 // MARK: - AppState
 
+@MainActor
 @Observable
 final class AppState {
     var authState: AuthState = .checking
@@ -90,11 +91,12 @@ final class AppState {
             object: nil,
             queue: .main
         ) { [weak self] note in
-            guard let self else { return }
-            if let userId = note.userInfo?["userId"] as? String, !userId.isEmpty {
-                self.deepLinkedUserId = userId
-            }
-            Task {
+            let userId = note.userInfo?["userId"] as? String
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if let userId, !userId.isEmpty {
+                    self.deepLinkedUserId = userId
+                }
                 await self.poll()
             }
         }
@@ -104,9 +106,8 @@ final class AppState {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            guard let self else { return }
-            Task {
-                await self.poll()
+            Task { @MainActor [weak self] in
+                await self?.poll()
             }
         }
     }

@@ -100,14 +100,16 @@ final class SubscriptionManager: NSObject, PurchasesDelegate {
 
     /// Reset user on sign out
     func resetUser() async {
-        do {
-            _ = try await Purchases.shared.logOut()
+        defer {
             isPro = false
             proExpiresAt = nil
             lastSyncedIsPro = nil
             lastSyncedExpiresAt = nil
             lastSyncedUserId = nil
             onProStatusChanged?(false)
+        }
+        do {
+            _ = try await Purchases.shared.logOut()
         } catch {
             #if DEBUG
             print("[SubscriptionManager] Failed to log out user: \(error)")

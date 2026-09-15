@@ -193,7 +193,9 @@ struct SearchView: View {
                     limit: pageSize,
                     offset: results.count
                 )
-                results.append(contentsOf: response.users)
+                let existingIds = Set(results.map(\.id))
+                let uniqueUsers = response.users.filter { !existingIds.contains($0.id) }
+                results.append(contentsOf: uniqueUsers)
                 hasMore = response.pagination.hasMore
             } catch {
                 // Ignore errors on pagination; user can retry by scrolling again
@@ -203,37 +205,42 @@ struct SearchView: View {
 
     private func toggleFollow(user: UserWithFollowStatus) {
         guard let index = results.firstIndex(where: { $0.id == user.id }) else { return }
+        let wasFollowing = results[index].isFollowing
+        results[index].isFollowing = !wasFollowing
+
         Task {
             do {
-                if user.isFollowing {
+                if wasFollowing {
                     try await APIClient.unfollow(userId: user.id)
-                    results[index].isFollowing = false
                 } else {
                     _ = try await APIClient.follow(userId: user.id)
-                    results[index].isFollowing = true
                     appState.requestPushPermissionIfAppropriate()
                 }
             } catch {
-                // Ignore errors (no UI rollback needed)
+                if let currentIndex = results.firstIndex(where: { $0.id == user.id }) {
+                    results[currentIndex].isFollowing = wasFollowing
+                }
             }
         }
     }
 
     private func toggleFollowRecommended(user: UserWithStudyStatus) {
         guard let index = recommendedUsers.firstIndex(where: { $0.id == user.id }) else { return }
-        let currentlyFollowing = user.isFollowing ?? false
+        let wasFollowing = recommendedUsers[index].isFollowing ?? false
+        recommendedUsers[index].isFollowing = !wasFollowing
+
         Task {
             do {
-                if currentlyFollowing {
+                if wasFollowing {
                     try await APIClient.unfollow(userId: user.id)
-                    recommendedUsers[index].isFollowing = false
                 } else {
                     _ = try await APIClient.follow(userId: user.id)
-                    recommendedUsers[index].isFollowing = true
                     appState.requestPushPermissionIfAppropriate()
                 }
             } catch {
-                // Ignore errors (no UI rollback needed)
+                if let currentIndex = recommendedUsers.firstIndex(where: { $0.id == user.id }) {
+                    recommendedUsers[currentIndex].isFollowing = wasFollowing
+                }
             }
         }
     }

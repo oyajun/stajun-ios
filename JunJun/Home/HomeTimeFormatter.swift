@@ -16,7 +16,7 @@ enum HomeTimeFormatter {
 
     /// Formats elapsed time between two dates into "h:mm:ss" or "mm:ss"
     static func elapsedString(from start: Date, to current: Date) -> String {
-        let seconds = Int(current.timeIntervalSince(start))
+        let seconds = max(0, Int(current.timeIntervalSince(start)))
         let h = seconds / 3600
         let m = (seconds % 3600) / 60
         let s = seconds % 60

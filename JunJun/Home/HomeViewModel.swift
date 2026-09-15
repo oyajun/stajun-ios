@@ -99,6 +99,20 @@ final class HomeViewModel {
 
     // MARK: - Study Actions & Sync
     func applyStudyStatus(_ status: MyStudyStatus) async {
+        if LocalStudyStore.pendingStop {
+            if status.isStudying {
+                Task {
+                    do {
+                        try await APIClient.stopStudy()
+                        LocalStudyStore.pendingStop = false
+                    } catch { }
+                }
+            } else {
+                LocalStudyStore.pendingStop = false
+            }
+            return
+        }
+
         if let local = LocalStudyStore.localStartedAt {
             isStudying = true
             isPaused = LocalStudyStore.isPaused
@@ -341,7 +355,9 @@ final class HomeViewModel {
                 let response = try await (scope == .following
                     ? APIClient.getTimeline(cursor: cursor, limit: pageSize)
                     : APIClient.getUserPosts(userId: "me", cursor: cursor, limit: pageSize))
-                postTimelines[scope]?.posts.append(contentsOf: response.posts)
+                let existingIds = Set(postTimelines[scope]?.posts.map(\.id) ?? [])
+                let uniqueNewPosts = response.posts.filter { !existingIds.contains($0.id) }
+                postTimelines[scope]?.posts.append(contentsOf: uniqueNewPosts)
                 postTimelines[scope]?.nextCursor = response.nextCursor
             } catch { }
         }
@@ -429,6 +445,11 @@ final class HomeViewModel {
             var topVC = rootVC
             while let presented = topVC.presentedViewController {
                 topVC = presented
+            }
+            if let popover = activityVC.popoverPresentationController {
+                popover.sourceView = topVC.view
+                popover.sourceRect = CGRect(x: topVC.view.bounds.midX, y: topVC.view.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
             }
             topVC.present(activityVC, animated: true)
         }
