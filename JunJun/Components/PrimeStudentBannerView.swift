@@ -71,6 +71,32 @@ struct PrimeStudentBannerView: View {
     @Environment(\.openURL) private var openURL
     @Environment(AppState.self) private var appState
 
+    private var priceAttributedString: AttributedString {
+        var string = AttributedString()
+
+        var year = AttributedString("年額 ")
+        year.font = .system(size: 17, weight: .bold)
+        string.append(year)
+
+        var yearPrice = AttributedString("2,950円")
+        yearPrice.font = .system(size: 28, weight: .black)
+        string.append(yearPrice)
+
+        var monthly = AttributedString(" または 月額 ")
+        monthly.font = .system(size: 17, weight: .bold)
+        string.append(monthly)
+
+        var monthlyPrice = AttributedString("300円")
+        monthlyPrice.font = .system(size: 28, weight: .black)
+        string.append(monthlyPrice)
+
+        var exclamation = AttributedString(" !!")
+        exclamation.font = .system(size: 24, weight: .black)
+        string.append(exclamation)
+
+        return string
+    }
+
     var body: some View {
         if Config.showAds && !appState.isPro {
             ZStack(alignment: .topTrailing) {
@@ -82,14 +108,14 @@ struct PrimeStudentBannerView: View {
                         Spacer(minLength: 0)
 
                         // 1. タイトル
-                        Text("Amazon Prime Student")
+                        Text(verbatim: "Amazon Prime Student")
                             .font(.system(size: 28, weight: .black))
                             .foregroundStyle(.black)
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
 
                         // 2. 特典一覧
-                        Text("Free shipping, Prime Video, unlimited photo storage")
+                        Text(verbatim: "送料無料　Prime Video　容量無制限の写真ストレージ")
                             .font(.system(size: 15, weight: .bold))
                             .foregroundStyle(.black)
                             .lineLimit(1)
@@ -98,11 +124,11 @@ struct PrimeStudentBannerView: View {
 
                         // 3. 価格（「学生なら」で改行し、金額を大きく表示）
                         VStack(spacing: 3) {
-                            Text("For Students")
+                            Text(verbatim: "学生なら")
                                 .font(.system(size: 17, weight: .bold))
                                 .foregroundStyle(.black)
 
-                            Text("\(Text("Annual ").font(.system(size: 17, weight: .bold)))\(Text("2,950 yen").font(.system(size: 28, weight: .black)))\(Text(" or monthly ").font(.system(size: 17, weight: .bold)))\(Text("300 yen").font(.system(size: 28, weight: .black)))\(Text(" !!").font(.system(size: 24, weight: .black)))")
+                            Text(priceAttributedString)
                                 .foregroundStyle(.black)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.75)
@@ -110,7 +136,7 @@ struct PrimeStudentBannerView: View {
                         }
 
                         // 4. 初回特典バッジ
-                        Text("First 6 months free with annual plan")
+                        Text(verbatim: "年払いなら初回半年間無料")
                             .font(.system(size: 17, weight: .heavy))
                             .foregroundStyle(.black)
                             .padding(.horizontal, 22)
