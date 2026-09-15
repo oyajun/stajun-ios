@@ -77,7 +77,17 @@ final class HomeViewModel {
     var hasLoadedCurrentPosts: Bool { currentTimeline.hasLoaded }
     var isLoadingMoreCurrentPosts: Bool { currentTimeline.isLoadingMore }
 
-    // MARK: - Initial Caches
+    // MARK: - Initial Caches & Setup
+    var hasInitialLoaded: Bool = false
+
+    func initializeIfNeeded(appState: AppState) async {
+        guard !hasInitialLoaded else { return }
+        loadInitialCaches()
+        await pollHome(appState: appState)
+        await loadAllPosts()
+        hasInitialLoaded = true
+    }
+
     func loadInitialCaches() {
         if feedUsers.isEmpty {
             let cached = FeedCache.load()

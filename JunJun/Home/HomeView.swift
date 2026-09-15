@@ -122,9 +122,7 @@ struct HomeView: View {
                 await viewModel.refreshTimelineAndFeed(appState: appState)
             }
             .task {
-                viewModel.loadInitialCaches()
-                await viewModel.pollHome(appState: appState)
-                await viewModel.loadAllPosts()
+                await viewModel.initializeIfNeeded(appState: appState)
                 await viewModel.startPolling(appState: appState)
             }
             .onChange(of: viewModel.isStudying) { _, newValue in

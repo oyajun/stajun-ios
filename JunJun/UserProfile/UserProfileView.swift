@@ -17,6 +17,7 @@ struct UserProfileView: View {
     @State private var postsCursor: String?
     @State private var isLoadingPosts = false
     @State private var hasLoadedPosts = false
+    @State private var hasFetchedInitialPosts = false
     @State private var postToDelete: Post?
     @State private var postToReport: Post?
     @State private var showReportSuccessAlert = false
@@ -571,7 +572,8 @@ struct UserProfileView: View {
             }
         }
         await load()
-        if !isBlocked {
+        if !isBlocked && !hasFetchedInitialPosts {
+            hasFetchedInitialPosts = true
             await loadPosts()
         }
     }
@@ -740,6 +742,7 @@ struct UserProfileView: View {
         do {
             try await APIClient.unblockUser(userId: userId)
             isBlocked = false
+            hasFetchedInitialPosts = true
             await loadPosts()
         } catch {
             if !error.isCancellation {
