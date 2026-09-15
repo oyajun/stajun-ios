@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SearchView: View {
     @Environment(AppState.self) private var appState
+    @Environment(UserStore.self) private var userStore
     private let pageSize = 20
 
     @State private var query = ""
@@ -35,17 +36,18 @@ struct SearchView: View {
                             .listRowBackground(Color.clear)
                         } else {
                             ForEach(recommendedUsers) { user in
+                                let liveUser = userStore.user(for: user.id) ?? user
                                 NavigationLink {
                                     UserProfileView(userId: user.id)
                                 } label: {
                                     UserRow(
-                                        iconEmoji: user.iconEmoji,
-                                        iconBackgroundColor: user.iconBackgroundColor,
-                                        name: user.name,
-                                        isStudying: user.isStudying,
-                                        isPro: user.id == appState.currentUser?.id ? appState.isPro : (user.isPro ?? false),
-                                        isFollowing: user.isFollowing ?? false,
-                                        onFollowToggle: { toggleFollowRecommended(user: user) }
+                                        iconEmoji: liveUser.iconEmoji,
+                                        iconBackgroundColor: liveUser.iconBackgroundColor,
+                                        name: liveUser.name,
+                                        isStudying: liveUser.isStudying,
+                                        isPro: user.id == appState.currentUser?.id ? appState.isPro : (liveUser.isPro ?? false),
+                                        isFollowing: liveUser.isFollowing ?? false,
+                                        onFollowToggle: { toggleFollowRecommended(user: liveUser) }
                                     )
                                 }
                             }
@@ -68,16 +70,24 @@ struct SearchView: View {
                                 .listRowBackground(Color.clear)
                         } else {
                             ForEach(results) { user in
+                                let liveUser = userStore.user(for: user.id)
+                                let isFollowing = liveUser?.isFollowing ?? user.isFollowing
+                                let isStudying = liveUser?.isStudying ?? (user.isStudying ?? false)
+                                let name = liveUser?.name ?? user.name
+                                let iconEmoji = liveUser?.iconEmoji ?? user.iconEmoji
+                                let iconBackgroundColor = liveUser?.iconBackgroundColor ?? user.iconBackgroundColor
+                                let isPro = user.id == appState.currentUser?.id ? appState.isPro : (liveUser?.isPro ?? user.isPro ?? false)
+
                                 NavigationLink {
                                     UserProfileView(userId: user.id)
                                 } label: {
                                     UserRow(
-                                        iconEmoji: user.iconEmoji,
-                                        iconBackgroundColor: user.iconBackgroundColor,
-                                        name: user.name,
-                                        isStudying: user.isStudying ?? false,
-                                        isPro: user.id == appState.currentUser?.id ? appState.isPro : (user.isPro ?? false),
-                                        isFollowing: user.isFollowing,
+                                        iconEmoji: iconEmoji,
+                                        iconBackgroundColor: iconBackgroundColor,
+                                        name: name,
+                                        isStudying: isStudying,
+                                        isPro: isPro,
+                                        isFollowing: isFollowing,
                                         onFollowToggle: { toggleFollow(user: user) }
                                     )
                                 }
@@ -137,6 +147,7 @@ struct SearchView: View {
         defer { isLoadingRecommended = false }
         do {
             let response = try await APIClient.getRecommendedUsers()
+            userStore.upsert(response.users)
             recommendedUsers = response.users
         } catch {
             if !error.isCancellation {
@@ -169,6 +180,7 @@ struct SearchView: View {
         defer { isLoading = false }
         do {
             let response = try await APIClient.searchUsers(query: query, limit: pageSize, offset: 0)
+            userStore.upsert(response.users)
             results = response.users
             hasMore = response.pagination.hasMore
         } catch APIError.notFound {
@@ -193,6 +205,7 @@ struct SearchView: View {
                     limit: pageSize,
                     offset: results.count
                 )
+                userStore.upsert(response.users)
                 let existingIds = Set(results.map(\.id))
                 let uniqueUsers = response.users.filter { !existingIds.contains($0.id) }
                 results.append(contentsOf: uniqueUsers)
@@ -204,9 +217,12 @@ struct SearchView: View {
     }
 
     private func toggleFollow(user: UserWithFollowStatus) {
-        guard let index = results.firstIndex(where: { $0.id == user.id }) else { return }
-        let wasFollowing = results[index].isFollowing
-        results[index].isFollowing = !wasFollowing
+        let wasFollowing = userStore.user(for: user.id)?.isFollowing ?? user.isFollowing
+        let nextFollowing = !wasFollowing
+        userStore.setFollowing(userId: user.id, isFollowing: nextFollowing)
+        if let index = results.firstIndex(where: { $0.id == user.id }) {
+            results[index].isFollowing = nextFollowing
+        }
 
         Task {
             do {
@@ -217,6 +233,7 @@ struct SearchView: View {
                     appState.requestPushPermissionIfAppropriate()
                 }
             } catch {
+                userStore.setFollowing(userId: user.id, isFollowing: wasFollowing)
                 if let currentIndex = results.firstIndex(where: { $0.id == user.id }) {
                     results[currentIndex].isFollowing = wasFollowing
                 }
@@ -225,9 +242,12 @@ struct SearchView: View {
     }
 
     private func toggleFollowRecommended(user: UserWithStudyStatus) {
-        guard let index = recommendedUsers.firstIndex(where: { $0.id == user.id }) else { return }
-        let wasFollowing = recommendedUsers[index].isFollowing ?? false
-        recommendedUsers[index].isFollowing = !wasFollowing
+        let wasFollowing = userStore.user(for: user.id)?.isFollowing ?? (user.isFollowing ?? false)
+        let nextFollowing = !wasFollowing
+        userStore.setFollowing(userId: user.id, isFollowing: nextFollowing)
+        if let index = recommendedUsers.firstIndex(where: { $0.id == user.id }) {
+            recommendedUsers[index].isFollowing = nextFollowing
+        }
 
         Task {
             do {
@@ -238,6 +258,7 @@ struct SearchView: View {
                     appState.requestPushPermissionIfAppropriate()
                 }
             } catch {
+                userStore.setFollowing(userId: user.id, isFollowing: wasFollowing)
                 if let currentIndex = recommendedUsers.firstIndex(where: { $0.id == user.id }) {
                     recommendedUsers[currentIndex].isFollowing = wasFollowing
                 }
@@ -248,4 +269,6 @@ struct SearchView: View {
 
 #Preview {
     SearchView()
+        .environment(AppState())
+        .environment(UserStore())
 }

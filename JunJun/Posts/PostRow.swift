@@ -14,12 +14,27 @@ struct PostRow: View {
     /// Whether to show the bottom divider.
     var showDivider: Bool = true
 
+    @Environment(UserStore.self) private var userStore
+
     private let iconSize: CGFloat = 44
 
     @State private var isLiked: Bool
     @State private var likeCount: Int
     @State private var heartScale: CGFloat = 1.0
     @State private var isToggling = false
+
+    private var liveUser: UserProfile {
+        if let stored = userStore.user(for: post.userId) {
+            return UserProfile(
+                id: stored.id,
+                name: stored.name,
+                iconEmoji: stored.iconEmoji,
+                iconBackgroundColor: stored.iconBackgroundColor,
+                isPro: stored.isPro
+            )
+        }
+        return post.user
+    }
 
     init(
         post: Post,
@@ -58,14 +73,15 @@ struct PostRow: View {
 
         let createdYear = calendar.component(.year, from: post.createdAt)
         let currentYear = calendar.component(.year, from: now)
+
         if createdYear == currentYear {
             return post.createdAt.formatted(
-                .dateTime.locale(locale).month().day().hour().minute()
+                .dateTime.locale(locale).month(.defaultDigits).day().hour().minute()
             )
         }
 
         return post.createdAt.formatted(
-            .dateTime.locale(locale).year().month().day().hour().minute()
+            .dateTime.locale(locale).year().month(.defaultDigits).day().hour().minute()
         )
     }
 
@@ -74,17 +90,17 @@ struct PostRow: View {
             HStack(alignment: .top, spacing: 12) {
                 authorLink {
                     UserIconView(
-                        emoji: post.user.iconEmoji,
-                        backgroundColor: post.user.iconBackgroundColor,
+                        emoji: liveUser.iconEmoji,
+                        backgroundColor: liveUser.iconBackgroundColor,
                         size: iconSize,
-                        isPro: post.user.isPro ?? false
+                        isPro: liveUser.isPro ?? false
                     )
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
                         authorLink {
-                            Text(post.user.name)
+                            Text(liveUser.name)
                                 .font(.subheadline.bold())
                                 .lineLimit(1)
                         }
@@ -139,88 +155,67 @@ struct PostRow: View {
                     .padding(.horizontal, 16)
             }
         }
-        .onChange(of: post.isLiked) { _, newValue in
-            isLiked = newValue
-        }
-        .onChange(of: post.likeCount) { _, newValue in
-            likeCount = newValue
-        }
     }
 
-    // MARK: - Like Button
-
-    @ViewBuilder
     private var likeButton: some View {
-        Button {
-            toggleLike()
-        } label: {
-            HStack(spacing: 3) {
+        Button(action: toggleLike) {
+            HStack(spacing: 4) {
                 Image(systemName: isLiked ? "heart.fill" : "heart")
-                    .font(.subheadline)
-                    .foregroundStyle(isLiked ? Color.pink : Color.secondary)
+                    .foregroundColor(isLiked ? .red : .secondary)
                     .scaleEffect(heartScale)
-
                 if likeCount > 0 {
                     Text("\(likeCount)")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(isLiked ? Color.pink : Color.secondary)
+                        .font(.subheadline)
+                        .foregroundColor(isLiked ? .red : .secondary)
+                        .contentTransition(.numericText())
                 }
             }
-            .padding(.vertical, 4)
-            .padding(.horizontal, 4)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isLiked ? "Unlike" : "Like")
+        .accessibilityLabel(isLiked ? "Unlike post" : "Like post")
+        .accessibilityValue(likeCount > 0 ? "\(likeCount) likes" : "No likes")
     }
 
     private func toggleLike() {
         guard !isToggling else { return }
         isToggling = true
 
-        let wasLiked = isLiked
-        let prevCount = likeCount
-        let nextLiked = !wasLiked
-        let nextCount = nextLiked ? prevCount + 1 : max(0, prevCount - 1)
+        let nextIsLiked = !isLiked
+        let nextCount = isLiked ? max(0, likeCount - 1) : likeCount + 1
 
-        // 楽観的UIの即時更新
-        isLiked = nextLiked
-        likeCount = nextCount
-        onToggleLike?(nextLiked, nextCount)
-
-        // 触覚フィードバック
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
-        // アニメーション
-        withAnimation(.spring(response: 0.25, dampingFraction: 0.5)) {
-            heartScale = nextLiked ? 1.35 : 0.85
+        withAnimation(.easeInOut(duration: 0.15)) {
+            isLiked = nextIsLiked
+            likeCount = nextCount
+            if nextIsLiked {
+                heartScale = 1.3
+            }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+        if nextIsLiked {
+            withAnimation(.easeInOut(duration: 0.15).delay(0.15)) {
                 heartScale = 1.0
             }
         }
 
+        onToggleLike?(nextIsLiked, nextCount)
+
         Task {
             defer { isToggling = false }
             do {
-                let res = if wasLiked {
-                    try await APIClient.unlikePost(id: post.id)
+                if nextIsLiked {
+                    _ = try await APIClient.likePost(id: post.id)
                 } else {
-                    try await APIClient.likePost(id: post.id)
-                }
-                // サーバー最新値との差分があれば同期
-                if likeCount != res.likeCount || isLiked != res.isLiked {
-                    isLiked = res.isLiked
-                    likeCount = res.likeCount
-                    onToggleLike?(res.isLiked, res.likeCount)
+                    _ = try await APIClient.unlikePost(id: post.id)
                 }
             } catch {
-                // エラー時はサイレントにロールバック
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isLiked = wasLiked
-                    likeCount = prevCount
-                    onToggleLike?(wasLiked, prevCount)
+                await MainActor.run {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        isLiked = !nextIsLiked
+                        likeCount = nextIsLiked ? max(0, likeCount - 1) : likeCount + 1
+                    }
+                    onToggleLike?(!nextIsLiked, likeCount)
                 }
             }
         }
@@ -254,5 +249,6 @@ struct PostRow: View {
             likeCount: 3,
             isLiked: true
         ))
+        .environment(UserStore())
     }
 }

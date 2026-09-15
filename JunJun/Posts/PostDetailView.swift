@@ -7,6 +7,7 @@ struct PostDetailView: View {
     var onUpdate: ((Post) -> Void)? = nil
 
     @Environment(AppState.self) private var appState
+    @Environment(UserStore.self) private var userStore
     @Environment(\.dismiss) private var dismiss
 
     @State private var currentPost: Post
@@ -81,16 +82,17 @@ struct PostDetailView: View {
                     .padding(.vertical, 32)
                 } else {
                     ForEach(likers) { user in
-                        NavigationLink(destination: UserProfileView(userId: user.id)) {
+                        let liveUser = userStore.user(for: user.id) ?? user
+                        NavigationLink(destination: UserProfileView(userId: liveUser.id)) {
                             UserRow(
-                                iconEmoji: user.iconEmoji,
-                                iconBackgroundColor: user.iconBackgroundColor,
-                                name: user.name,
+                                iconEmoji: liveUser.iconEmoji,
+                                iconBackgroundColor: liveUser.iconBackgroundColor,
+                                name: liveUser.name,
                                 isStudying: false,
-                                isPro: user.id == appState.currentUser?.id ? appState.isPro : (user.isPro ?? false),
-                                isFollowing: user.isFollowing ?? false,
-                                onFollowToggle: user.id == appState.currentUser?.id ? nil : {
-                                    toggleFollow(user: user)
+                                isPro: liveUser.id == appState.currentUser?.id ? appState.isPro : (liveUser.isPro ?? false),
+                                isFollowing: liveUser.isFollowing ?? false,
+                                onFollowToggle: liveUser.id == appState.currentUser?.id ? nil : {
+                                    toggleFollow(user: liveUser)
                                 }
                             )
                         }
@@ -252,6 +254,7 @@ struct PostDetailView: View {
         do {
             errorMessage = nil
             let res = try await APIClient.getPostLikes(postId: currentPost.id, limit: pageSize, offset: 0)
+            userStore.upsert(res.users)
             likers = res.users
             likersOffset = res.users.count
             hasMoreLikers = res.pagination.hasMore
@@ -273,6 +276,7 @@ struct PostDetailView: View {
                     limit: pageSize,
                     offset: likersOffset
                 )
+                userStore.upsert(res.users)
                 likers.append(contentsOf: res.users)
                 likersOffset += res.users.count
                 hasMoreLikers = res.pagination.hasMore
@@ -283,21 +287,26 @@ struct PostDetailView: View {
     }
 
     private func toggleFollow(user: UserWithStudyStatus) {
+        let wasFollowing = userStore.user(for: user.id)?.isFollowing ?? (user.isFollowing ?? false)
+        let newValue = !wasFollowing
+        userStore.setFollowing(userId: user.id, isFollowing: newValue)
+        if let i = likers.firstIndex(where: { $0.id == user.id }) {
+            likers[i].isFollowing = newValue
+        }
+
         Task {
             do {
-                let wasFollowing = user.isFollowing ?? false
                 if wasFollowing {
                     try await APIClient.unfollow(userId: user.id)
                 } else {
                     _ = try await APIClient.follow(userId: user.id)
                     appState.requestPushPermissionIfAppropriate()
                 }
-                let newValue = !wasFollowing
-                if let i = likers.firstIndex(where: { $0.id == user.id }) {
-                    likers[i].isFollowing = newValue
-                }
             } catch {
-                // Ignore errors
+                userStore.setFollowing(userId: user.id, isFollowing: wasFollowing)
+                if let i = likers.firstIndex(where: { $0.id == user.id }) {
+                    likers[i].isFollowing = wasFollowing
+                }
             }
         }
     }

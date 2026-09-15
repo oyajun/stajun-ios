@@ -7,6 +7,18 @@ struct FollowingUsersFeedView: View {
     let now: Date
     let onSelectUser: (String) -> Void
 
+    @Environment(UserStore.self) private var userStore
+
+    private var activeUsers: [UserWithStudyStatus] {
+        feedUsers.compactMap { user in
+            let live = userStore.user(for: user.id) ?? user
+            if live.isFollowing == false {
+                return nil
+            }
+            return live
+        }
+    }
+
     private struct BubbleConfig: Equatable {
         let isTop: Bool
         let extendsRight: Bool
@@ -17,8 +29,9 @@ struct FollowingUsersFeedView: View {
         var topOccupied: Set<Int> = []
         var bottomOccupied: Set<Int> = []
 
-        for i in 0..<feedUsers.count {
-            let user = feedUsers[i]
+        let users = activeUsers
+        for i in 0..<users.count {
+            let user = users[i]
             guard user.isStudying,
                   let act = user.activity?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !act.isEmpty else {
@@ -27,7 +40,7 @@ struct FollowingUsersFeedView: View {
 
             let isTop = !topOccupied.contains(i)
             let leftNeighborHasBubble = (i > 0) && {
-                let neighbor = feedUsers[i - 1]
+                let neighbor = users[i - 1]
                 return neighbor.isStudying && !(neighbor.activity?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             }()
 
@@ -68,10 +81,10 @@ struct FollowingUsersFeedView: View {
     }
 
     var body: some View {
-        if !hasLoadedFeed && feedUsers.isEmpty {
+        if !hasLoadedFeed && activeUsers.isEmpty {
             ProgressView()
                 .frame(maxWidth: .infinity, minHeight: 117)
-        } else if feedUsers.isEmpty {
+        } else if activeUsers.isEmpty {
             emptyFeedSection
         } else {
             followingSection
@@ -82,7 +95,7 @@ struct FollowingUsersFeedView: View {
         VStack(alignment: .leading, spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 14) {
-                    ForEach(feedUsers) { user in
+                    ForEach(activeUsers) { user in
                         let config = bubbleConfigs[user.id]
                         let isSingle = user.activity.map { FollowingActivityBubble.isSingleCell(for: $0) } ?? true
                         let alignment: Alignment = isSingle ? .center : ((config?.extendsRight ?? true) ? .leading : .trailing)

@@ -5,6 +5,7 @@ import GoogleMobileAds
 struct JunJunApp: App {
     @UIApplicationDelegateAdaptor(NotificationHandler.self) private var appDelegate
     @State private var appState = AppState()
+    @State private var userStore = UserStore.shared
 
     init() {
         SubscriptionManager.shared.initialize()
@@ -21,6 +22,7 @@ struct JunJunApp: App {
         WindowGroup {
             ContentView()
                 .environment(appState)
+                .environment(userStore)
         }
     }
 }

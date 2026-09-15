@@ -4,6 +4,7 @@ struct UserProfileView: View {
     let userId: String
 
     @Environment(AppState.self) private var appState
+    @Environment(UserStore.self) private var userStore
 
     @State private var user: UserWithStudyStatus?
     @State private var isLoading = true
@@ -39,30 +40,34 @@ struct UserProfileView: View {
         appState.currentUser?.id == userId
     }
 
+    private var effectiveUser: UserWithStudyStatus? {
+        userStore.user(for: userId) ?? user
+    }
+
     private var shareURL: URL? {
-        guard let user else { return nil }
-        let shortId = String(user.id.prefix(10))
+        guard let effectiveUser else { return nil }
+        let shortId = String(effectiveUser.id.prefix(10))
         return URL(string: "https://junjun.oyajun.com/u/\(shortId)")
     }
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoading && effectiveUser == nil {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let user {
-                userContent(user)
+            } else if let effectiveUser {
+                userContent(effectiveUser)
             } else {
                 ContentUnavailableView("User Not Found", systemImage: "person.slash")
             }
         }
-        .navigationTitle(user?.name ?? "")
+        .navigationTitle(effectiveUser?.name ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             profileToolbar
         }
         .navigationDestination(item: $followListTab) { tab in
-            FollowListView(userId: userId, userName: user?.name, initialTab: tab)
+            FollowListView(userId: userId, userName: effectiveUser?.name, initialTab: tab)
         }
         .navigationDestination(item: $selectedPost) { post in
             postDetailDestination(for: post)
@@ -115,7 +120,7 @@ struct UserProfileView: View {
 
     @ViewBuilder
     private var activityEditSheet: some View {
-        let current = isOwnProfile ? (LocalStudyStore.currentActivity ?? user?.activity) : user?.activity
+        let current = isOwnProfile ? (LocalStudyStore.currentActivity ?? effectiveUser?.activity) : effectiveUser?.activity
         ActivityEditSheet(initialActivity: current) { newActivity in
             saveActivity(newActivity)
         }
@@ -125,11 +130,22 @@ struct UserProfileView: View {
         Task {
             try? await APIClient.updateStudyActivity(newActivity)
             LocalStudyStore.currentActivity = newActivity
+            let current = effectiveUser
+            let isStudying = isOwnProfile ? (appState.isStudying || LocalStudyStore.localStartedAt != nil || (current?.isStudying ?? false)) : (current?.isStudying ?? false)
+            let studyingSince = isOwnProfile ? (LocalStudyStore.localStartedAt ?? current?.studyingSince) : current?.studyingSince
+            let isPaused = isOwnProfile ? (appState.isPaused || LocalStudyStore.isPaused) : (current?.isPaused ?? false)
+            let accumulatedSeconds = isOwnProfile ? Int(LocalStudyStore.accumulatedSeconds) : current?.accumulatedSeconds
+
+            userStore.setStudyStatus(
+                userId: userId,
+                isStudying: isStudying,
+                studyingSince: studyingSince,
+                isPaused: isPaused,
+                accumulatedSeconds: accumulatedSeconds,
+                activity: newActivity
+            )
+
             if var u = user {
-                let isStudying = isOwnProfile ? (appState.isStudying || LocalStudyStore.localStartedAt != nil || u.isStudying) : u.isStudying
-                let studyingSince = isOwnProfile ? (LocalStudyStore.localStartedAt ?? u.studyingSince) : u.studyingSince
-                let isPaused = isOwnProfile ? (appState.isPaused || LocalStudyStore.isPaused) : u.isPaused
-                let accumulatedSeconds = isOwnProfile ? Int(LocalStudyStore.accumulatedSeconds) : u.accumulatedSeconds
                 u = UserWithStudyStatus(
                     id: u.id,
                     name: u.name,
@@ -217,13 +233,13 @@ struct UserProfileView: View {
                             Task { await unblock() }
                         }
                     } else {
-                        if user?.isFollowing ?? false {
+                        if effectiveUser?.isFollowing ?? false {
                             Button {
                                 Task { await toggleMute() }
                             } label: {
                                 Label(
-                                    (user?.isMuted ?? false) ? "Unmute Notifications" : "Mute Notifications",
-                                    systemImage: (user?.isMuted ?? false) ? "bell" : "bell.slash"
+                                    (effectiveUser?.isMuted ?? false) ? "Unmute Notifications" : "Mute Notifications",
+                                    systemImage: (effectiveUser?.isMuted ?? false) ? "bell" : "bell.slash"
                                 )
                             }
                         }
@@ -457,35 +473,36 @@ struct UserProfileView: View {
                     Button(role: .destructive) {
                         postToReport = post
                     } label: {
-                        Label("Report", systemImage: "exclamationmark.bubble")
+                        Label("Report", systemImage: "flag")
                     }
                 }
         }
     }
 
     private func formatDuration(seconds: TimeInterval) -> String {
-        let total = max(0, Int(seconds))
-        let h = total / 3600
-        let m = (total % 3600) / 60
-        let s = total % 60
-        if h > 0 {
-            return String(format: "%d:%02d:%02d", h, m, s)
+        let total = Int(seconds)
+        let hours = total / 3600
+        let minutes = (total % 3600) / 60
+        let secs = total % 60
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, secs)
         } else {
-            return String(format: "%02d:%02d", m, s)
+            return String(format: "%02d:%02d", minutes, secs)
         }
     }
 
     // MARK: - Actions
 
     private func load() async {
-        if user == nil {
+        if effectiveUser == nil {
             isLoading = true
         }
         errorMessage = nil
         defer { isLoading = false }
         do {
             let fetched = try await APIClient.getUser(id: userId)
-            let mergedActivity = isOwnProfile ? (LocalStudyStore.currentActivity ?? fetched.activity ?? user?.activity) : (fetched.activity ?? user?.activity)
+            let currentActivity = effectiveUser?.activity
+            let mergedActivity = isOwnProfile ? (LocalStudyStore.currentActivity ?? fetched.activity ?? currentActivity) : (fetched.activity ?? currentActivity)
             let isStudying = isOwnProfile ? (appState.isStudying || LocalStudyStore.localStartedAt != nil || fetched.isStudying) : fetched.isStudying
             let studyingSince = isOwnProfile ? (LocalStudyStore.localStartedAt ?? fetched.studyingSince) : fetched.studyingSince
             let isPaused = isOwnProfile ? (appState.isPaused || LocalStudyStore.isPaused) : fetched.isPaused
@@ -506,7 +523,7 @@ struct UserProfileView: View {
                 activity: mergedActivity
             )
             user = merged
-            UserProfileCache.save(merged, userId: userId)
+            userStore.upsert(merged)
             let blockedResp = try? await APIClient.getBlockedUsers(limit: 50, offset: 0)
             if let resp = blockedResp, resp.users.contains(where: { $0.id == userId }) {
                 isBlocked = true
@@ -520,11 +537,15 @@ struct UserProfileView: View {
 
     private func onAppearTask() async {
         if user == nil {
-            if let cached = UserProfileCache.load(userId: userId) {
+            if let memoryUser = userStore.user(for: userId) {
+                user = memoryUser
+                isLoading = false
+            } else if let cached = UserProfileCache.load(userId: userId) {
                 user = cached
+                userStore.upsert(cached)
                 isLoading = false
             } else if isOwnProfile, let me = appState.currentUser {
-                user = UserWithStudyStatus(
+                let initial = UserWithStudyStatus(
                     id: me.id,
                     name: me.name,
                     iconEmoji: me.iconEmoji,
@@ -537,6 +558,8 @@ struct UserProfileView: View {
                     isPro: appState.isPro,
                     activity: LocalStudyStore.currentActivity
                 )
+                user = initial
+                userStore.upsert(initial)
                 isLoading = false
             }
         }
@@ -636,23 +659,35 @@ struct UserProfileView: View {
     }
 
     private func toggleFollow() async {
-        guard let currentUser = user else { return }
+        guard let currentUser = effectiveUser else { return }
+        let wasFollowing = currentUser.isFollowing ?? false
+        let nextFollowing = !wasFollowing
+
+        userStore.setFollowing(userId: userId, isFollowing: nextFollowing)
+        user?.isFollowing = nextFollowing
+
         isFollowLoading = true
         defer { isFollowLoading = false }
         do {
-            if currentUser.isFollowing ?? false {
+            if wasFollowing {
                 try await APIClient.unfollow(userId: userId)
+                userStore.setFollowing(userId: userId, isFollowing: false, isMuted: false, muteNotification: 0)
                 user?.isFollowing = false
                 user?.muteStudyStartNotification = 0
                 user?.isMuted = false
             } else {
                 let res = try await APIClient.follow(userId: userId)
+                let muteNotif = res.muteStudyStartNotification ?? 0
+                let isMuted = res.isMuted ?? (muteNotif == 1)
+                userStore.setFollowing(userId: userId, isFollowing: true, isMuted: isMuted, muteNotification: muteNotif)
                 user?.isFollowing = true
-                user?.muteStudyStartNotification = res.muteStudyStartNotification ?? 0
-                user?.isMuted = res.isMuted ?? ((res.muteStudyStartNotification ?? 0) == 1)
+                user?.muteStudyStartNotification = muteNotif
+                user?.isMuted = isMuted
                 appState.requestPushPermissionIfAppropriate()
             }
         } catch {
+            userStore.setFollowing(userId: userId, isFollowing: wasFollowing)
+            user?.isFollowing = wasFollowing
             if !error.isCancellation {
                 errorMessage = error.localizedDescription
             }
@@ -660,23 +695,27 @@ struct UserProfileView: View {
     }
 
     private func toggleMute() async {
-        guard let currentUser = user else { return }
+        guard let currentUser = effectiveUser else { return }
         let previousMuted = (currentUser.isMuted == true) || (currentUser.muteStudyStartNotification == 1)
         let previousMode = currentUser.muteStudyStartNotification ?? (previousMuted ? 1 : 0)
         let targetMuted = !previousMuted
         let targetMode = targetMuted ? 1 : 0
 
         // 楽観的UI更新
+        userStore.setMuted(userId: userId, isMuted: targetMuted, muteNotification: targetMode)
         user?.muteStudyStartNotification = targetMode
         user?.isMuted = targetMuted
 
         do {
             let res = try await APIClient.updateFollowMute(userId: userId, isMuted: targetMuted)
             let isMutedResult = res.isMuted ?? ((res.muteStudyStartNotification ?? targetMode) == 1)
-            user?.muteStudyStartNotification = res.muteStudyStartNotification ?? (isMutedResult ? 1 : 0)
+            let muteNotifResult = res.muteStudyStartNotification ?? (isMutedResult ? 1 : 0)
+            userStore.setMuted(userId: userId, isMuted: isMutedResult, muteNotification: muteNotifResult)
+            user?.muteStudyStartNotification = muteNotifResult
             user?.isMuted = isMutedResult
         } catch {
-            // エラー時は元の状態にロールバックし、エラーダイアログを表示
+            // エラー時は元の状態にロールバック
+            userStore.setMuted(userId: userId, isMuted: previousMuted, muteNotification: previousMode)
             user?.muteStudyStartNotification = previousMode
             user?.isMuted = previousMuted
             muteAlertTitle = targetMuted ? "Could Not Mute" : "Could Not Unmute"
@@ -688,6 +727,7 @@ struct UserProfileView: View {
         do {
             try await APIClient.blockUser(userId: userId)
             isBlocked = true
+            userStore.setFollowing(userId: userId, isFollowing: false)
             user?.isFollowing = false
         } catch {
             if !error.isCancellation {
@@ -777,5 +817,6 @@ private struct ProfileAlertsModifier: ViewModifier {
     NavigationStack {
         UserProfileView(userId: "preview-user-id")
             .environment(AppState())
+            .environment(UserStore())
     }
 }

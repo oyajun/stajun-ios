@@ -19,6 +19,7 @@ final class AppState {
     var currentUser: UserProfile? {
         didSet {
             if let user = currentUser {
+                UserStore.shared.upsert(user)
                 if user.isPro == true {
                     self.isPro = true
                 }
@@ -179,6 +180,7 @@ final class AppState {
             let res = try await APIClient.poll(force: force)
             unreadNotificationCount = res.unreadCount
             FeedCache.save(res.users)
+            UserStore.shared.upsert(res.users)
         } catch {
             #if DEBUG
             print("[Polling] Failed: \(error)")
@@ -279,6 +281,7 @@ final class AppState {
         StatsCache.clear()
         UserProfileCache.clear()
         NotificationsCache.clear()
+        UserStore.shared.clear()
         await APIClient.clearPollingCache()
         currentUser = nil
         isStudying = false
@@ -299,6 +302,7 @@ final class AppState {
         StatsCache.clear()
         UserProfileCache.clear()
         NotificationsCache.clear()
+        UserStore.shared.clear()
         Task { await APIClient.clearPollingCache() }
         currentUser = nil
         isStudying = false

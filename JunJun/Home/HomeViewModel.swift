@@ -83,6 +83,7 @@ final class HomeViewModel {
             let cached = FeedCache.load()
             if !cached.isEmpty {
                 feedUsers = cached
+                UserStore.shared.upsert(cached)
                 hasLoadedFeed = true
             }
         }
@@ -249,6 +250,7 @@ final class HomeViewModel {
         feedUsers = users
         FeedCache.save(users)
         for u in users { UserProfileCache.save(u, userId: u.id) }
+        UserStore.shared.upsert(users)
     }
 
     func loadFeed() async {
@@ -328,6 +330,7 @@ final class HomeViewModel {
             let response = try await (scope == .following
                 ? APIClient.getTimeline(cursor: nil, limit: pageSize)
                 : APIClient.getUserPosts(userId: "me", cursor: nil, limit: pageSize))
+            for p in response.posts { UserStore.shared.upsert(p.user) }
             postTimelines[scope]?.posts = response.posts
             postTimelines[scope]?.nextCursor = response.nextCursor
             PostsCache.save(response.posts, scopeKey: scope.cacheKey)
@@ -355,6 +358,7 @@ final class HomeViewModel {
                 let response = try await (scope == .following
                     ? APIClient.getTimeline(cursor: cursor, limit: pageSize)
                     : APIClient.getUserPosts(userId: "me", cursor: cursor, limit: pageSize))
+                for p in response.posts { UserStore.shared.upsert(p.user) }
                 let existingIds = Set(postTimelines[scope]?.posts.map(\.id) ?? [])
                 let uniqueNewPosts = response.posts.filter { !existingIds.contains($0.id) }
                 postTimelines[scope]?.posts.append(contentsOf: uniqueNewPosts)

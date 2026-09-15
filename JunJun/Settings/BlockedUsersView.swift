@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BlockedUsersView: View {
     @Environment(AppState.self) private var appState
+    @Environment(UserStore.self) private var userStore
     @State private var users: [UserWithFollowStatus] = []
     @State private var unblockedUserIds: Set<String> = []
     @State private var isLoading = true
@@ -27,30 +28,37 @@ struct BlockedUsersView: View {
                     .listRowSeparator(.hidden)
             } else {
                 ForEach(users) { user in
+                    let liveUser = userStore.user(for: user.id)
+                    let isFollowing = liveUser?.isFollowing ?? user.isFollowing
+                    let name = liveUser?.name ?? user.name
+                    let iconEmoji = liveUser?.iconEmoji ?? user.iconEmoji
+                    let iconBackgroundColor = liveUser?.iconBackgroundColor ?? user.iconBackgroundColor
+                    let isPro = liveUser?.isPro ?? user.isPro ?? false
+
                     NavigationLink {
                         UserProfileView(userId: user.id, initialIsBlocked: !unblockedUserIds.contains(user.id))
                     } label: {
                         HStack(spacing: 12) {
                             UserIconView(
-                                emoji: user.iconEmoji,
-                                backgroundColor: user.iconBackgroundColor,
+                                emoji: iconEmoji,
+                                backgroundColor: iconBackgroundColor,
                                 size: 44,
                                 isStudying: false,
-                                isPro: false
+                                isPro: isPro
                             )
-                            Text(user.name)
+                            Text(name)
                                 .font(.body)
                             Spacer()
                             if unblockedUserIds.contains(user.id) {
                                 Button {
                                     toggleFollow(user: user)
                                 } label: {
-                                    Text(user.isFollowing ? "Following" : "Follow")
+                                    Text(isFollowing ? "Following" : "Follow")
                                         .font(.subheadline)
                                         .fontWeight(.medium)
                                 }
                                 .buttonStyle(.bordered)
-                                .tint(user.isFollowing ? .secondary : .accentColor)
+                                .tint(isFollowing ? .secondary : .accentColor)
                             } else {
                                 Button("Unblock") {
                                     Task { await unblockUser(user) }
@@ -104,6 +112,7 @@ struct BlockedUsersView: View {
         unblockedUserIds.removeAll()
         do {
             let response = try await APIClient.getBlockedUsers(limit: limit, offset: 0)
+            userStore.upsert(response.users)
             users = response.users
             hasMore = response.pagination.hasMore
             offset = response.pagination.offset + response.users.count
@@ -122,6 +131,7 @@ struct BlockedUsersView: View {
             defer { isLoadingMore = false }
             do {
                 let response = try await APIClient.getBlockedUsers(limit: limit, offset: offset)
+                userStore.upsert(response.users)
                 users.append(contentsOf: response.users)
                 hasMore = response.pagination.hasMore
                 offset = response.pagination.offset + response.users.count
@@ -143,18 +153,25 @@ struct BlockedUsersView: View {
     }
 
     private func toggleFollow(user: UserWithFollowStatus) {
-        guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
+        let wasFollowing = userStore.user(for: user.id)?.isFollowing ?? user.isFollowing
+        let newValue = !wasFollowing
+        userStore.setFollowing(userId: user.id, isFollowing: newValue)
+        if let index = users.firstIndex(where: { $0.id == user.id }) {
+            users[index].isFollowing = newValue
+        }
         Task {
             do {
-                if user.isFollowing {
+                if wasFollowing {
                     try await APIClient.unfollow(userId: user.id)
-                    users[index].isFollowing = false
                 } else {
                     _ = try await APIClient.follow(userId: user.id)
-                    users[index].isFollowing = true
                     appState.requestPushPermissionIfAppropriate()
                 }
             } catch {
+                userStore.setFollowing(userId: user.id, isFollowing: wasFollowing)
+                if let index = users.firstIndex(where: { $0.id == user.id }) {
+                    users[index].isFollowing = wasFollowing
+                }
                 if !error.isCancellation {
                     errorMessage = error.localizedDescription
                 }
@@ -166,7 +183,7 @@ struct BlockedUsersView: View {
 #Preview {
     NavigationStack {
         BlockedUsersView()
+            .environment(AppState())
+            .environment(UserStore())
     }
 }
-
-
