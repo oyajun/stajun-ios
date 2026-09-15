@@ -173,7 +173,7 @@ struct NotificationsView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Group {
                         if let actor = notification.actor {
-                            Text("\(Text(actor.name).font(.subheadline.bold()).foregroundStyle(.primary)) \(Text(LocalizedStringKey("started following you")).font(.subheadline).foregroundStyle(.secondary))")
+                            Text("\(Text(actor.name).font(.subheadline.bold()).foregroundStyle(.primary)) \(Text("started following you").font(.subheadline).foregroundStyle(.secondary))")
                         } else {
                             Text(notification.extra ?? "")
                                 .font(.subheadline)

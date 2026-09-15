@@ -278,7 +278,7 @@ struct EmojiPickerView: View {
 
                     // Category Title
                     HStack {
-                        Text(LocalizedStringKey(activeCategory.title))
+                        Text(activeCategory.title)
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.secondary)
                         Spacer()

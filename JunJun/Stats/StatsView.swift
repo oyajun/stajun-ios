@@ -91,14 +91,24 @@ struct StatsView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 
+    private static let weekdayRowLabels: [LocalizedStringResource?] = [
+        "Mon", nil, "Wed", nil, "Fri", nil, "Sun"
+    ]
+
     /// Left-hand row labels: Monday first, every other day labeled.
     private var weekdayLabels: some View {
         VStack(alignment: .trailing, spacing: heatCellSpacing) {
-            ForEach(Array(["Mon", "", "Wed", "", "Fri", "", "Sun"].enumerated()), id: \.offset) { _, label in
-                Text(label)
-                    .font(.system(size: 9))
-                    .foregroundStyle(.secondary)
-                    .frame(height: heatCellSize)
+            ForEach(Array(Self.weekdayRowLabels.enumerated()), id: \.offset) { _, label in
+                Group {
+                    if let label {
+                        Text(label)
+                    } else {
+                        Text("")
+                    }
+                }
+                .font(.system(size: 9))
+                .foregroundStyle(.secondary)
+                .frame(height: heatCellSize)
             }
         }
     }
@@ -173,7 +183,7 @@ struct StatsView: View {
     private var chartCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Picker("Period", selection: $model.unit) {
-                ForEach(ChartUnit.allCases, id: \.self) { Text(LocalizedStringKey($0.label)).tag($0) }
+                ForEach(ChartUnit.allCases, id: \.self) { Text($0.label).tag($0) }
             }
             .pickerStyle(.segmented)
 

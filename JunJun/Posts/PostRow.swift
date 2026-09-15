@@ -173,8 +173,8 @@ struct PostRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isLiked ? "Unlike post" : "Like post")
-        .accessibilityValue(likeCount > 0 ? "\(likeCount) likes" : "No likes")
+        .accessibilityLabel(isLiked ? LocalizedStringKey("Unlike post") : LocalizedStringKey("Like post"))
+        .accessibilityValue(likeCount > 0 ? LocalizedStringKey("\(likeCount) likes") : LocalizedStringKey("No likes"))
     }
 
     private func toggleLike() {

@@ -25,7 +25,7 @@ struct UserProfileView: View {
     @State private var postToEdit: Post? = nil
 
     @State private var showMuteAlert = false
-    @State private var muteAlertTitle: String = ""
+    @State private var muteAlertTitle: LocalizedStringResource = ""
 
     @State private var isBlocked: Bool
     @State private var showBlockConfirmation = false
@@ -413,7 +413,7 @@ struct UserProfileView: View {
                         }
                         .buttonStyle(.bordered)
                         .tint((user.isMuted ?? false) ? .secondary : .accentColor)
-                        .accessibilityLabel((user.isMuted ?? false) ? "Unmute Notifications" : "Mute Notifications")
+                        .accessibilityLabel((user.isMuted ?? false) ? LocalizedStringKey("Unmute Notifications") : LocalizedStringKey("Mute Notifications"))
                     }
                 }
             }
@@ -760,7 +760,7 @@ private struct ProfileAlertsModifier: ViewModifier {
     @Binding var showReportSuccessAlert: Bool
     @Binding var showBlockConfirmation: Bool
     @Binding var showMuteAlert: Bool
-    let muteAlertTitle: String
+    let muteAlertTitle: LocalizedStringResource
     let onDeletePost: (Post) -> Void
     let onReportPost: (Post) -> Void
     let onBlock: () -> Void
@@ -810,7 +810,7 @@ private struct ProfileAlertsModifier: ViewModifier {
             } message: {
                 Text("Are you sure you want to block this user?")
             }
-            .alert(LocalizedStringKey(muteAlertTitle), isPresented: $showMuteAlert) {
+            .alert(muteAlertTitle, isPresented: $showMuteAlert) {
                 Button("OK", role: .cancel) { }
             }
     }

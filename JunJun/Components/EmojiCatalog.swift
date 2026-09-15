@@ -13,7 +13,7 @@ enum EmojiCategory: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    var title: LocalizedStringResource {
         switch self {
         case .smileys: return "Smileys & People"
         case .animals: return "Animals & Nature"
@@ -568,7 +568,7 @@ enum EmojiCatalog {
                     seen.insert(emoji)
                     let unicodeNames = emoji.unicodeScalars.compactMap { $0.properties.name?.lowercased() }.joined(separator: " ")
                     let extraKeywords = keywordDict[emoji] ?? ""
-                    let combined = "\(emoji) \(unicodeNames) \(extraKeywords) \(category.title.lowercased())"
+                    let combined = "\(emoji) \(unicodeNames) \(extraKeywords) \(String(localized: category.title).lowercased())"
                     items.append(EmojiItem(emoji: emoji, category: category, keywords: combined))
                 }
             }

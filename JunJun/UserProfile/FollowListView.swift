@@ -22,7 +22,7 @@ struct FollowListView: View {
     @State private var isLoadingFollowers = true
     @State private var errorMessage: String?
     @State private var showMuteAlert = false
-    @State private var muteAlertTitle: String = ""
+    @State private var muteAlertTitle: LocalizedStringResource = ""
 
     init(userId: String, userName: String? = nil, initialTab: FollowListType = .following) {
         self.userId = userId
@@ -112,7 +112,7 @@ struct FollowListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadFollowing() }
         .task { await loadFollowers() }
-        .alert(LocalizedStringKey(muteAlertTitle), isPresented: $showMuteAlert) {
+        .alert(muteAlertTitle, isPresented: $showMuteAlert) {
             Button("OK", role: .cancel) { }
         }
         .overlay(alignment: .bottom) {
@@ -219,7 +219,7 @@ struct FollowListView: View {
                 let res = try await APIClient.updateFollowMute(userId: user.id, isMuted: targetMuted)
                 let isMutedResult = res.isMuted ?? ((res.muteStudyStartNotification ?? targetMode) == 1)
                 let modeResult = res.muteStudyStartNotification ?? (isMutedResult ? 1 : 0)
-                userStore.setMuted(userId: user.id, isMuted: isMutedResult, muteNotification: modeResult)
+                userStore.setMuted(userId: user.id, isMuted: modeResult == 1, muteNotification: modeResult)
                 if let i = followingUsers.firstIndex(where: { $0.id == user.id }) {
                     followingUsers[i].muteStudyStartNotification = modeResult
                     followingUsers[i].isMuted = isMutedResult

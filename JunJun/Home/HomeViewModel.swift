@@ -6,7 +6,7 @@ enum PostScope: String, CaseIterable, Hashable {
     case following
     case mine
 
-    var title: String {
+    var title: LocalizedStringResource {
         switch self {
         case .following: return "Following"
         case .mine: return "Mine"

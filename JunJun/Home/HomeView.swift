@@ -60,7 +60,7 @@ struct HomeView: View {
                 HStack {
                     Picker("Scope", selection: $viewModel.postScope) {
                         ForEach(PostScope.allCases, id: \.self) { scope in
-                            Text(LocalizedStringKey(scope.title)).tag(scope)
+                            Text(scope.title).tag(scope)
                         }
                     }
                     .pickerStyle(.segmented)

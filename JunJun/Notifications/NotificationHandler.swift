@@ -205,3 +205,10 @@ extension Notification.Name {
 }
 
 
+
+// MARK: - Push Notification Localization References
+// Referenced here so that Xcode's localization extractor and bundle include these APNs loc-keys.
+private enum PushNotificationLocKeys {
+    static let studyStartTitle = LocalizedStringResource("NOTIF_STUDY_START_TITLE", defaultValue: "%@ started studying!")
+    static let followBody = LocalizedStringResource("NOTIF_FOLLOW_BODY", defaultValue: "%@ started following you")
+}

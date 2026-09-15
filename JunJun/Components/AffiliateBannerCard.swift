@@ -187,7 +187,7 @@ struct AffiliateBannerCard: View {
                             Button {
                                 openURL(rakutenURL)
                             } label: {
-                                Text("楽天で購入")
+                                Text("Buy on Rakuten")
                                     .font(.system(size: 14, weight: .bold))
                                     .foregroundStyle(.white)
                                     .padding(.horizontal, 13)
@@ -202,7 +202,7 @@ struct AffiliateBannerCard: View {
                             Button {
                                 openURL(amazonURL)
                             } label: {
-                                Text("Amazonで購入")
+                                Text("Buy on Amazon")
                                     .font(.system(size: 14, weight: .bold))
                                     .foregroundStyle(.white)
                                     .padding(.horizontal, 13)

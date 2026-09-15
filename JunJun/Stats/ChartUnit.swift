@@ -12,7 +12,7 @@ enum ChartUnit: String, CaseIterable {
         return calendar
     }()
 
-    var label: String {
+    var label: LocalizedStringResource {
         switch self {
         case .day:   return "Day"
         case .week:  return "Week"

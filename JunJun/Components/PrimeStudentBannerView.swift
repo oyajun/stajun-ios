@@ -89,7 +89,7 @@ struct PrimeStudentBannerView: View {
                             .minimumScaleFactor(0.85)
 
                         // 2. 特典一覧
-                        Text("送料無料　Prime Video　容量無制限の写真ストレージ")
+                        Text("Free shipping, Prime Video, unlimited photo storage")
                             .font(.system(size: 15, weight: .bold))
                             .foregroundStyle(.black)
                             .lineLimit(1)
@@ -98,11 +98,11 @@ struct PrimeStudentBannerView: View {
 
                         // 3. 価格（「学生なら」で改行し、金額を大きく表示）
                         VStack(spacing: 3) {
-                            Text("学生なら")
+                            Text("For Students")
                                 .font(.system(size: 17, weight: .bold))
                                 .foregroundStyle(.black)
 
-                            Text("\(Text("年額 ").font(.system(size: 17, weight: .bold)))\(Text("2,950円").font(.system(size: 28, weight: .black)))\(Text(" または 月額 ").font(.system(size: 17, weight: .bold)))\(Text("300円").font(.system(size: 28, weight: .black)))\(Text(" !!").font(.system(size: 24, weight: .black)))")
+                            Text("\(Text("Annual ").font(.system(size: 17, weight: .bold)))\(Text("2,950 yen").font(.system(size: 28, weight: .black)))\(Text(" or monthly ").font(.system(size: 17, weight: .bold)))\(Text("300 yen").font(.system(size: 28, weight: .black)))\(Text(" !!").font(.system(size: 24, weight: .black)))")
                                 .foregroundStyle(.black)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.75)
@@ -110,7 +110,7 @@ struct PrimeStudentBannerView: View {
                         }
 
                         // 4. 初回特典バッジ
-                        Text("年払いなら初回半年間無料")
+                        Text("First 6 months free with annual plan")
                             .font(.system(size: 17, weight: .heavy))
                             .foregroundStyle(.black)
                             .padding(.horizontal, 22)
