@@ -21,6 +21,7 @@ enum TimelineSlotAdType {
 final class TimelineAdSlotManager {
     static let shared = TimelineAdSlotManager()
     private var slotDecisions: [Int: TimelineSlotAdType] = [:]
+    private var specialPromotionDecisions: [String: TimelineSlotAdType] = [:]
 
     private var specialPromotionTypes: [TimelineSlotAdType] {
         [.primeStudent, .helloTalk, .comicJp, .teamLabBody]
@@ -31,6 +32,7 @@ final class TimelineAdSlotManager {
     /// Clears cached slot decisions so that slot ad types can be re-evaluated on pull-to-refresh.
     func reset() {
         slotDecisions.removeAll()
+        specialPromotionDecisions.removeAll()
     }
 
     /// スロットインデックス（0, 1, 2...）に応じた広告種別を返す。
@@ -43,6 +45,17 @@ final class TimelineAdSlotManager {
         let type = computeAdType(for: slotIndex)
         slotDecisions[slotIndex] = type
         return type
+    }
+
+    func specialPromotionType(for key: String?) -> TimelineSlotAdType {
+        if let key, let cached = specialPromotionDecisions[key] {
+            return cached
+        }
+        let picked = randomSpecialPromotion()
+        if let key {
+            specialPromotionDecisions[key] = picked
+        }
+        return picked
     }
 
     private func randomSpecialPromotion() -> TimelineSlotAdType {
@@ -247,6 +260,32 @@ struct CustomPromotionBannerView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+/// 特別プロモーション（Prime Student / HelloTalk / コミック.jp / teamLabBody Pro）の出し分けバナー
+struct SpecialPromotionBannerCard: View {
+    let cacheKey: String?
+    private let promotionType: TimelineSlotAdType
+
+    init(cacheKey: String? = nil) {
+        self.cacheKey = cacheKey
+        self.promotionType = TimelineAdSlotManager.shared.specialPromotionType(for: cacheKey)
+    }
+
+    var body: some View {
+        switch promotionType {
+        case .primeStudent:
+            PrimeStudentBannerView()
+        case .helloTalk:
+            CustomPromotionBannerView(item: AffiliateCache.shared.helloTalkItem(for: cacheKey))
+        case .comicJp:
+            CustomPromotionBannerView(item: Config.comicJpAdItem)
+        case .teamLabBody:
+            CustomPromotionBannerView(item: Config.teamLabBodyProAdItem)
+        default:
+            PrimeStudentBannerView()
         }
     }
 }

@@ -186,7 +186,7 @@ struct AdBannerCard: View {
         if Config.showAds && !appState.isPro {
             if isFailed {
                 if Config.isJapanRegion {
-                    AffiliateBannerCard(cacheKey: "fallback-\(cacheKey)")
+                    SpecialPromotionBannerCard(cacheKey: "fallback-\(cacheKey)")
                 }
             } else {
                 HStack(alignment: .bottom, spacing: 2) {
@@ -229,7 +229,7 @@ struct AdLargeBannerCard: View {
         if Config.showAds && !appState.isPro {
             if isFailed {
                 if Config.isJapanRegion {
-                    AffiliateBannerCard(cacheKey: "fallback-\(cacheKey)")
+                    SpecialPromotionBannerCard(cacheKey: "fallback-\(cacheKey)")
                 }
             } else {
                 HStack(alignment: .bottom, spacing: 2) {
