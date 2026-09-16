@@ -10,13 +10,7 @@ final class AffiliateCache {
     private var helloTalkItemCache: [String: HelloTalkAdItem] = [:]
     private let imageCache = NSCache<NSURL, UIImage>()
 
-    private init() {
-        // バックグラウンドの低優先度でアフィリエイト画像を事前キャッシュ
-        // （メインの通信やAdMobの広告取得を邪魔しないよう .background で実行）
-        Task(priority: .background) { [weak self] in
-            await self?.prefetchImages()
-        }
-    }
+    private init() {}
 
     /// Clears selected items so they can be re-shuffled on pull-to-refresh.
     func clearItemCache() {
@@ -71,37 +65,6 @@ final class AffiliateCache {
 
     func setImage(_ image: UIImage, for url: URL) {
         imageCache.setObject(image, forKey: url as NSURL)
-    }
-
-    func prefetchImages() async {
-        // 特別プロモーション（HelloTalk, コミック.jp, teamLabBody Pro）バナー画像の事前キャッシュ
-        var promoURLs: [URL] = Config.helloTalkAdItems.map(\.imageURL)
-        promoURLs.append(Config.comicJpAdItem.imageURL)
-        promoURLs.append(Config.teamLabBodyProAdItem.imageURL)
-
-        for url in promoURLs {
-            guard image(for: url) == nil else { continue }
-            do {
-                let (data, _) = try await URLSession.shared.data(from: url)
-                if let uiImage = UIImage(data: data) {
-                    setImage(uiImage, for: url)
-                }
-            } catch {
-                // エラー時はスキップ
-            }
-        }
-
-        for item in Config.affiliateItems {
-            guard let url = item.imageURL, image(for: url) == nil else { continue }
-            do {
-                let (data, _) = try await URLSession.shared.data(from: url)
-                if let uiImage = UIImage(data: data) {
-                    setImage(uiImage, for: url)
-                }
-            } catch {
-                // エラー時はスキップ
-            }
-        }
     }
 }
 

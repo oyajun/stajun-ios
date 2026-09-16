@@ -40,8 +40,8 @@ enum Config {
     /// Google AdMob Banner Ad Unit ID (Test ID by default)
     static let adMobBannerUnitID: String = "ca-app-pub-5564838687301652/5099285563"
     
-    /// Keywords passed to AdMob to prioritize study & education related ads
-    static let adMobKeywords: [String] = ["TOEIC", "book", "apple", "student"]
+    /// Keywords passed to AdMob to prioritize ads (empty by default for maximum fill rate)
+    static let adMobKeywords: [String] = []
     
     /// Amazon Prime Student promotion URL
     static let primeStudentURL: URL = URL(string: "https://www.amazon.co.jp/b?node=2410972051&tag=junjun0962-22")!
