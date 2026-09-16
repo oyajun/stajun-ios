@@ -131,7 +131,7 @@ final class AppState {
         if let cached = ProfileCache.load() {
             currentUser = cached
             authState = .authenticated
-            Task { await self.poll(syncToken: true) }
+            Task { await self.poll() }
         }
 
         do {
@@ -140,7 +140,7 @@ final class AppState {
             ProfileCache.save(profile)
             authState = .authenticated
             requestPushPermissionIfAppropriate()
-            await poll(syncToken: true)
+            await poll()
         } catch APIError.unauthorized {
             // Token actually invalid → sign out
             KeychainHelper.token = nil
@@ -156,25 +156,16 @@ final class AppState {
             currentUser = ProfileCache.load()
             authState = .authenticated
             requestPushPermissionIfAppropriate()
-            Task { await self.poll(syncToken: true) }
+            Task { await self.poll() }
         }
     }
 
     // MARK: - Polling & Notifications
 
-    /// Polling: fetches unread notifications count, latest following presence, etc.
-    /// - Parameters:
-    ///   - force: Whether to bypass client-side polling cache
-    ///   - syncToken: Whether to deliver APNs device token to the server (safe to call even if token is nil)
-    func poll(force: Bool = false, syncToken: Bool = false) async {
+    /// Polling: fetches unread notifications count, latest following presence, and automatically syncs APNs token.
+    /// - Parameter force: Whether to bypass client-side polling cache
+    func poll(force: Bool = false) async {
         guard authState == .authenticated else { return }
-
-        // 必要なタイミングでのみトークンセット関数を実行（トークンなしでもスルー）
-        if syncToken {
-            Task {
-                await NotificationHandler.setDeviceToken()
-            }
-        }
 
         do {
             let res = try await APIClient.poll(force: force)
@@ -222,7 +213,7 @@ final class AppState {
             currentUser = profile
             authState = .authenticated
             requestPushPermissionIfAppropriate()
-            await poll(syncToken: true)
+            await poll()
 
         case .registerEmail, .changeEmail:
             try await APIClient.changeEmail(newEmail: email, otp: otp)
@@ -249,7 +240,7 @@ final class AppState {
         ProfileCache.save(profile)
         authState = .authenticated
         requestPushPermissionIfAppropriate()
-        Task { await poll(syncToken: true) }
+        Task { await poll() }
     }
 
     /// Create an anonymous profile

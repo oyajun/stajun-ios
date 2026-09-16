@@ -422,7 +422,12 @@ enum APIClient {
 
         // 3. Initiate request task and register with coordinator
         let task = Task { () throws -> PollingResponse in
-            try await perform(path: "/api/v1/polling", method: "GET", as: PollingResponse.self)
+            var path = "/api/v1/polling"
+            if let token = await MainActor.run(body: { NotificationHandler.currentDeviceToken })?.trimmingCharacters(in: .whitespacesAndNewlines), !token.isEmpty {
+                let encoded = token.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? token
+                path += "?apnsToken=\(encoded)"
+            }
+            return try await perform(path: path, method: "GET", as: PollingResponse.self)
         }
         await PollingCoordinator.shared.setInFlight(task)
 
