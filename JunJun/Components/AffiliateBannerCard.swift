@@ -7,11 +7,13 @@ final class AffiliateCache {
     private var itemCache: [String: AffiliateItem] = [:]
     private var usedItemIDs: Set<String> = []
     private var lastAssignedID: String?
+    private var helloTalkItemCache: [String: HelloTalkAdItem] = [:]
     private let imageCache = NSCache<NSURL, UIImage>()
 
     private init() {
-        // バックグラウンドでアフィリエイト画像を事前キャッシュ
-        Task { [weak self] in
+        // バックグラウンドの低優先度でアフィリエイト画像を事前キャッシュ
+        // （メインの通信やAdMobの広告取得を邪魔しないよう .background で実行）
+        Task(priority: .background) { [weak self] in
             await self?.prefetchImages()
         }
     }
@@ -21,6 +23,7 @@ final class AffiliateCache {
         itemCache.removeAll()
         usedItemIDs.removeAll()
         lastAssignedID = nil
+        helloTalkItemCache.removeAll()
     }
 
     func item(for key: String, from items: [AffiliateItem]) -> AffiliateItem? {
@@ -49,6 +52,19 @@ final class AffiliateCache {
         return picked
     }
 
+    func helloTalkItem(for key: String?, from items: [HelloTalkAdItem]? = nil) -> HelloTalkAdItem? {
+        let adItems = items ?? Config.helloTalkAdItems
+        guard !adItems.isEmpty else { return nil }
+        if let key, let cached = helloTalkItemCache[key] {
+            return cached
+        }
+        guard let picked = adItems.randomElement() else { return nil }
+        if let key {
+            helloTalkItemCache[key] = picked
+        }
+        return picked
+    }
+
     func image(for url: URL) -> UIImage? {
         imageCache.object(forKey: url as NSURL)
     }
@@ -58,6 +74,23 @@ final class AffiliateCache {
     }
 
     func prefetchImages() async {
+        // 特別プロモーション（HelloTalk, コミック.jp, teamLabBody Pro）バナー画像の事前キャッシュ
+        var promoURLs: [URL] = Config.helloTalkAdItems.map(\.imageURL)
+        promoURLs.append(Config.comicJpAdItem.imageURL)
+        promoURLs.append(Config.teamLabBodyProAdItem.imageURL)
+
+        for url in promoURLs {
+            guard image(for: url) == nil else { continue }
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                if let uiImage = UIImage(data: data) {
+                    setImage(uiImage, for: url)
+                }
+            } catch {
+                // エラー時はスキップ
+            }
+        }
+
         for item in Config.affiliateItems {
             guard let url = item.imageURL, image(for: url) == nil else { continue }
             do {

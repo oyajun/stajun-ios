@@ -4,13 +4,16 @@ import SwiftUI
 enum TimelineSlotAdType {
     case adMob
     case primeStudent
+    case helloTalk
+    case comicJp
+    case teamLabBody
     case affiliate
 }
 
 /// タイムライン広告スロットの出し分けマネージャー
 /// ルール:
-/// 1. Admob or Prime(1/5)
-/// 2. Admob or Prime（1でPrimeが出ていなければPrime、出ていればAdmob）
+/// 1. Admob or Special Promotion (Prime Student / HelloTalk / コミック.jp / teamLabBody Pro 均等確率) (1/5の確率)
+/// 2. Admob or Special Promotion（1でプロモーションが出ていなければ出し、出ていればAdmob）
 /// 3. 楽天/Amazon (Affiliate)
 /// 4. Admob
 /// それ以降（5つ目〜）: 楽天/Amazon と AdMob の繰り返し
@@ -18,6 +21,10 @@ enum TimelineSlotAdType {
 final class TimelineAdSlotManager {
     static let shared = TimelineAdSlotManager()
     private var slotDecisions: [Int: TimelineSlotAdType] = [:]
+
+    private var specialPromotionTypes: [TimelineSlotAdType] {
+        [.primeStudent, .helloTalk, .comicJp, .teamLabBody]
+    }
 
     private init() {}
 
@@ -38,20 +45,24 @@ final class TimelineAdSlotManager {
         return type
     }
 
+    private func randomSpecialPromotion() -> TimelineSlotAdType {
+        specialPromotionTypes.randomElement() ?? .primeStudent
+    }
+
     private func computeAdType(for slotIndex: Int) -> TimelineSlotAdType {
         switch slotIndex {
         case 0:
-            // 1つ目: 1/5 (20%) の確率で Prime Student、残り4/5で AdMob
-            let isPrime = Int.random(in: 0..<5) == 0
-            return isPrime ? .primeStudent : .adMob
+            // 1つ目: 1/5 (20%) の確率で 特別プロモーション（4種均等）、残り4/5で AdMob
+            let isSpecial = Int.random(in: 0..<5) == 0
+            return isSpecial ? randomSpecialPromotion() : .adMob
 
         case 1:
-            // 2つ目: 1つ目 (slot 0) で Prime が出ていなければ Prime を出す
+            // 2つ目: 1つ目 (slot 0) で特別プロモーションが出ていなければ特別プロモーション（4種均等）を出す
             let prevType = adType(for: 0)
-            if prevType == .primeStudent {
+            if specialPromotionTypes.contains(prevType) {
                 return .adMob
             } else {
-                return .primeStudent
+                return randomSpecialPromotion()
             }
 
         default:
@@ -170,6 +181,72 @@ struct PrimeStudentBannerView: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 250)
+        }
+    }
+}
+
+/// Custom image banner view for promotional affiliate ads (HelloTalk, コミック.jp, teamLabBody Pro, etc.)
+struct CustomPromotionBannerView: View {
+    let item: PromotionBannerItem?
+    @Environment(\.openURL) private var openURL
+    @Environment(AppState.self) private var appState
+    @State private var bannerImage: UIImage?
+
+    init(item: PromotionBannerItem?) {
+        self.item = item
+        if let item, let cached = AffiliateCache.shared.image(for: item.imageURL) {
+            _bannerImage = State(initialValue: cached)
+        }
+    }
+
+    var body: some View {
+        if Config.showAds && !appState.isPro, let item {
+            HStack(alignment: .bottom, spacing: 6) {
+                Button {
+                    openURL(item.linkURL)
+                } label: {
+                    ZStack {
+                        Color(uiColor: .secondarySystemBackground)
+                        if let bannerImage {
+                            Image(uiImage: bannerImage)
+                                .resizable()
+                                .scaledToFit()
+                        } else {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        }
+                    }
+                    .frame(width: item.width, height: item.height)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    AdCloseButton()
+                    Spacer()
+                    AdBadge()
+                }
+                .frame(height: 250)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .frame(height: 250)
+            .task(id: item.id) {
+                if bannerImage == nil {
+                    if let cached = AffiliateCache.shared.image(for: item.imageURL) {
+                        bannerImage = cached
+                    } else {
+                        do {
+                            let (data, _) = try await URLSession.shared.data(from: item.imageURL)
+                            if let uiImage = UIImage(data: data) {
+                                AffiliateCache.shared.setImage(uiImage, for: item.imageURL)
+                                bannerImage = uiImage
+                            }
+                        } catch {
+                            // エラー時はスキップ
+                        }
+                    }
+                }
+            }
         }
     }
 }

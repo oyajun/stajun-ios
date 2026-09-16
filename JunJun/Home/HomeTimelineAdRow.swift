@@ -13,6 +13,12 @@ struct HomeTimelineAdRow: View {
                 switch TimelineAdSlotManager.shared.adType(for: slotIndex) {
                 case .primeStudent:
                     PrimeStudentBannerView()
+                case .helloTalk:
+                    CustomPromotionBannerView(item: AffiliateCache.shared.helloTalkItem(for: "timeline-hellotalk-\(index)-\(adRefreshID)"))
+                case .comicJp:
+                    CustomPromotionBannerView(item: Config.comicJpAdItem)
+                case .teamLabBody:
+                    CustomPromotionBannerView(item: Config.teamLabBodyProAdItem)
                 case .adMob:
                     AdBannerCard(cacheKey: "timeline-admob-\(index)-\(adRefreshID)")
                 case .affiliate:
