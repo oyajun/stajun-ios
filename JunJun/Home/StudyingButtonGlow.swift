@@ -25,7 +25,6 @@ struct StudyingButtonGlow: View {
         Capsule(style: .continuous)
             .fill(gradient)
             .padding(-8)
-            .drawingGroup() // Offload rendering pass to Metal (GPU)
             .blur(radius: 16)
             .opacity(0.60)
             .allowsHitTesting(false)

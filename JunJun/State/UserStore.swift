@@ -13,16 +13,9 @@ final class UserStore {
 
     init() {}
 
-    /// 指定したユーザーIDの最新情報を取得（メモリに無ければディスクキャッシュから復元を試みる）
+    /// 指定したユーザーIDの最新情報を取得（メモリ上のキャッシュを高速に返す）
     func user(for id: String) -> UserWithStudyStatus? {
-        if let memoryUser = users[id] {
-            return memoryUser
-        }
-        if let cached = UserProfileCache.load(userId: id) {
-            users[id] = cached
-            return cached
-        }
-        return nil
+        users[id]
     }
 
     /// UserWithStudyStatus の登録・マージ

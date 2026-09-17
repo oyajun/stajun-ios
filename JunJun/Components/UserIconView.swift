@@ -144,7 +144,6 @@ struct UserIconView: View {
                         lineWidth: size * 0.22
                     )
                     .frame(width: size * 1.32, height: size * 1.32)
-                    .drawingGroup() // Offload rendering pass to Metal (GPU)
                     .blur(radius: size * 0.11)
                     .opacity(0.80)
             }

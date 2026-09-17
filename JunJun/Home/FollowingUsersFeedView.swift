@@ -4,7 +4,6 @@ struct FollowingUsersFeedView: View {
     let feedUsers: [UserWithStudyStatus]
     let hasLoadedFeed: Bool
     let isStudying: Bool
-    let now: Date
     let onSelectUser: (String) -> Void
 
     @Environment(UserStore.self) private var userStore
@@ -24,12 +23,11 @@ struct FollowingUsersFeedView: View {
         let extendsRight: Bool
     }
 
-    private var bubbleConfigs: [String: BubbleConfig] {
+    private func computeBubbleConfigs(for users: [UserWithStudyStatus]) -> [String: BubbleConfig] {
         var configs: [String: BubbleConfig] = [:]
         var topOccupied: Set<Int> = []
         var bottomOccupied: Set<Int> = []
 
-        let users = activeUsers
         for i in 0..<users.count {
             let user = users[i]
             guard user.isStudying,
@@ -73,30 +71,33 @@ struct FollowingUsersFeedView: View {
         return configs
     }
 
-    private var hasAnyTopBubble: Bool { bubbleConfigs.values.contains { $0.isTop } }
-    private var hasAnyBottomBubble: Bool { bubbleConfigs.values.contains { !$0.isTop } }
-
-    private var followingTopPadding: CGFloat {
-        isStudying ? (hasAnyTopBubble ? 18 : 30) : (hasAnyTopBubble ? 20 : 38)
-    }
-
     var body: some View {
-        if !hasLoadedFeed && activeUsers.isEmpty {
+        let users = activeUsers
+        if !hasLoadedFeed && users.isEmpty {
             ProgressView()
                 .frame(maxWidth: .infinity, minHeight: 117)
-        } else if activeUsers.isEmpty {
+        } else if users.isEmpty {
             emptyFeedSection
         } else {
-            followingSection
+            let configs = computeBubbleConfigs(for: users)
+            let hasTop = configs.values.contains { $0.isTop }
+            let hasBottom = configs.values.contains { !$0.isTop }
+            followingSection(users: users, configs: configs, hasAnyTopBubble: hasTop, hasAnyBottomBubble: hasBottom)
         }
     }
 
-    private var followingSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
+    private func followingSection(
+        users: [UserWithStudyStatus],
+        configs: [String: BubbleConfig],
+        hasAnyTopBubble: Bool,
+        hasAnyBottomBubble: Bool
+    ) -> some View {
+        let topPadding: CGFloat = isStudying ? (hasAnyTopBubble ? 18 : 30) : (hasAnyTopBubble ? 20 : 38)
+        return VStack(alignment: .leading, spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 14) {
-                    ForEach(activeUsers) { user in
-                        let config = bubbleConfigs[user.id]
+                    ForEach(users) { user in
+                        let config = configs[user.id]
                         let isSingle = user.activity.map { FollowingActivityBubble.isSingleCell(for: $0) } ?? true
                         let alignment: Alignment = isSingle ? .center : ((config?.extendsRight ?? true) ? .leading : .trailing)
                         let offsetX: CGFloat = isSingle ? 0 : ((config?.extendsRight ?? true) ? 2.5 : -2.5)
@@ -106,7 +107,7 @@ struct FollowingUsersFeedView: View {
                             onSelectUser(user.id)
                         } label: {
                             VStack(spacing: 0) {
-                                bubbleSlot(for: user, isTop: true, config: config, alignment: alignment, offsetX: offsetX, color: userColor)
+                                bubbleSlot(for: user, isTop: true, config: config, alignment: alignment, offsetX: offsetX, color: userColor, hasBubble: hasAnyTopBubble)
 
                                 UserIconView(
                                     emoji: user.iconEmoji,
@@ -123,7 +124,7 @@ struct FollowingUsersFeedView: View {
 
                                 studyTimeLabel(for: user)
 
-                                bubbleSlot(for: user, isTop: false, config: config, alignment: alignment, offsetX: offsetX, color: userColor)
+                                bubbleSlot(for: user, isTop: false, config: config, alignment: alignment, offsetX: offsetX, color: userColor, hasBubble: hasAnyBottomBubble)
                             }
                             .frame(width: 74)
                         }
@@ -131,7 +132,7 @@ struct FollowingUsersFeedView: View {
                     }
                 }
                 .padding(.horizontal, 32)
-                .padding(.top, followingTopPadding)
+                .padding(.top, topPadding)
                 .padding(.bottom, hasAnyBottomBubble ? 8 : 12)
                 .animation(.easeInOut(duration: 0.25), value: hasAnyTopBubble)
                 .animation(.easeInOut(duration: 0.25), value: hasAnyBottomBubble)
@@ -142,9 +143,16 @@ struct FollowingUsersFeedView: View {
     }
 
     @ViewBuilder
-    private func bubbleSlot(for user: UserWithStudyStatus, isTop: Bool, config: BubbleConfig?, alignment: Alignment, offsetX: CGFloat, color: Color) -> some View {
-        let shouldShow = isTop ? hasAnyTopBubble : hasAnyBottomBubble
-        if shouldShow {
+    private func bubbleSlot(
+        for user: UserWithStudyStatus,
+        isTop: Bool,
+        config: BubbleConfig?,
+        alignment: Alignment,
+        offsetX: CGFloat,
+        color: Color,
+        hasBubble: Bool
+    ) -> some View {
+        if hasBubble {
             ZStack(alignment: alignment) {
                 if let config, config.isTop == isTop, let act = user.activity {
                     FollowingActivityBubble(
@@ -169,8 +177,7 @@ struct FollowingUsersFeedView: View {
                     Text(HomeTimeFormatter.formatElapsed(seconds: Double(user.accumulatedSeconds ?? 0)))
                         .foregroundStyle(.secondary)
                 } else if let since = user.studyingSince {
-                    Text(HomeTimeFormatter.elapsedString(from: since, to: now))
-                        .foregroundStyle(.orange)
+                    FollowingUserTimerLabel(since: since)
                 } else {
                     Text(" ")
                 }
@@ -197,5 +204,16 @@ struct FollowingUsersFeedView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, minHeight: 117)
+    }
+}
+
+private struct FollowingUserTimerLabel: View {
+    let since: Date
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1.0)) { context in
+            Text(HomeTimeFormatter.elapsedString(from: since, to: context.date))
+                .foregroundStyle(.orange)
+        }
     }
 }

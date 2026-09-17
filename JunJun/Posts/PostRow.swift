@@ -3,7 +3,12 @@ import SwiftUI
 /// A single study-time post row (author, study time, comment, relative time, like button).
 /// Only the author's icon and name link to their profile; the row height
 /// adapts to whether a comment is present.
-struct PostRow: View {
+struct PostRow: View, Equatable {
+    static func == (lhs: PostRow, rhs: PostRow) -> Bool {
+        lhs.post == rhs.post &&
+        lhs.showDivider == rhs.showDivider
+    }
+
     let post: Post
     /// Called when the author's icon or name is tapped. When nil, they are not tappable.
     var onTapAuthor: (() -> Void)? = nil
@@ -61,28 +66,7 @@ struct PostRow: View {
     }
 
     private var postedAtText: String {
-        let calendar = Calendar.autoupdatingCurrent
-        let now = Date()
-        let locale = Locale.autoupdatingCurrent
-
-        if calendar.isDate(post.createdAt, inSameDayAs: now) {
-            return post.createdAt.formatted(
-                .dateTime.locale(locale).hour().minute()
-            )
-        }
-
-        let createdYear = calendar.component(.year, from: post.createdAt)
-        let currentYear = calendar.component(.year, from: now)
-
-        if createdYear == currentYear {
-            return post.createdAt.formatted(
-                .dateTime.locale(locale).month(.defaultDigits).day().hour().minute()
-            )
-        }
-
-        return post.createdAt.formatted(
-            .dateTime.locale(locale).year().month(.defaultDigits).day().hour().minute()
-        )
+        HomeTimeFormatter.formatPostDate(post.createdAt)
     }
 
     var body: some View {

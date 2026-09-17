@@ -23,6 +23,20 @@ struct TimelineState {
     var hasLoaded: Bool = false
 }
 
+enum TimelineItem: Identifiable, Equatable {
+    case post(Post, postIndex: Int)
+    case ad(slotIndex: Int, refreshID: UUID)
+
+    var id: String {
+        switch self {
+        case .post(let post, _):
+            return "post-\(post.id)"
+        case .ad(let slotIndex, let refreshID):
+            return "ad-slot-\(slotIndex)-\(refreshID.uuidString)"
+        }
+    }
+}
+
 @Observable
 @MainActor
 final class HomeViewModel {
@@ -44,7 +58,8 @@ final class HomeViewModel {
     var hasLoadedFeed: Bool = false
 
     // MARK: - Timeline Posts
-    let pageSize = 20
+    let initialPageSize = 20
+    let subsequentPageSize = 20
     let firstAdIndex = 1
     let adInterval = 7
     var adRefreshID = UUID()
@@ -68,14 +83,48 @@ final class HomeViewModel {
     var composeInitialMinutes: Int = 0
     var composeInitialComment: String?
 
-    // MARK: - Timer
-    var now: Date = Date()
-
     // MARK: - Computed Properties
     var currentTimeline: TimelineState { postTimelines[postScope] ?? TimelineState() }
     var currentPosts: [Post] { currentTimeline.posts }
     var hasLoadedCurrentPosts: Bool { currentTimeline.hasLoaded }
     var isLoadingMoreCurrentPosts: Bool { currentTimeline.isLoadingMore }
+
+    // MARK: - Timeline Items Cache
+    private struct TimelineCacheKey: Hashable {
+        let scope: PostScope
+        let isPro: Bool
+    }
+    private var cachedTimelineItems: [TimelineCacheKey: [TimelineItem]] = [:]
+
+    func invalidateTimelineItemsCache() {
+        cachedTimelineItems.removeAll()
+    }
+
+    func timelineItems(for scope: PostScope, isPro: Bool) -> [TimelineItem] {
+        let cacheKey = TimelineCacheKey(scope: scope, isPro: isPro)
+        if let cached = cachedTimelineItems[cacheKey] {
+            return cached
+        }
+        guard let posts = postTimelines[scope]?.posts else { return [] }
+        guard Config.showAds && !isPro else {
+            let items: [TimelineItem] = posts.enumerated().map { .post($0.element, postIndex: $0.offset) }
+            cachedTimelineItems[cacheKey] = items
+            return items
+        }
+
+        var items: [TimelineItem] = []
+        items.reserveCapacity(posts.count + (posts.count / adInterval) + 1)
+
+        for (index, post) in posts.enumerated() {
+            items.append(.post(post, postIndex: index))
+            if index >= firstAdIndex && (index - firstAdIndex) % adInterval == 0 {
+                let slotIndex = (index - firstAdIndex) / adInterval
+                items.append(.ad(slotIndex: slotIndex, refreshID: adRefreshID))
+            }
+        }
+        cachedTimelineItems[cacheKey] = items
+        return items
+    }
 
     // MARK: - Initial Caches & Setup
     var hasInitialLoaded: Bool = false
@@ -103,9 +152,13 @@ final class HomeViewModel {
                 if !cached.isEmpty {
                     postTimelines[scope]?.posts = cached
                     postTimelines[scope]?.hasLoaded = true
+                    for post in cached {
+                        UserStore.shared.upsert(post.user)
+                    }
                 }
             }
         }
+        invalidateTimelineItemsCache()
     }
 
     // MARK: - Study Actions & Sync
@@ -321,12 +374,20 @@ final class HomeViewModel {
         TimelineAdSlotManager.shared.reset()
         AffiliateCache.shared.clearItemCache()
         adRefreshID = UUID()
+        invalidateTimelineItemsCache()
 
         await pollHome(force: true, appState: appState)
         await loadAllPosts()
     }
 
     // MARK: - Post Actions
+    func shouldLoadMore(at index: Int) -> Bool {
+        let posts = currentPosts
+        guard !posts.isEmpty else { return false }
+        let thresholdIndex = max(0, posts.count - 3)
+        return index >= thresholdIndex
+    }
+
     func loadPosts(scope: PostScope) async {
         guard !(postTimelines[scope]?.isLoading ?? false) else { return }
         postTimelines[scope]?.isLoading = true
@@ -338,12 +399,24 @@ final class HomeViewModel {
 
         do {
             let response = try await (scope == .following
-                ? APIClient.getTimeline(cursor: nil, limit: pageSize)
-                : APIClient.getUserPosts(userId: "me", cursor: nil, limit: pageSize))
+                ? APIClient.getTimeline(cursor: nil, limit: initialPageSize)
+                : APIClient.getUserPosts(userId: "me", cursor: nil, limit: initialPageSize))
             for p in response.posts { UserStore.shared.upsert(p.user) }
-            postTimelines[scope]?.posts = response.posts
+
+            // 既存の投稿がある場合、急激な配列縮小によるリストのガタつき・ジャンプを防止
+            let existing = postTimelines[scope]?.posts ?? []
+            if !existing.isEmpty && response.posts.count < existing.count && response.nextCursor != nil {
+                var merged = response.posts
+                let newIds = Set(response.posts.map(\.id))
+                let remainingOld = existing.filter { !newIds.contains($0.id) }
+                merged.append(contentsOf: remainingOld)
+                postTimelines[scope]?.posts = merged
+            } else {
+                postTimelines[scope]?.posts = response.posts
+            }
             postTimelines[scope]?.nextCursor = response.nextCursor
-            PostsCache.save(response.posts, scopeKey: scope.cacheKey)
+            PostsCache.save(postTimelines[scope]?.posts ?? response.posts, scopeKey: scope.cacheKey)
+            invalidateTimelineItemsCache()
         } catch {
             if !error.isCancellation { postsError = error.localizedDescription }
         }
@@ -366,13 +439,14 @@ final class HomeViewModel {
             defer { postTimelines[scope]?.isLoadingMore = false }
             do {
                 let response = try await (scope == .following
-                    ? APIClient.getTimeline(cursor: cursor, limit: pageSize)
-                    : APIClient.getUserPosts(userId: "me", cursor: cursor, limit: pageSize))
+                    ? APIClient.getTimeline(cursor: cursor, limit: subsequentPageSize)
+                    : APIClient.getUserPosts(userId: "me", cursor: cursor, limit: subsequentPageSize))
                 for p in response.posts { UserStore.shared.upsert(p.user) }
                 let existingIds = Set(postTimelines[scope]?.posts.map(\.id) ?? [])
                 let uniqueNewPosts = response.posts.filter { !existingIds.contains($0.id) }
                 postTimelines[scope]?.posts.append(contentsOf: uniqueNewPosts)
                 postTimelines[scope]?.nextCursor = response.nextCursor
+                invalidateTimelineItemsCache()
             } catch { }
         }
     }
@@ -384,6 +458,7 @@ final class HomeViewModel {
             postTimelines[scope]?.posts = posts
             PostsCache.save(posts, scopeKey: scope.cacheKey)
         }
+        invalidateTimelineItemsCache()
     }
 
     func prependPost(_ studyPost: StudyPost, currentUser: UserProfile?) {

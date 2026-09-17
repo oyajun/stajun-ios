@@ -25,7 +25,9 @@ enum UserProfileCache {
     static func save(_ user: UserWithStudyStatus, userId: String) {
         let url = fileURL(for: userId)
         guard let data = try? encoder.encode(user) else { return }
-        try? data.write(to: url, options: .atomic)
+        DispatchQueue.global(qos: .utility).async {
+            try? data.write(to: url, options: .atomic)
+        }
     }
 
     static func load(userId: String) -> UserWithStudyStatus? {

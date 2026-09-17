@@ -40,8 +40,14 @@ enum Config {
     /// Google AdMob Banner Ad Unit ID (Test ID by default)
     static let adMobBannerUnitID: String = "ca-app-pub-5564838687301652/5099285563"
     
-    /// Keywords passed to AdMob to prioritize ads (empty by default for maximum fill rate)
-    static let adMobKeywords: [String] = []
+    /// Google AdMob Native Ad Unit ID
+    static let adMobNativeUnitID: String = "ca-app-pub-5564838687301652/6734410178"
+    
+    /// Keywords passed to AdMob to prioritize student, educational, brand, entertainment, and part-time job ads
+    static let adMobKeywords: [String] = [
+        "Apple", "Mac", "iPad", "MacBook", "学割", "学生", "勉強", "受験", "大学", "高校生", "大学生", "資格", "英語", "education", "student", "study",
+        "Hulu", "hulu", "マイナビ", "マイナビバイト", "バイト", "アルバイト", "就活", "インターン"
+    ]
     
     /// Amazon Prime Student promotion URL
     static let primeStudentURL: URL = URL(string: "https://www.amazon.co.jp/b?node=2410972051&tag=junjun0962-22")!

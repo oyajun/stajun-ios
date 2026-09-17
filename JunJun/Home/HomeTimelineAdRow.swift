@@ -1,38 +1,36 @@
 import SwiftUI
 
 struct HomeTimelineAdRow: View {
-    let index: Int
-    let firstAdIndex: Int
-    let adInterval: Int
+    let slotIndex: Int
     let adRefreshID: UUID
+    @Environment(AppState.self) private var appState
 
     var body: some View {
-        let slotIndex = (index - firstAdIndex) / adInterval
-        VStack(spacing: 0) {
-            if Config.isJapanRegion {
+        if Config.showAds && !appState.isPro {
+            VStack(spacing: 0) {
                 switch TimelineAdSlotManager.shared.adType(for: slotIndex) {
                 case .primeStudent:
                     PrimeStudentBannerView()
+                        .frame(height: 250)
                 case .helloTalk:
-                    CustomPromotionBannerView(item: AffiliateCache.shared.helloTalkItem(for: "timeline-hellotalk-\(index)-\(adRefreshID)"))
+                    CustomPromotionBannerView(item: AffiliateCache.shared.helloTalkItem(for: "timeline-hellotalk-\(slotIndex)-\(adRefreshID)"))
+                        .frame(height: 250)
                 case .comicJp:
                     CustomPromotionBannerView(item: Config.comicJpAdItem)
+                        .frame(height: 250)
                 case .teamLabBody:
                     CustomPromotionBannerView(item: Config.teamLabBodyProAdItem)
+                        .frame(height: 250)
                 case .adMob:
-                    AdBannerCard(cacheKey: "timeline-admob-\(index)-\(adRefreshID)")
+                    NativeAdCard(cacheKey: "timeline-admob-\(slotIndex)-\(adRefreshID)")
+                        .frame(height: 340)
                 case .affiliate:
-                    AffiliateBannerCard(cacheKey: "timeline-affiliate-\(index)-\(adRefreshID)")
+                    AffiliateBannerCard(cacheKey: "timeline-affiliate-\(slotIndex)-\(adRefreshID)")
+                        .frame(height: 125)
                 }
-            } else {
-                AdBannerCard(cacheKey: "timeline-admob-\(index)-\(adRefreshID)")
+                Divider()
+                    .padding(.horizontal, 16)
             }
-            Divider()
-                .padding(.horizontal, 16)
         }
-        .id("ad-row-\(index)-\(adRefreshID)")
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
     }
 }

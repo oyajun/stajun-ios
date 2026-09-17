@@ -24,9 +24,12 @@ enum PostsCache {
 
     /// Saves posts for a given scope key. Best-effort.
     static func save(_ posts: [Post], scopeKey: String) {
-        let url = fileURL(for: scopeKey)
-        guard let data = try? encoder.encode(posts) else { return }
-        try? data.write(to: url, options: .atomic)
+        let toSave = Array(posts.prefix(20))
+        DispatchQueue.global(qos: .utility).async {
+            let url = fileURL(for: scopeKey)
+            guard let data = try? encoder.encode(toSave) else { return }
+            try? data.write(to: url, options: .atomic)
+        }
     }
 
     /// Loads cached posts for a given scope key.

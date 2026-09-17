@@ -182,6 +182,13 @@ struct AdBannerCard: View {
     @Environment(AppState.self) private var appState
     @State private var isFailed: Bool = false
 
+    init(cacheKey: String) {
+        self.cacheKey = cacheKey
+        if let state = AdBannerCache.shared.state(for: cacheKey), state == .failed {
+            _isFailed = State(initialValue: true)
+        }
+    }
+
     var body: some View {
         if Config.showAds && !appState.isPro {
             if isFailed {
@@ -224,6 +231,13 @@ struct AdLargeBannerCard: View {
     let cacheKey: String
     @Environment(AppState.self) private var appState
     @State private var isFailed: Bool = false
+
+    init(cacheKey: String) {
+        self.cacheKey = cacheKey
+        if let state = AdBannerCache.shared.state(for: cacheKey), state == .failed {
+            _isFailed = State(initialValue: true)
+        }
+    }
 
     var body: some View {
         if Config.showAds && !appState.isPro {

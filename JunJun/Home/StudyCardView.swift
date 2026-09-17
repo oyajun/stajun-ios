@@ -34,9 +34,11 @@ struct StudyCardView: View {
             // Right: timer + controls
             VStack(spacing: 12) {
                 HStack {
-                    Text(viewModel.isStudying ? HomeTimeFormatter.formatElapsed(seconds: LocalStudyStore.totalElapsedSeconds(at: viewModel.now)) : "--:--")
-                        .font(.title3.monospacedDigit().bold())
-                        .foregroundStyle(viewModel.isStudying ? (viewModel.isPaused ? Color.secondary : Color.orange) : Color.secondary)
+                    TimelineView(.periodic(from: .now, by: 1.0)) { context in
+                        Text(viewModel.isStudying ? HomeTimeFormatter.formatElapsed(seconds: LocalStudyStore.totalElapsedSeconds(at: context.date)) : "--:--")
+                            .font(.title3.monospacedDigit().bold())
+                            .foregroundStyle(viewModel.isStudying ? (viewModel.isPaused ? Color.secondary : Color.orange) : Color.secondary)
+                    }
                     Spacer()
                     Text(viewModel.isStudying ? (viewModel.isPaused ? LocalizedStringKey("Paused") : LocalizedStringKey("Studying")) : LocalizedStringKey("Not Studying"))
                         .font(.subheadline)

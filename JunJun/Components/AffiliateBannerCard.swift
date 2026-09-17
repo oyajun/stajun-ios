@@ -212,6 +212,8 @@ struct AffiliateBannerCard: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
+            .frame(height: 125)
+            .frame(maxWidth: .infinity)
         }
     }
 }

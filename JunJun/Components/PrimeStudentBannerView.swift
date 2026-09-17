@@ -14,7 +14,7 @@ enum TimelineSlotAdType {
 /// ルール:
 /// 1. Admob or Special Promotion (Prime Student / HelloTalk / コミック.jp / teamLabBody Pro 均等確率) (1/5の確率)
 /// 2. Admob or Special Promotion（1でプロモーションが出ていなければ出し、出ていればAdmob）
-/// 3. 楽天/Amazon (Affiliate)
+/// 3. 楽天/Amazon (Affiliate - 本のアフィリエイト)
 /// 4. Admob
 /// それ以降（5つ目〜）: 楽天/Amazon と AdMob の繰り返し
 @MainActor
@@ -70,7 +70,7 @@ final class TimelineAdSlotManager {
             return isSpecial ? randomSpecialPromotion() : .adMob
 
         case 1:
-            // 2つ目: 1つ目 (slot 0) で特別プロモーションが出ていなければ特別プロモーション（4種均等）を出す
+            // 2つ目: 1つ目 (slot 0) で特別プロモーションが出ていなければ特別プロモーション（4種均等）を出す、出ていればAdMob
             let prevType = adType(for: 0)
             if specialPromotionTypes.contains(prevType) {
                 return .adMob

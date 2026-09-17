@@ -49,7 +49,6 @@ struct HomeView: View {
                     feedUsers: viewModel.feedUsers,
                     hasLoadedFeed: viewModel.hasLoadedFeed,
                     isStudying: viewModel.isStudying,
-                    now: viewModel.now,
                     onSelectUser: { path.append($0) }
                 )
                 .listRowBackground(Color.clear)
@@ -91,39 +90,38 @@ struct HomeView: View {
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets())
                 } else {
-                    ForEach(Array(viewModel.currentPosts.enumerated()), id: \.element.id) { index, post in
-                        timelinePostRow(post)
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets())
-
-                        if Config.showAds && !appState.isPro && index >= viewModel.firstAdIndex && (index - viewModel.firstAdIndex) % viewModel.adInterval == 0 {
-                            HomeTimelineAdRow(
-                                index: index,
-                                firstAdIndex: viewModel.firstAdIndex,
-                                adInterval: viewModel.adInterval,
-                                adRefreshID: viewModel.adRefreshID
-                            )
+                    let items = viewModel.timelineItems(for: viewModel.postScope, isPro: appState.isPro)
+                    ForEach(items) { item in
+                        switch item {
+                        case .post(let post, let postIndex):
+                            timelinePostRow(post, postIndex: postIndex)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets())
+                        case .ad(let slotIndex, let refreshID):
+                            if Config.showAds && !appState.isPro {
+                                HomeTimelineAdRow(
+                                    slotIndex: slotIndex,
+                                    adRefreshID: refreshID
+                                )
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets())
+                            }
                         }
                     }
                 }
-
-                if viewModel.isLoadingMoreCurrentPosts {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .padding(.vertical, 16)
-                }
             }
             .listStyle(.plain)
-            .animation(.easeInOut, value: network.isOnline)
             .refreshable {
                 await viewModel.refreshTimelineAndFeed(appState: appState)
             }
             .task {
                 await viewModel.initializeIfNeeded(appState: appState)
                 await viewModel.startPolling(appState: appState)
+            }
+            .onChange(of: appState.isPro) { _, _ in
+                viewModel.invalidateTimelineItemsCache()
             }
             .onChange(of: viewModel.isStudying) { _, newValue in
                 appState.isStudying = newValue
@@ -140,11 +138,6 @@ struct HomeView: View {
                         await viewModel.pollHome(appState: appState)
                     }
                 }
-            }
-            .onReceive(
-                Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-            ) { _ in
-                viewModel.now = Date()
             }
             .navigationDestination(for: String.self) { userId in
                 UserProfileView(userId: userId)
@@ -307,7 +300,7 @@ struct HomeView: View {
     // MARK: - Timeline Post Row
 
     @ViewBuilder
-    private func timelinePostRow(_ post: Post) -> some View {
+    private func timelinePostRow(_ post: Post, postIndex: Int) -> some View {
         let base = PostRow(
             post: post,
             onTapAuthor: { path.append(post.userId) },
@@ -318,8 +311,9 @@ struct HomeView: View {
                 path.append(post)
             }
         )
+        .equatable()
         .onAppear {
-            if post.id == viewModel.currentPosts.last?.id {
+            if viewModel.shouldLoadMore(at: postIndex) {
                 viewModel.loadMoreCurrentPosts()
             }
         }
