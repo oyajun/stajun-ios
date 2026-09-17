@@ -2,7 +2,8 @@ import SwiftUI
 
 /// タイムライン広告スロットの種類
 enum TimelineSlotAdType {
-    case adMob
+    case adMobNative
+    case adMobBanner
     case primeStudent
     case helloTalk
     case comicJp
@@ -12,10 +13,10 @@ enum TimelineSlotAdType {
 
 /// タイムライン広告スロットの出し分けマネージャー
 /// ルール:
-/// 1. Admob or Special Promotion (Prime Student / HelloTalk / コミック.jp / teamLabBody Pro 均等確率) (1/5の確率)
-/// 2. Admob or Special Promotion（1でプロモーションが出ていなければ出し、出ていればAdmob）
+/// 1. AdMob (Native or Banner 1/2) or Special Promotion (Prime Student / HelloTalk / コミック.jp / teamLabBody Pro 均等確率) (1/5の確率)
+/// 2. AdMob or Special Promotion（1でプロモーションが出ていなければ出し、出ていればAdMob）
 /// 3. 楽天/Amazon (Affiliate - 本のアフィリエイト)
-/// 4. Admob
+/// 4. AdMob (Native or Banner 1/2)
 /// それ以降（5つ目〜）: 楽天/Amazon と AdMob の繰り返し
 @MainActor
 final class TimelineAdSlotManager {
@@ -62,18 +63,22 @@ final class TimelineAdSlotManager {
         specialPromotionTypes.randomElement() ?? .primeStudent
     }
 
+    private func randomAdMobType() -> TimelineSlotAdType {
+        Bool.random() ? .adMobNative : .adMobBanner
+    }
+
     private func computeAdType(for slotIndex: Int) -> TimelineSlotAdType {
         switch slotIndex {
         case 0:
-            // 1つ目: 1/5 (20%) の確率で 特別プロモーション（4種均等）、残り4/5で AdMob
+            // 1つ目: 1/5 (20%) の確率で 特別プロモーション（4種均等）、残り4/5で AdMob (Native or Banner 1/2)
             let isSpecial = Int.random(in: 0..<5) == 0
-            return isSpecial ? randomSpecialPromotion() : .adMob
+            return isSpecial ? randomSpecialPromotion() : randomAdMobType()
 
         case 1:
-            // 2つ目: 1つ目 (slot 0) で特別プロモーションが出ていなければ特別プロモーション（4種均等）を出す、出ていればAdMob
+            // 2つ目: 1つ目 (slot 0) で特別プロモーションが出ていなければ特別プロモーション（4種均等）を出す、出ていればAdMob (Native or Banner 1/2)
             let prevType = adType(for: 0)
             if specialPromotionTypes.contains(prevType) {
-                return .adMob
+                return randomAdMobType()
             } else {
                 return randomSpecialPromotion()
             }
@@ -84,7 +89,7 @@ final class TimelineAdSlotManager {
             if slotIndex % 2 == 0 {
                 return .affiliate
             } else {
-                return .adMob
+                return randomAdMobType()
             }
         }
     }

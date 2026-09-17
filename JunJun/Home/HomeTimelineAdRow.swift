@@ -21,9 +21,12 @@ struct HomeTimelineAdRow: View {
                 case .teamLabBody:
                     CustomPromotionBannerView(item: Config.teamLabBodyProAdItem)
                         .frame(height: 250)
-                case .adMob:
-                    NativeAdCard(cacheKey: "timeline-admob-\(slotIndex)-\(adRefreshID)")
+                case .adMobNative:
+                    NativeAdCard(cacheKey: "timeline-admob-native-\(slotIndex)-\(adRefreshID)")
                         .frame(height: 340)
+                case .adMobBanner:
+                    AdBannerCard(cacheKey: "timeline-admob-banner-\(slotIndex)-\(adRefreshID)")
+                        .frame(height: 250)
                 case .affiliate:
                     AffiliateBannerCard(cacheKey: "timeline-affiliate-\(slotIndex)-\(adRefreshID)")
                         .frame(height: 125)
