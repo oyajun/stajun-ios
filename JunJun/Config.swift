@@ -170,7 +170,7 @@ enum Config {
     ]
     
     /// App expiration date. Change this string to configure the expiration date.
-    static let expirationDate: Date? = ISO8601DateFormatter().date(from: "2026-09-30T23:59:59Z")
+    static let expirationDate: Date? = ISO8601DateFormatter().date(from: "2026-11-30T23:59:59Z")
     
     /// App Store URL for the update dialog
     static let appStoreURL = URL(string: "https://apps.apple.com/app/junjun-study-community/id6798144458")
