@@ -230,8 +230,10 @@ struct UserProfileView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     if isBlocked {
-                        Button("Unblock", role: .destructive) {
+                        Button(role: .destructive) {
                             Task { await unblock() }
+                        } label: {
+                            Label("Unblock", systemImage: "circle.slash")
                         }
                     } else {
                         if effectiveUser?.isFollowing ?? false {
@@ -245,8 +247,10 @@ struct UserProfileView: View {
                             }
                         }
 
-                        Button("Block", role: .destructive) {
+                        Button(role: .destructive) {
                             showBlockConfirmation = true
+                        } label: {
+                            Label("Block", systemImage: "circle.slash")
                         }
                     }
                 } label: {
