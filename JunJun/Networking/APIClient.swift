@@ -293,23 +293,10 @@ enum APIClient {
         try await perform(path: "/api/v1/follow/\(userId)", method: "PUT", as: FollowActionResponse.self)
     }
 
-    /// Mute study start notifications from a followed user
-    static func muteFollow(userId: String) async throws -> MuteActionResponse {
-        try await perform(path: "/api/v1/follow/\(userId)/mute", method: "PUT", as: MuteActionResponse.self)
-    }
-
-    /// Unmute study start notifications from a followed user
-    static func unmuteFollow(userId: String) async throws -> MuteActionResponse {
-        try await perform(path: "/api/v1/follow/\(userId)/mute", method: "DELETE", as: MuteActionResponse.self)
-    }
-
     /// Update follow notification mute setting
     static func updateFollowMute(userId: String, isMuted: Bool) async throws -> MuteActionResponse {
-        if isMuted {
-            return try await muteFollow(userId: userId)
-        } else {
-            return try await unmuteFollow(userId: userId)
-        }
+        let method = isMuted ? "PUT" : "DELETE"
+        return try await perform(path: "/api/v1/follow/\(userId)/mute", method: method, as: MuteActionResponse.self)
     }
 
     /// Unfollow a user
@@ -345,11 +332,6 @@ enum APIClient {
     }
 
     // MARK: - Study Sessions
-
-    /// Get my current study status
-    static func getMyStudyStatus() async throws -> MyStudyStatus {
-        try await perform(path: "/api/v1/study-sessions/me", method: "GET", as: MyStudyStatus.self)
-    }
 
     /// Start studying. Idempotent upsert on the server (the server flag is only
     /// an approximate signal for others; the device holds the real timer).
@@ -603,12 +585,6 @@ enum APIClient {
         try await perform(path: "/api/v1/notifications/\(id)/read", method: "PATCH", as: EmptyResponse.self)
     }
 
-    /// Get unread notifications count
-    static func getUnreadNotificationCount() async throws -> Int {
-        let res = try await perform(path: "/api/v1/notifications/unread-count", method: "GET", as: UnreadNotificationCountResponse.self)
-        return res.unreadCount
-    }
-
     // MARK: - Subscriptions (JunJun Pro)
 
     /// Sync Pro status with server
@@ -623,11 +599,6 @@ enum APIClient {
         }
         let body = SyncProStatusRequest(isPro: isPro, proExpiresAt: expiresAtString)
         return try await perform(path: "/api/v1/users/me/pro-status", method: "POST", body: body, as: SyncProStatusResponse.self)
-    }
-
-    /// Fetch Pro status from server
-    static func getProStatus() async throws -> SyncProStatusResponse {
-        try await perform(path: "/api/v1/users/me/pro-status", method: "GET", as: SyncProStatusResponse.self)
     }
 }
 

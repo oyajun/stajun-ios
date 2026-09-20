@@ -204,34 +204,6 @@ final class UserStore {
         UserProfileCache.save(merged, userId: userId)
     }
 
-    /// プロフィール情報（名前、アイコンなど）を更新
-    func updateProfile(
-        userId: String,
-        name: String? = nil,
-        iconEmoji: String? = nil,
-        iconBackgroundColor: String? = nil,
-        isPro: Bool? = nil
-    ) {
-        guard let u = users[userId] ?? UserProfileCache.load(userId: userId) else { return }
-        let merged = UserWithStudyStatus(
-            id: u.id,
-            name: name ?? u.name,
-            iconEmoji: iconEmoji ?? u.iconEmoji,
-            iconBackgroundColor: iconBackgroundColor ?? u.iconBackgroundColor,
-            isFollowing: u.isFollowing,
-            muteStudyStartNotification: u.muteStudyStartNotification,
-            isMuted: u.isMuted,
-            isStudying: u.isStudying,
-            studyingSince: u.studyingSince,
-            isPaused: u.isPaused,
-            accumulatedSeconds: u.accumulatedSeconds,
-            isPro: isPro ?? u.isPro,
-            activity: u.activity
-        )
-        users[userId] = merged
-        UserProfileCache.save(merged, userId: userId)
-    }
-
     /// メモリ上のキャッシュをクリア（サインアウト・アカウント削除時など）
     func clear() {
         users.removeAll()

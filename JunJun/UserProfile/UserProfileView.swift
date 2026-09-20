@@ -263,14 +263,10 @@ struct UserProfileView: View {
 
     private func isUserPaused(_ user: UserWithStudyStatus) -> Bool {
         guard !isBlocked else { return false }
-        if isOwnProfile {
-            if LocalStudyStore.localStartedAt != nil {
-                return appState.isPaused || LocalStudyStore.isPaused
-            }
-            return user.isPaused ?? false
-        } else {
-            return user.isPaused ?? false
+        if isOwnProfile, LocalStudyStore.localStartedAt != nil {
+            return appState.isPaused || LocalStudyStore.isPaused
         }
+        return user.isPaused ?? false
     }
 
     private func hasValidStudyTimer(user: UserWithStudyStatus) -> Bool {
@@ -282,26 +278,16 @@ struct UserProfileView: View {
     }
 
     private func currentElapsedSeconds(user: UserWithStudyStatus, now: Date) -> TimeInterval {
-        if isOwnProfile {
-            if LocalStudyStore.localStartedAt != nil {
-                return LocalStudyStore.totalElapsedSeconds(at: now)
-            }
-            if user.isPaused == true {
-                return Double(user.accumulatedSeconds ?? 0)
-            }
-            if let since = user.studyingSince {
-                return max(0, now.timeIntervalSince(since))
-            }
-            return 0
-        } else {
-            if user.isPaused == true {
-                return Double(user.accumulatedSeconds ?? 0)
-            }
-            if let since = user.studyingSince {
-                return max(0, now.timeIntervalSince(since))
-            }
-            return 0
+        if isOwnProfile, LocalStudyStore.localStartedAt != nil {
+            return LocalStudyStore.totalElapsedSeconds(at: now)
         }
+        if user.isPaused == true {
+            return Double(user.accumulatedSeconds ?? 0)
+        }
+        if let since = user.studyingSince {
+            return max(0, now.timeIntervalSince(since))
+        }
+        return 0
     }
 
     private func hasProfileBubble(_ user: UserWithStudyStatus) -> Bool {
@@ -356,13 +342,13 @@ struct UserProfileView: View {
                     let isPaused = isUserPaused(user)
                     if isPaused {
                         let elapsed = currentElapsedSeconds(user: user, now: .now)
-                        Text(formatDuration(seconds: elapsed))
+                        Text(HomeTimeFormatter.formatElapsed(seconds: elapsed))
                             .font(.title3.monospacedDigit().bold())
                             .foregroundStyle(.secondary)
                     } else {
                         TimelineView(.periodic(from: .now, by: 1)) { context in
                             let elapsed = currentElapsedSeconds(user: user, now: context.date)
-                            Text(formatDuration(seconds: elapsed))
+                            Text(HomeTimeFormatter.formatElapsed(seconds: elapsed))
                                 .font(.title3.monospacedDigit().bold())
                                 .foregroundStyle(.orange)
                         }
@@ -477,18 +463,6 @@ struct UserProfileView: View {
                         Label("Report", systemImage: "flag")
                     }
                 }
-        }
-    }
-
-    private func formatDuration(seconds: TimeInterval) -> String {
-        let total = Int(seconds)
-        let hours = total / 3600
-        let minutes = (total % 3600) / 60
-        let secs = total % 60
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, secs)
-        } else {
-            return String(format: "%02d:%02d", minutes, secs)
         }
     }
 

@@ -260,9 +260,7 @@ final class AppState {
         ProfileCache.save(profile)
     }
 
-    /// Sign out
-    func signOut() async {
-        try? await APIClient.signOut()
+    private func resetLocalState() {
         KeychainHelper.token = nil
         NotificationHandler.resetRegisteredToken()
         LocalStudyStore.clear()
@@ -273,33 +271,28 @@ final class AppState {
         UserProfileCache.clear()
         NotificationsCache.clear()
         UserStore.shared.clear()
-        await APIClient.clearPollingCache()
         currentUser = nil
         isStudying = false
         isPaused = false
         authState = .unauthenticated
+    }
+
+    /// Sign out
+    func signOut() async {
+        try? await APIClient.signOut()
+        resetLocalState()
+        await APIClient.clearPollingCache()
         await SubscriptionManager.shared.resetUser()
     }
 
     /// Clean up after account deletion
     func clearAfterAccountDeletion() {
-        KeychainHelper.token = nil
+        resetLocalState()
         userEmail = nil
-        NotificationHandler.resetRegisteredToken()
-        LocalStudyStore.clear()
-        FeedCache.clear()
-        ProfileCache.clear()
-        PostsCache.clear()
-        StatsCache.clear()
-        UserProfileCache.clear()
-        NotificationsCache.clear()
-        UserStore.shared.clear()
-        Task { await APIClient.clearPollingCache() }
-        currentUser = nil
-        isStudying = false
-        isPaused = false
-        authState = .unauthenticated
-        Task { await SubscriptionManager.shared.resetUser() }
+        Task {
+            await APIClient.clearPollingCache()
+            await SubscriptionManager.shared.resetUser()
+        }
     }
 
     // MARK: - Push Notifications

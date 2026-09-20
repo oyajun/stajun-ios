@@ -71,11 +71,8 @@ enum LocalStudyStore {
     static func totalElapsedSeconds(at now: Date = Date()) -> TimeInterval {
         guard localStartedAt != nil else { return 0 }
         let acc = accumulatedSeconds
-        if !isPaused {
-            let seg = segmentStartedAt ?? localStartedAt
-            if let seg {
-                return acc + max(0, now.timeIntervalSince(seg))
-            }
+        if !isPaused, let seg = segmentStartedAt ?? localStartedAt {
+            return acc + max(0, now.timeIntervalSince(seg))
         }
         return acc
     }
@@ -90,15 +87,12 @@ enum LocalStudyStore {
     }
 
     static func pause(at date: Date = Date()) {
-        guard localStartedAt != nil else { return }
-        if !isPaused {
-            let seg = segmentStartedAt ?? localStartedAt
-            if let seg {
-                accumulatedSeconds += max(0, date.timeIntervalSince(seg))
-            }
-            segmentStartedAt = nil
-            isPaused = true
+        guard localStartedAt != nil, !isPaused else { return }
+        if let seg = segmentStartedAt ?? localStartedAt {
+            accumulatedSeconds += max(0, date.timeIntervalSince(seg))
         }
+        segmentStartedAt = nil
+        isPaused = true
     }
 
     static func resume(at date: Date = Date()) {

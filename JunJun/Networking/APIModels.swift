@@ -362,10 +362,6 @@ struct NotificationsResponse: Codable {
     let nextCursor: String?
 }
 
-struct UnreadNotificationCountResponse: Codable {
-    let unreadCount: Int
-}
-
 // MARK: - Push Notification Settings
 
 struct PushNotificationSettings: Codable, Equatable {

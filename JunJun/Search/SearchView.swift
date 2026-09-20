@@ -216,6 +216,22 @@ struct SearchView: View {
         }
     }
 
+    private func performFollowToggle(userId: String, wasFollowing: Bool, onRollback: @escaping () -> Void) {
+        Task {
+            do {
+                if wasFollowing {
+                    try await APIClient.unfollow(userId: userId)
+                } else {
+                    _ = try await APIClient.follow(userId: userId)
+                    appState.requestPushPermissionIfAppropriate()
+                }
+            } catch {
+                userStore.setFollowing(userId: userId, isFollowing: wasFollowing)
+                onRollback()
+            }
+        }
+    }
+
     private func toggleFollow(user: UserWithFollowStatus) {
         let wasFollowing = userStore.user(for: user.id)?.isFollowing ?? user.isFollowing
         let nextFollowing = !wasFollowing
@@ -223,20 +239,9 @@ struct SearchView: View {
         if let index = results.firstIndex(where: { $0.id == user.id }) {
             results[index].isFollowing = nextFollowing
         }
-
-        Task {
-            do {
-                if wasFollowing {
-                    try await APIClient.unfollow(userId: user.id)
-                } else {
-                    _ = try await APIClient.follow(userId: user.id)
-                    appState.requestPushPermissionIfAppropriate()
-                }
-            } catch {
-                userStore.setFollowing(userId: user.id, isFollowing: wasFollowing)
-                if let currentIndex = results.firstIndex(where: { $0.id == user.id }) {
-                    results[currentIndex].isFollowing = wasFollowing
-                }
+        performFollowToggle(userId: user.id, wasFollowing: wasFollowing) {
+            if let currentIndex = results.firstIndex(where: { $0.id == user.id }) {
+                results[currentIndex].isFollowing = wasFollowing
             }
         }
     }
@@ -248,20 +253,9 @@ struct SearchView: View {
         if let index = recommendedUsers.firstIndex(where: { $0.id == user.id }) {
             recommendedUsers[index].isFollowing = nextFollowing
         }
-
-        Task {
-            do {
-                if wasFollowing {
-                    try await APIClient.unfollow(userId: user.id)
-                } else {
-                    _ = try await APIClient.follow(userId: user.id)
-                    appState.requestPushPermissionIfAppropriate()
-                }
-            } catch {
-                userStore.setFollowing(userId: user.id, isFollowing: wasFollowing)
-                if let currentIndex = recommendedUsers.firstIndex(where: { $0.id == user.id }) {
-                    recommendedUsers[currentIndex].isFollowing = wasFollowing
-                }
+        performFollowToggle(userId: user.id, wasFollowing: wasFollowing) {
+            if let currentIndex = recommendedUsers.firstIndex(where: { $0.id == user.id }) {
+                recommendedUsers[currentIndex].isFollowing = wasFollowing
             }
         }
     }
