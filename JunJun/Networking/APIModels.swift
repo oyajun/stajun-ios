@@ -64,6 +64,7 @@ struct UserWithStudyStatus: Codable, Identifiable, Equatable, Hashable, Sendable
     let iconEmoji: String
     let iconBackgroundColor: String
     var isFollowing: Bool?
+    var isBlocked: Bool?
     var muteStudyStartNotification: Int?
     var isMuted: Bool?
     let isStudying: Bool
@@ -79,6 +80,7 @@ struct UserWithStudyStatus: Codable, Identifiable, Equatable, Hashable, Sendable
         iconEmoji: String,
         iconBackgroundColor: String,
         isFollowing: Bool? = nil,
+        isBlocked: Bool? = nil,
         muteStudyStartNotification: Int? = nil,
         isMuted: Bool? = nil,
         isStudying: Bool,
@@ -93,6 +95,7 @@ struct UserWithStudyStatus: Codable, Identifiable, Equatable, Hashable, Sendable
         self.iconEmoji = iconEmoji
         self.iconBackgroundColor = iconBackgroundColor
         self.isFollowing = isFollowing
+        self.isBlocked = isBlocked
         self.muteStudyStartNotification = muteStudyStartNotification
         self.isMuted = isMuted
         self.isStudying = isStudying

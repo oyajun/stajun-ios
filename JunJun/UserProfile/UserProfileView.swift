@@ -488,6 +488,7 @@ struct UserProfileView: View {
                 iconEmoji: fetched.iconEmoji,
                 iconBackgroundColor: fetched.iconBackgroundColor,
                 isFollowing: fetched.isFollowing,
+                isBlocked: fetched.isBlocked,
                 muteStudyStartNotification: fetched.muteStudyStartNotification,
                 isMuted: fetched.isMuted,
                 isStudying: isStudying,
@@ -499,10 +500,7 @@ struct UserProfileView: View {
             )
             user = merged
             userStore.upsert(merged)
-            let blockedResp = try? await APIClient.getBlockedUsers(limit: 50, offset: 0)
-            if let resp = blockedResp, resp.users.contains(where: { $0.id == userId }) {
-                isBlocked = true
-            }
+            isBlocked = fetched.isBlocked ?? false
         } catch {
             if !error.isCancellation {
                 errorMessage = error.localizedDescription
