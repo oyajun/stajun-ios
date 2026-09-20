@@ -48,7 +48,6 @@ private struct StudyingBorderOverlay: View {
     var backgroundColor: String = "#FFD54F"
     var isPro: Bool = false
     @State private var rotation: Double = 0
-    @State private var cornerRadius: CGFloat = 44
 
     private var glowColors: [Color] {
         if isPro {
@@ -66,24 +65,14 @@ private struct StudyingBorderOverlay: View {
                 endAngle: .degrees(rotation + 360)
             )
 
-            /*
-            // --- Original Rainbow Gradient (Preserved) ---
-            let rainbowGradient = AngularGradient(
-                colors: Self.rainbowColors,
-                center: .center,
-                startAngle: .degrees(rotation),
-                endAngle: .degrees(rotation + 360)
-            )
-            */
-
             ZStack {
                 // Outer glow
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                ConcentricRectangle()
                     .stroke(gradient, lineWidth: 24)
                     .blur(radius: 14)
                     .opacity(0.60)
                 // Sharp inner rim
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                ConcentricRectangle()
                     .stroke(gradient, lineWidth: 2)
                     .opacity(0.75)
             }
@@ -93,18 +82,10 @@ private struct StudyingBorderOverlay: View {
         .ignoresSafeArea()
         .allowsHitTesting(false)
         .onAppear {
-            cornerRadius = getDisplayCornerRadius()
             withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {
                 rotation = 360
             }
         }
-    }
-
-    private func getDisplayCornerRadius() -> CGFloat {
-        let screen = UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first?.screen
-        return (screen?.value(forKey: "_displayCornerRadius") as? CGFloat) ?? 44
     }
 }
 
