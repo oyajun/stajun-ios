@@ -59,14 +59,6 @@ struct OTPInputView: View {
             }
             .padding(.horizontal)
 
-            // Error
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
-                    .padding(.horizontal)
-            }
-
             Button {
                 Task { await verify() }
             } label: {
@@ -112,6 +104,7 @@ struct OTPInputView: View {
         }
         .navigationTitle(displayTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .errorAlert(errorMessage: $errorMessage)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 if mode != .login {

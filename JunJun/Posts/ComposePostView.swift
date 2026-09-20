@@ -95,17 +95,10 @@ struct ComposePostView: View {
                             .foregroundStyle(comment.count > maxCommentLength ? .red : .secondary)
                     }
                 }
-
-                if let errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .font(.subheadline)
-                            .foregroundStyle(.red)
-                    }
-                }
             }
             .navigationTitle("New Post")
             .navigationBarTitleDisplayMode(.inline)
+            .errorAlert(errorMessage: $errorMessage)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

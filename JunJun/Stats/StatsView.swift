@@ -25,6 +25,10 @@ struct StatsView: View {
             .refreshable {
                 await model.refresh()
             }
+            .errorAlert(errorMessage: Binding(
+                get: { model.errorMessage },
+                set: { model.errorMessage = $0 }
+            ))
         }
     }
 
@@ -33,12 +37,6 @@ struct StatsView: View {
     private var content: some View {
         ScrollView {
             VStack(spacing: 16) {
-                if let msg = model.errorMessage {
-                    Text(msg)
-                        .font(.subheadline)
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
                 summarySection
                 heatmapSection
                 chartCard

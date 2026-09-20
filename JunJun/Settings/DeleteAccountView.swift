@@ -21,6 +21,7 @@ struct DeleteAccountView: View {
                     confirmView
                 }
             }
+            .errorAlert(errorMessage: $errorMessage)
             .navigationDestination(isPresented: $showOTP) {
                 if let email {
                     OTPInputView(
@@ -83,13 +84,6 @@ struct DeleteAccountView: View {
 
             proNoticeCard
 
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
-                    .padding(.horizontal)
-            }
-
             Button {
                 if let email {
                     Task { await sendOTP(email: email) }
@@ -143,13 +137,6 @@ struct DeleteAccountView: View {
             }
 
             proNoticeCard
-
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
-                    .padding(.horizontal)
-            }
 
             Button {
                 Task { await deleteAnonymousUser() }

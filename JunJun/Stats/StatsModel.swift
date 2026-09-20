@@ -40,7 +40,7 @@ final class StatsModel {
 
     private(set) var stats: StatsResponse?
     private(set) var isLoadingSummary = false
-    private(set) var errorMessage: String?
+    var errorMessage: String?
 
     // MARK: - Heatmap (annual view)
 

@@ -100,6 +100,7 @@ struct UserProfileView: View {
                 onBlock: { Task { await block() } }
             )
         )
+        .errorAlert(errorMessage: $errorMessage)
     }
 
     @ViewBuilder
@@ -406,12 +407,6 @@ struct UserProfileView: View {
                         .accessibilityLabel((user.isMuted ?? false) ? LocalizedStringKey("Unmute Notifications") : LocalizedStringKey("Mute Notifications"))
                     }
                 }
-            }
-
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
             }
         }
         .frame(maxWidth: .infinity)

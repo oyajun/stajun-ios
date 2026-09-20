@@ -85,15 +85,9 @@ struct BlockedUsersView: View {
                     .listRowSeparator(.hidden)
                 }
             }
-
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
-                    .listRowBackground(Color.clear)
-            }
         }
         .listStyle(.plain)
+        .errorAlert(errorMessage: $errorMessage)
         .refreshable {
             await loadInitial()
         }

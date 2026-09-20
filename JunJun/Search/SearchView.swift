@@ -111,16 +111,9 @@ struct SearchView: View {
                         Text("Search Results")
                     }
                 }
-
-
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(.subheadline)
-                        .foregroundStyle(.red)
-                        .listRowBackground(Color.clear)
-                }
             }
             .navigationTitle("Search")
+            .errorAlert(errorMessage: $errorMessage)
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search Users")
             .textInputAutocapitalization(.never)
             .task {

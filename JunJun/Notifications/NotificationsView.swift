@@ -102,6 +102,7 @@ struct NotificationsView: View {
                     NotificationsCache.save(notifications)
                 }
             }
+            .errorAlert(errorMessage: $errorMessage)
         }
     }
 

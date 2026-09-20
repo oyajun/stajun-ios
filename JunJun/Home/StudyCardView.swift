@@ -81,12 +81,6 @@ struct StudyCardView: View {
                         .animation(.easeInOut(duration: 0.3), value: viewModel.isStudying)
                     }
                 }
-
-                if let studyError = viewModel.studyError {
-                    Text(studyError)
-                        .font(.subheadline)
-                        .foregroundStyle(.red)
-                }
             }
         }
     }

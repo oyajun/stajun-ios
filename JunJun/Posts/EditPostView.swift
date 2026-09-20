@@ -95,17 +95,10 @@ struct EditPostView: View {
                             .foregroundStyle(comment.count > maxCommentLength ? .red : .secondary)
                     }
                 }
-
-                if let errorMessage {
-                    Section {
-                        Text(errorMessage)
-                            .font(.subheadline)
-                            .foregroundStyle(.red)
-                    }
-                }
             }
             .navigationTitle("Edit Post")
             .navigationBarTitleDisplayMode(.inline)
+            .errorAlert(errorMessage: $errorMessage)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

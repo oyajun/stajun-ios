@@ -64,14 +64,6 @@ struct EmailInputView: View {
             }
             .padding(.horizontal)
 
-            // Error
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
-                    .padding(.horizontal)
-            }
-
             // Send button
             Button {
                 Task { await submit() }
@@ -101,6 +93,7 @@ struct EmailInputView: View {
         }
         .navigationTitle(displayTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .errorAlert(errorMessage: $errorMessage)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 if mode != .login {

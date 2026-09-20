@@ -171,15 +171,8 @@ struct EditProfileView: View {
                 .padding(.top, 4)
                 .padding(.bottom, 2)
             }
-
-            if let errorMessage {
-                Section {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                        .font(.subheadline)
-                }
-            }
         }
+        .errorAlert(errorMessage: $errorMessage)
     }
 
     private func initializeValues() {
