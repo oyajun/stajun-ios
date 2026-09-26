@@ -25,14 +25,14 @@ struct TimelineState {
 
 enum TimelineItem: Identifiable, Equatable {
     case post(Post, postIndex: Int)
-    case ad(slotIndex: Int, refreshID: UUID)
+    case ad(slotIndex: Int, refreshID: UUID, scope: PostScope)
 
     var id: String {
         switch self {
         case .post(let post, _):
             return "post-\(post.id)"
-        case .ad(let slotIndex, let refreshID):
-            return "ad-slot-\(slotIndex)-\(refreshID.uuidString)"
+        case .ad(let slotIndex, let refreshID, let scope):
+            return "ad-slot-\(scope.rawValue)-\(slotIndex)-\(refreshID.uuidString)"
         }
     }
 }
@@ -62,7 +62,10 @@ final class HomeViewModel {
     let subsequentPageSize = 20
     let firstAdIndex = 1
     let adInterval = 7
-    var adRefreshID = UUID()
+    var adRefreshIDs: [PostScope: UUID] = [
+        .following: UUID(),
+        .mine: UUID()
+    ]
 
     var postScope: PostScope = .following
     var postTimelines: [PostScope: TimelineState] = [
@@ -100,6 +103,15 @@ final class HomeViewModel {
         cachedTimelineItems.removeAll()
     }
 
+    func adRefreshID(for scope: PostScope) -> UUID {
+        if let id = adRefreshIDs[scope] {
+            return id
+        }
+        let newID = UUID()
+        adRefreshIDs[scope] = newID
+        return newID
+    }
+
     func timelineItems(for scope: PostScope, isPro: Bool) -> [TimelineItem] {
         let cacheKey = TimelineCacheKey(scope: scope, isPro: isPro)
         if let cached = cachedTimelineItems[cacheKey] {
@@ -115,11 +127,12 @@ final class HomeViewModel {
         var items: [TimelineItem] = []
         items.reserveCapacity(posts.count + (posts.count / adInterval) + 1)
 
+        let refreshID = adRefreshID(for: scope)
         for (index, post) in posts.enumerated() {
             items.append(.post(post, postIndex: index))
             if index >= firstAdIndex && (index - firstAdIndex) % adInterval == 0 {
                 let slotIndex = (index - firstAdIndex) / adInterval
-                items.append(.ad(slotIndex: slotIndex, refreshID: adRefreshID))
+                items.append(.ad(slotIndex: slotIndex, refreshID: refreshID, scope: scope))
             }
         }
         cachedTimelineItems[cacheKey] = items
@@ -373,7 +386,10 @@ final class HomeViewModel {
         AdBannerCache.shared.clearCache()
         TimelineAdSlotManager.shared.reset()
         AffiliateCache.shared.clearItemCache()
-        adRefreshID = UUID()
+        adRefreshIDs = [
+            .following: UUID(),
+            .mine: UUID()
+        ]
         invalidateTimelineItemsCache()
 
         await pollHome(force: true, appState: appState)

@@ -98,11 +98,12 @@ struct HomeView: View {
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
                                 .listRowInsets(EdgeInsets())
-                        case .ad(let slotIndex, let refreshID):
+                        case .ad(let slotIndex, let refreshID, let scope):
                             if Config.showAds && !appState.isPro {
                                 HomeTimelineAdRow(
                                     slotIndex: slotIndex,
-                                    adRefreshID: refreshID
+                                    adRefreshID: refreshID,
+                                    scope: scope
                                 )
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)

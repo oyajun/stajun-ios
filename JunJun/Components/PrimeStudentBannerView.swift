@@ -20,7 +20,7 @@ enum TimelineSlotAdType {
 @MainActor
 final class TimelineAdSlotManager {
     static let shared = TimelineAdSlotManager()
-    private var slotDecisions: [Int: TimelineSlotAdType] = [:]
+    private var slotDecisions: [PostScope: [Int: TimelineSlotAdType]] = [:]
     private var specialPromotionDecisions: [String: TimelineSlotAdType] = [:]
 
     private var specialPromotionTypes: [TimelineSlotAdType] {
@@ -35,15 +35,23 @@ final class TimelineAdSlotManager {
         specialPromotionDecisions.removeAll()
     }
 
-    /// スロットインデックス（0, 1, 2...）に応じた広告種別を返す。
+    /// Clears cached slot decisions for a specific scope.
+    func reset(for scope: PostScope) {
+        slotDecisions.removeValue(forKey: scope)
+    }
+
+    /// スロットインデックス（0, 1, 2...）およびスコープ（フォロー中 / 自分）に応じた広告種別を返す。
     /// スクロール時のちらつきを防ぐため、結果はキャッシュされる。
-    func adType(for slotIndex: Int) -> TimelineSlotAdType {
-        if let cached = slotDecisions[slotIndex] {
+    func adType(for slotIndex: Int, scope: PostScope = .following) -> TimelineSlotAdType {
+        if let cached = slotDecisions[scope]?[slotIndex] {
             return cached
         }
 
-        let type = computeAdType(for: slotIndex)
-        slotDecisions[slotIndex] = type
+        let type = computeAdType(for: slotIndex, scope: scope)
+        if slotDecisions[scope] == nil {
+            slotDecisions[scope] = [:]
+        }
+        slotDecisions[scope]?[slotIndex] = type
         return type
     }
 
@@ -66,7 +74,7 @@ final class TimelineAdSlotManager {
         Bool.random() ? .adMobNative : .adMobBanner
     }
 
-    private func computeAdType(for slotIndex: Int) -> TimelineSlotAdType {
+    private func computeAdType(for slotIndex: Int, scope: PostScope) -> TimelineSlotAdType {
         switch slotIndex {
         case 0:
             // 1つ目: 普通のバナー広告（ネイティブじゃないやつ）
@@ -79,7 +87,7 @@ final class TimelineAdSlotManager {
 
         case 2:
             // 3つ目: 2つ目で出なかったタイプ（2つ目が特別プロモーションならネイティブ、ネイティブなら特別プロモーション）
-            let slot1Type = adType(for: 1)
+            let slot1Type = adType(for: 1, scope: scope)
             if specialPromotionTypes.contains(slot1Type) {
                 return .adMobNative
             } else {
