@@ -3,7 +3,8 @@ import GoogleMobileAds
 
 /// タイムライン用のネイティブ広告カード
 /// UIレイアウト（アイコン、タイトル、PR表記、Adバッジ、×ボタン）を SwiftUI で構築し、
-/// メディア（動画）とCTAボタンを AdMob の GADNativeAdView とバインドして表示。
+/// メディア（画像/動画）とCTAボタンを AdMob の GADNativeAdView とバインドして表示。
+/// GADNativeAdView がメディア領域から始まるため、AdMob の AdChoices（iボタン）は画像/動画の右上に配置されます。
 struct NativeAdCard: View {
     let cacheKey: String
     @Environment(AppState.self) private var appState

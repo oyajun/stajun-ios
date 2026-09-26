@@ -1,7 +1,8 @@
 import SwiftUI
 import GoogleMobileAds
 
-/// AdMob GADNativeAdView representing the Media, Body, CTA button, and AdChoices
+/// AdMob GADNativeAdView representing the Media (Image/Video), Body, CTA button, and AdChoices overlay.
+/// Because GADNativeAdView begins at the media view, AdMob's AdChoices "i" button is placed directly in the top-right corner of the image/video.
 final class NativeAdMediaContainerUIView: UIView {
     let nativeAdView = GADNativeAdView()
     let mediaView = GADMediaView()
@@ -9,6 +10,7 @@ final class NativeAdMediaContainerUIView: UIView {
     let callToActionButton = UIButton(type: .custom)
     let ctaLabel = UILabel()
     let contentStack = UIStackView()
+    let adAttributionLabel = UILabel()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -36,6 +38,19 @@ final class NativeAdMediaContainerUIView: UIView {
         mediaView.clipsToBounds = true
         mediaView.layer.cornerRadius = 10
         mediaView.backgroundColor = UIColor.secondarySystemBackground
+
+        // Ad attribution label inside GADNativeAdView for AdMob policy compliance
+        adAttributionLabel.text = NSLocalizedString("Ad", comment: "Ad badge")
+        adAttributionLabel.font = .systemFont(ofSize: 10, weight: .bold)
+        adAttributionLabel.textColor = .clear // AdBadge is clearly displayed in the header
+        adAttributionLabel.translatesAutoresizingMaskIntoConstraints = false
+        nativeAdView.addSubview(adAttributionLabel)
+        NSLayoutConstraint.activate([
+            adAttributionLabel.widthAnchor.constraint(equalToConstant: 16),
+            adAttributionLabel.heightAnchor.constraint(equalToConstant: 16),
+            adAttributionLabel.topAnchor.constraint(equalTo: nativeAdView.topAnchor),
+            adAttributionLabel.leadingAnchor.constraint(equalTo: nativeAdView.leadingAnchor)
+        ])
 
         // Body Label (with proper line height and no truncation)
         bodyLabel.translatesAutoresizingMaskIntoConstraints = false
