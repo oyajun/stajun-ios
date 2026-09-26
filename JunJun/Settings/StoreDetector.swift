@@ -44,24 +44,8 @@ enum StoreDetector {
         #else
         #if canImport(MarketplaceKit)
         if #available(iOS 17.4, *) {
-            if let distributor = try? await AppDistributor.current {
-                switch distributor {
-                case .appStore:
-                    return StoreInfo(name: "App Store", isAlternativeMarketplace: false)
-                case .testFlight:
-                    return StoreInfo(name: "TestFlight", isAlternativeMarketplace: false)
-                case .marketplace(let name):
-                    let displayName = name.isEmpty ? "Alternative Marketplace" : name
-                    return StoreInfo(name: displayName, isAlternativeMarketplace: true)
-                case .web:
-                    return StoreInfo(name: "Web", isAlternativeMarketplace: true)
-                case .other:
-                    // App Review (審査環境) や AdHoc 等で .other になる場合があるため、
-                    // 審査時に課金をブロックしないよう isAlternativeMarketplace は false とする
-                    return StoreInfo(name: "Other", isAlternativeMarketplace: false)
-                @unknown default:
-                    return StoreInfo(name: "Unknown1", isAlternativeMarketplace: false)
-                }
+            if let info = await MarketplaceKitRunner.query() {
+                return info
             }
         }
         #endif // canImport(MarketplaceKit)
@@ -73,7 +57,8 @@ enum StoreDetector {
 
     /// Checks whether the app was installed from an alternative marketplace (e.g. EU Alt Marketplace, Web).
     static func checkIsAlternativeMarketplace() async -> Bool {
-        await detect().isAlternativeMarketplace
+        guard isSupported else { return false }
+        return await detect().isAlternativeMarketplace
     }
 
     /// Fetches the store display name (e.g. "App Store", "TestFlight", "AltStore PAL").
@@ -82,3 +67,34 @@ enum StoreDetector {
         return await detect().name
     }
 }
+
+#if canImport(MarketplaceKit)
+@available(iOS 17.4, *)
+private enum MarketplaceKitRunner {
+    /// Isolated query function to ensure `AppDistributor` metadata accessor is not called
+    /// in the async frame prologue of `StoreDetector.detect()` when running on unsupported platforms (Mac/Catalyst).
+    @inline(never)
+    static func query() async -> StoreDetector.StoreInfo? {
+        guard let distributor = try? await AppDistributor.current else {
+            return nil
+        }
+        switch distributor {
+        case .appStore:
+            return StoreDetector.StoreInfo(name: "App Store", isAlternativeMarketplace: false)
+        case .testFlight:
+            return StoreDetector.StoreInfo(name: "TestFlight", isAlternativeMarketplace: false)
+        case .marketplace(let name):
+            let displayName = name.isEmpty ? "Alternative Marketplace" : name
+            return StoreDetector.StoreInfo(name: displayName, isAlternativeMarketplace: true)
+        case .web:
+            return StoreDetector.StoreInfo(name: "Web", isAlternativeMarketplace: true)
+        case .other:
+            // App Review (審査環境) や AdHoc 等で .other になる場合があるため、
+            // 審査時に課金をブロックしないよう isAlternativeMarketplace は false とする
+            return StoreDetector.StoreInfo(name: "Other", isAlternativeMarketplace: false)
+        @unknown default:
+            return StoreDetector.StoreInfo(name: "Unknown1", isAlternativeMarketplace: false)
+        }
+    }
+}
+#endif
