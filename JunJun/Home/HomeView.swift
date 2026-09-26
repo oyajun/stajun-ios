@@ -110,6 +110,14 @@ struct HomeView: View {
                             }
                         }
                     }
+
+                    if viewModel.isLoadingMoreCurrentPosts {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .padding(.vertical, 16)
+                    }
                 }
             }
             .listStyle(.plain)
