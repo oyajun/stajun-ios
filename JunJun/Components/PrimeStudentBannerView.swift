@@ -13,11 +13,10 @@ enum TimelineSlotAdType {
 
 /// タイムライン広告スロットの出し分けマネージャー
 /// ルール:
-/// 1. AdMob (Native or Banner 1/2) or Special Promotion (Prime Student / HelloTalk / コミック.jp / teamLabBody Pro 均等確率) (1/5の確率)
-/// 2. AdMob or Special Promotion（1でプロモーションが出ていなければ出し、出ていればAdMob）
-/// 3. 楽天/Amazon (Affiliate - 本のアフィリエイト)
-/// 4. AdMob (Native or Banner 1/2)
-/// それ以降（5つ目〜）: 楽天/Amazon と AdMob の繰り返し
+/// 1. 普通のバナー広告（AdMob Banner）
+/// 2. ネイティブバナー 4/5 の確率、アフィリエイトのバナー（特別プロモーション4種均等） 1/5 の確率
+/// 3. 2つ目で出なかったタイプ（2つ目がネイティブならアフィリエイト、2つ目がアフィリエイトならネイティブ）
+/// 4つ目以降（slotIndex >= 3）: ネイティブバナーとバナーを 1/2 の確率で出し分け
 @MainActor
 final class TimelineAdSlotManager {
     static let shared = TimelineAdSlotManager()
@@ -70,27 +69,26 @@ final class TimelineAdSlotManager {
     private func computeAdType(for slotIndex: Int) -> TimelineSlotAdType {
         switch slotIndex {
         case 0:
-            // 1つ目: 1/5 (20%) の確率で 特別プロモーション（4種均等）、残り4/5で AdMob (Native or Banner 1/2)
-            let isSpecial = Int.random(in: 0..<5) == 0
-            return isSpecial ? randomSpecialPromotion() : randomAdMobType()
+            // 1つ目: 普通のバナー広告（ネイティブじゃないやつ）
+            return .adMobBanner
 
         case 1:
-            // 2つ目: 1つ目 (slot 0) で特別プロモーションが出ていなければ特別プロモーション（4種均等）を出す、出ていればAdMob (Native or Banner 1/2)
-            let prevType = adType(for: 0)
-            if specialPromotionTypes.contains(prevType) {
-                return randomAdMobType()
+            // 2つ目: ネイティブバナー4/5の確率、1/5でアフィリエイトのバナー（特別プロモーション4種均等）
+            let isSpecial = Int.random(in: 0..<5) == 0
+            return isSpecial ? randomSpecialPromotion() : .adMobNative
+
+        case 2:
+            // 3つ目: 2つ目で出なかったタイプ（2つ目が特別プロモーションならネイティブ、ネイティブなら特別プロモーション）
+            let slot1Type = adType(for: 1)
+            if specialPromotionTypes.contains(slot1Type) {
+                return .adMobNative
             } else {
                 return randomSpecialPromotion()
             }
 
         default:
-            // 3つ目以降（slotIndex >= 2）: 楽天/Amazon と AdMob の繰り返し
-            // slot 2: 楽天/Amazon, slot 3: AdMob, slot 4: 楽天/Amazon, slot 5: AdMob...
-            if slotIndex % 2 == 0 {
-                return .affiliate
-            } else {
-                return randomAdMobType()
-            }
+            // 4つ目以降（slotIndex >= 3）: ネイティブバナーとバナーを 1/2
+            return randomAdMobType()
         }
     }
 }
