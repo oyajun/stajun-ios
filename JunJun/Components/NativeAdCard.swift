@@ -9,15 +9,14 @@ struct NativeAdCard: View {
     let cacheKey: String
     @Environment(AppState.self) private var appState
     @State private var nativeAd: GADNativeAd?
-    @State private var isFailed: Bool = false
+    @State private var isFailed: Bool
 
     init(cacheKey: String) {
         self.cacheKey = cacheKey
-        if let cached = AdNativeCache.shared.ad(for: cacheKey) {
-            _nativeAd = State(initialValue: cached)
-        } else if let state = AdNativeCache.shared.state(for: cacheKey), state == .failed {
-            _isFailed = State(initialValue: true)
-        }
+        let cachedAd = AdNativeCache.shared.ad(for: cacheKey)
+        let failed = AdNativeCache.shared.state(for: cacheKey) == .failed
+        _nativeAd = State(initialValue: cachedAd)
+        _isFailed = State(initialValue: cachedAd == nil && failed)
     }
 
     var body: some View {
@@ -25,47 +24,56 @@ struct NativeAdCard: View {
             Group {
                 if isFailed {
                     // ネイティブ広告が取得できなかった場合は、従来の AdMob バナーへフォールバック（340pt の中央に固定配置）
-                    AdBannerCard(cacheKey: "banner-fallback-\(cacheKey)")
+                    let fallbackKey = "banner-fallback-\(cacheKey)"
+                    AdBannerCard(cacheKey: fallbackKey)
+                        .id(fallbackKey)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 } else if let ad = nativeAd {
                     NativeAdContentView(nativeAd: ad)
-                        .padding(.horizontal, 10)
+                        .id(cacheKey)
+                        .padding(.horizontal, 26)
                         .padding(.vertical, 8)
-                        .background(Color(uiColor: .secondarySystemGroupedBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .padding(.horizontal, 16)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 } else {
                     // ロード中プレースホルダー（チラつき・高さ変動防止）
                     Color.clear
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .onAppear {
-                            loadNativeAd()
-                        }
                 }
             }
             .frame(height: 340)
             .clipped()
+            .task(id: cacheKey) {
+                loadNativeAd(for: cacheKey)
+            }
+            .onChange(of: cacheKey) { _, newKey in
+                nativeAd = AdNativeCache.shared.ad(for: newKey)
+                isFailed = (nativeAd == nil) && (AdNativeCache.shared.state(for: newKey) == .failed)
+                loadNativeAd(for: newKey)
+            }
         }
     }
 
-    private func loadNativeAd() {
-        if let cached = AdNativeCache.shared.ad(for: cacheKey) {
+    private func loadNativeAd(for targetKey: String) {
+        if let cached = AdNativeCache.shared.ad(for: targetKey) {
             self.nativeAd = cached
+            self.isFailed = false
             return
         }
 
-        if let state = AdNativeCache.shared.state(for: cacheKey), state == .failed {
+        if let state = AdNativeCache.shared.state(for: targetKey), state == .failed {
+            self.nativeAd = nil
             self.isFailed = true
             return
         }
 
-        AdNativeCache.shared.loadAd(for: cacheKey) { result in
+        AdNativeCache.shared.loadAd(for: targetKey) { result in
+            guard self.cacheKey == targetKey else { return }
             switch result {
             case .success(let ad):
                 self.nativeAd = ad
                 self.isFailed = false
             case .failure:
+                self.nativeAd = nil
                 self.isFailed = true
             }
         }

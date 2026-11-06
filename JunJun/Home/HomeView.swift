@@ -93,7 +93,7 @@ struct HomeView: View {
                     let items = viewModel.timelineItems(for: viewModel.postScope, isPro: appState.isPro)
                     ForEach(items) { item in
                         switch item {
-                        case .post(let post, let postIndex):
+                        case .post(let post, let postIndex, _):
                             timelinePostRow(post, postIndex: postIndex)
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
@@ -105,6 +105,7 @@ struct HomeView: View {
                                     adRefreshID: refreshID,
                                     scope: scope
                                 )
+                                .id(item.id)
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
                                 .listRowInsets(EdgeInsets())

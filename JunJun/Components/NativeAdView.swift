@@ -37,7 +37,7 @@ final class NativeAdMediaContainerUIView: UIView {
         mediaView.translatesAutoresizingMaskIntoConstraints = false
         mediaView.clipsToBounds = true
         mediaView.layer.cornerRadius = 10
-        mediaView.backgroundColor = UIColor.secondarySystemBackground
+        mediaView.backgroundColor = .clear
 
         // Ad attribution label inside GADNativeAdView for AdMob policy compliance
         adAttributionLabel.text = NSLocalizedString("Ad", comment: "Ad badge")

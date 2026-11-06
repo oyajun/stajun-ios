@@ -24,13 +24,13 @@ struct TimelineState {
 }
 
 enum TimelineItem: Identifiable, Equatable {
-    case post(Post, postIndex: Int)
+    case post(Post, postIndex: Int, scope: PostScope)
     case ad(slotIndex: Int, refreshID: UUID, scope: PostScope)
 
     var id: String {
         switch self {
-        case .post(let post, _):
-            return "post-\(post.id)"
+        case .post(let post, _, let scope):
+            return "post-\(scope.rawValue)-\(post.id)"
         case .ad(let slotIndex, let refreshID, let scope):
             return "ad-slot-\(scope.rawValue)-\(slotIndex)-\(refreshID.uuidString)"
         }
@@ -119,7 +119,7 @@ final class HomeViewModel {
         }
         guard let posts = postTimelines[scope]?.posts else { return [] }
         guard Config.showAds && !isPro else {
-            let items: [TimelineItem] = posts.enumerated().map { .post($0.element, postIndex: $0.offset) }
+            let items: [TimelineItem] = posts.enumerated().map { .post($0.element, postIndex: $0.offset, scope: scope) }
             cachedTimelineItems[cacheKey] = items
             return items
         }
@@ -129,7 +129,7 @@ final class HomeViewModel {
 
         let refreshID = adRefreshID(for: scope)
         for (index, post) in posts.enumerated() {
-            items.append(.post(post, postIndex: index))
+            items.append(.post(post, postIndex: index, scope: scope))
             if index >= firstAdIndex && (index - firstAdIndex) % adInterval == 0 {
                 let slotIndex = (index - firstAdIndex) / adInterval
                 items.append(.ad(slotIndex: slotIndex, refreshID: refreshID, scope: scope))
@@ -384,6 +384,7 @@ final class HomeViewModel {
 
     func refreshTimelineAndFeed(appState: AppState) async {
         AdBannerCache.shared.clearCache()
+        AdNativeCache.shared.clearCache()
         TimelineAdSlotManager.shared.reset()
         AffiliateCache.shared.clearItemCache()
         adRefreshIDs = [

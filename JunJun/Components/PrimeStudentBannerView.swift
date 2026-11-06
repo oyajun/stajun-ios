@@ -5,18 +5,17 @@ enum TimelineSlotAdType {
     case adMobNative
     case adMobBanner
     case primeStudent
-    case helloTalk
+    case qoo10
+    case shein
     case comicJp
-    case teamLabBody
     case affiliate
 }
 
 /// タイムライン広告スロットの出し分けマネージャー
 /// ルール:
-/// 1. 普通のバナー広告（AdMob Banner）
-/// 2. ネイティブバナー 4/5 の確率、アフィリエイトのバナー（特別プロモーション4種均等） 1/5 の確率
-/// 3. 2つ目で出なかったタイプ（2つ目がネイティブならアフィリエイト、2つ目がアフィリエイトならネイティブ）
-/// 4つ目以降（slotIndex >= 3）: ネイティブバナーとバナーを 1/2 の確率で出し分け
+/// 1. ネイティブ広告（AdMob Native）
+/// 2. アフィリエイトのバナー（特別プロモーション均等） 50%、ネイティブ広告（AdMob Native） 50%
+/// 3つ目以降（slotIndex >= 2）: ネイティブ広告（AdMob Native）
 @MainActor
 final class TimelineAdSlotManager {
     static let shared = TimelineAdSlotManager()
@@ -24,7 +23,12 @@ final class TimelineAdSlotManager {
     private var specialPromotionDecisions: [String: TimelineSlotAdType] = [:]
 
     private var specialPromotionTypes: [TimelineSlotAdType] {
-        [.primeStudent, .helloTalk, .comicJp, .teamLabBody]
+        [
+            .primeStudent,
+            .qoo10,
+            .shein
+            // .comicJp // 再表示する場合はコメントアウトを解除
+        ]
     }
 
     private init() {}
@@ -66,37 +70,32 @@ final class TimelineAdSlotManager {
         return picked
     }
 
-    private func randomSpecialPromotion() -> TimelineSlotAdType {
-        specialPromotionTypes.randomElement() ?? .primeStudent
-    }
-
-    private func randomAdMobType() -> TimelineSlotAdType {
-        Bool.random() ? .adMobNative : .adMobBanner
+    private func randomSpecialPromotion(excluding excluded: TimelineSlotAdType? = nil) -> TimelineSlotAdType {
+        if let excluded {
+            let candidates = specialPromotionTypes.filter { $0 != excluded }
+            if let picked = candidates.randomElement() {
+                return picked
+            }
+        }
+        return specialPromotionTypes.randomElement() ?? .primeStudent
     }
 
     private func computeAdType(for slotIndex: Int, scope: PostScope) -> TimelineSlotAdType {
         switch slotIndex {
         case 0:
-            // 1つ目: 普通のバナー広告（ネイティブじゃないやつ）
-            return .adMobBanner
+            // 1つ目: ネイティブ広告
+            return .adMobNative
 
         case 1:
-            // 2つ目: ネイティブバナー4/5の確率、1/5でアフィリエイトのバナー（特別プロモーション4種均等）
-            let isSpecial = Int.random(in: 0..<5) == 0
-            return isSpecial ? randomSpecialPromotion() : .adMobNative
-
-        case 2:
-            // 3つ目: 2つ目で出なかったタイプ（2つ目が特別プロモーションならネイティブ、ネイティブなら特別プロモーション）
-            let slot1Type = adType(for: 1, scope: scope)
-            if specialPromotionTypes.contains(slot1Type) {
-                return .adMobNative
-            } else {
-                return randomSpecialPromotion()
-            }
+            // 2つ目: アフィリエイトのバナー（特別プロモーション） 50%、ネイティブ広告 50%
+            // もう一方のタブ（フォロー中 / 自分）で既に特別プロモーションが選ばれている場合は別のプロモーションを優先
+            let otherScope: PostScope = (scope == .following) ? .mine : .following
+            let otherType = slotDecisions[otherScope]?[slotIndex]
+            return Bool.random() ? randomSpecialPromotion(excluding: otherType) : .adMobNative
 
         default:
-            // 4つ目以降（slotIndex >= 3）: ネイティブバナーとバナーを 1/2
-            return randomAdMobType()
+            // 3つ目以降（slotIndex >= 2）: ネイティブ広告
+            return .adMobNative
         }
     }
 }
@@ -209,7 +208,7 @@ struct PrimeStudentBannerView: View {
     }
 }
 
-/// Custom image banner view for promotional affiliate ads (HelloTalk, コミック.jp, teamLabBody Pro, etc.)
+/// Custom image banner view for promotional affiliate ads (コミック.jp, etc.)
 struct CustomPromotionBannerView: View {
     let item: PromotionBannerItem?
     @Environment(\.openURL) private var openURL
@@ -275,7 +274,7 @@ struct CustomPromotionBannerView: View {
     }
 }
 
-/// 特別プロモーション（Prime Student / HelloTalk / コミック.jp / teamLabBody Pro）の出し分けバナー
+/// 特別プロモーション（Prime Student / Qoo10 / SHEIN / コミック.jp）の出し分けバナー
 struct SpecialPromotionBannerCard: View {
     let cacheKey: String?
     private let promotionType: TimelineSlotAdType
@@ -289,12 +288,12 @@ struct SpecialPromotionBannerCard: View {
         switch promotionType {
         case .primeStudent:
             PrimeStudentBannerView()
-        case .helloTalk:
-            CustomPromotionBannerView(item: AffiliateCache.shared.helloTalkItem(for: cacheKey))
+        case .qoo10:
+            CustomPromotionBannerView(item: Config.qoo10AdItem)
+        case .shein:
+            CustomPromotionBannerView(item: Config.sheinAdItem)
         case .comicJp:
             CustomPromotionBannerView(item: Config.comicJpAdItem)
-        case .teamLabBody:
-            CustomPromotionBannerView(item: Config.teamLabBodyProAdItem)
         default:
             PrimeStudentBannerView()
         }

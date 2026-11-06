@@ -180,47 +180,52 @@ struct AdCloseButton: View {
 struct AdBannerCard: View {
     let cacheKey: String
     @Environment(AppState.self) private var appState
-    @State private var isFailed: Bool = false
+    @State private var isFailed: Bool
 
     init(cacheKey: String) {
         self.cacheKey = cacheKey
-        if let state = AdBannerCache.shared.state(for: cacheKey), state == .failed {
-            _isFailed = State(initialValue: true)
-        }
+        let failed = AdBannerCache.shared.state(for: cacheKey) == .failed
+        _isFailed = State(initialValue: failed)
     }
 
     var body: some View {
         if Config.showAds && !appState.isPro {
-            if isFailed {
-                if Config.isJapanRegion {
-                    SpecialPromotionBannerCard(cacheKey: "fallback-\(cacheKey)")
-                }
-            } else {
-                HStack(alignment: .bottom, spacing: 2) {
-                    AdBannerView(
-                        cacheKey: cacheKey,
-                        onAdLoaded: {
-                            isFailed = false
-                        },
-                        onAdFailed: { _ in
-                            isFailed = true
-                        }
-                    )
-                    .frame(width: 300, height: 250)
+            Group {
+                if isFailed {
+                    if Config.isJapanRegion {
+                        let fallbackKey = "fallback-\(cacheKey)"
+                        SpecialPromotionBannerCard(cacheKey: fallbackKey)
+                            .id(fallbackKey)
+                    }
+                } else {
+                    HStack(alignment: .bottom, spacing: 2) {
+                        AdBannerView(
+                            cacheKey: cacheKey,
+                            onAdLoaded: {
+                                isFailed = false
+                            },
+                            onAdFailed: { _ in
+                                isFailed = true
+                            }
+                        )
+                        .id(cacheKey)
+                        .frame(width: 300, height: 250)
 
-                    VStack(alignment: .trailing, spacing: 6) {
-                        AdCloseButton()
-                        Spacer()
-                        AdBadge()
+                        VStack(alignment: .trailing, spacing: 6) {
+                            AdCloseButton()
+                            Spacer()
+                            AdBadge()
+                        }
+                        .frame(height: 250)
                     }
-                    .frame(height: 250)
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .onAppear {
-                    if let state = AdBannerCache.shared.state(for: cacheKey), state == .failed {
-                        isFailed = true
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .onAppear {
+                        isFailed = (AdBannerCache.shared.state(for: cacheKey) == .failed)
                     }
                 }
+            }
+            .onChange(of: cacheKey) { _, newKey in
+                isFailed = (AdBannerCache.shared.state(for: newKey) == .failed)
             }
         }
     }
@@ -230,49 +235,54 @@ struct AdBannerCard: View {
 struct AdLargeBannerCard: View {
     let cacheKey: String
     @Environment(AppState.self) private var appState
-    @State private var isFailed: Bool = false
+    @State private var isFailed: Bool
 
     init(cacheKey: String) {
         self.cacheKey = cacheKey
-        if let state = AdBannerCache.shared.state(for: cacheKey), state == .failed {
-            _isFailed = State(initialValue: true)
-        }
+        let failed = AdBannerCache.shared.state(for: cacheKey) == .failed
+        _isFailed = State(initialValue: failed)
     }
 
     var body: some View {
         if Config.showAds && !appState.isPro {
-            if isFailed {
-                if Config.isJapanRegion {
-                    SpecialPromotionBannerCard(cacheKey: "fallback-\(cacheKey)")
-                }
-            } else {
-                HStack(alignment: .bottom, spacing: 2) {
-                    AdBannerView(
-                        adUnitID: Config.adMobBannerUnitID,
-                        adSize: GADAdSizeLargeBanner,
-                        cacheKey: cacheKey,
-                        onAdLoaded: {
-                            isFailed = false
-                        },
-                        onAdFailed: { _ in
-                            isFailed = true
-                        }
-                    )
-                    .frame(width: 320, height: 100)
+            Group {
+                if isFailed {
+                    if Config.isJapanRegion {
+                        let fallbackKey = "fallback-\(cacheKey)"
+                        SpecialPromotionBannerCard(cacheKey: fallbackKey)
+                            .id(fallbackKey)
+                    }
+                } else {
+                    HStack(alignment: .bottom, spacing: 2) {
+                        AdBannerView(
+                            adUnitID: Config.adMobBannerUnitID,
+                            adSize: GADAdSizeLargeBanner,
+                            cacheKey: cacheKey,
+                            onAdLoaded: {
+                                isFailed = false
+                            },
+                            onAdFailed: { _ in
+                                isFailed = true
+                            }
+                        )
+                        .id(cacheKey)
+                        .frame(width: 320, height: 100)
 
-                    VStack(alignment: .trailing, spacing: 6) {
-                        AdCloseButton()
-                        Spacer()
-                        AdBadge()
+                        VStack(alignment: .trailing, spacing: 6) {
+                            AdCloseButton()
+                            Spacer()
+                            AdBadge()
+                        }
+                        .frame(height: 100)
                     }
-                    .frame(height: 100)
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .onAppear {
-                    if let state = AdBannerCache.shared.state(for: cacheKey), state == .failed {
-                        isFailed = true
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .onAppear {
+                        isFailed = (AdBannerCache.shared.state(for: cacheKey) == .failed)
                     }
                 }
+            }
+            .onChange(of: cacheKey) { _, newKey in
+                isFailed = (AdBannerCache.shared.state(for: newKey) == .failed)
             }
         }
     }

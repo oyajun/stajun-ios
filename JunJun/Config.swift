@@ -52,46 +52,7 @@ enum Config {
     /// Amazon Prime Student promotion URL
     static let primeStudentURL: URL = URL(string: "https://www.amazon.co.jp/b?node=2410972051&tag=junjun0962-22")!
     
-    /// HelloTalk promotions (afb affiliate)
-    static let helloTalkAdItems: [PromotionBannerItem] = [
-        PromotionBannerItem(
-            id: "hellotalk-250-1",
-            linkURL: URL(string: "https://t.afi-b.com/visit.php?a=B16836j-O537309I&p=j993573G")!,
-            imageURL: URL(string: "https://www.afi-b.com/upload_image/16836-1788696055-3.png?1789563686")!,
-            width: 250,
-            height: 250
-        ),
-        PromotionBannerItem(
-            id: "hellotalk-300-1",
-            linkURL: URL(string: "https://t.afi-b.com/visit.php?a=B16836j-q537316W&p=j993573G")!,
-            imageURL: URL(string: "https://www.afi-b.com/upload_image/16836-1790680455-3.jpg?1789563686")!,
-            width: 300,
-            height: 250
-        ),
-        PromotionBannerItem(
-            id: "hellotalk-300-2",
-            linkURL: URL(string: "https://t.afi-b.com/visit.php?a=B16836j-k537307x&p=j993573G")!,
-            imageURL: URL(string: "https://www.afi-b.com/upload_image/16836-1791266055-3.png?1789563686")!,
-            width: 300,
-            height: 250
-        ),
-        PromotionBannerItem(
-            id: "hellotalk-300-3",
-            linkURL: URL(string: "https://t.afi-b.com/visit.php?a=B16836j-A537315O&p=j993573G")!,
-            imageURL: URL(string: "https://www.afi-b.com/upload_image/16836-1786821155-3.png?1789563686")!,
-            width: 300,
-            height: 250
-        ),
-        PromotionBannerItem(
-            id: "hellotalk-250-2",
-            linkURL: URL(string: "https://t.afi-b.com/visit.php?a=B16836j-h537311B&p=j993573G")!,
-            imageURL: URL(string: "https://www.afi-b.com/upload_image/16836-1795117555-3.png?1789563686")!,
-            width: 250,
-            height: 250
-        )
-    ]
-
-    /// コミック.jp promotion (afb affiliate)
+    /// コミック.jp promotion (afb affiliate) ※現在非表示（再表示時は TimelineAdSlotManager.specialPromotionTypes で有効化）
     static let comicJpAdItem = PromotionBannerItem(
         id: "comic-jp-300",
         linkURL: URL(string: "https://t.afi-b.com/visit.php?a=j12573O-C410463s&p=j993573G")!,
@@ -100,11 +61,20 @@ enum Config {
         height: 250
     )
 
-    /// teamLabBody Pro promotion (afb affiliate)
-    static let teamLabBodyProAdItem = PromotionBannerItem(
-        id: "teamlabbody-pro-300",
-        linkURL: URL(string: "https://t.afi-b.com/visit.php?a=m16765P-z536509Q&p=j993573G")!,
-        imageURL: URL(string: "https://www.afi-b.com/upload_image/16765-1794466659-3.png")!,
+    /// Qoo10 promotion (ValueCommerce affiliate)
+    static let qoo10AdItem = PromotionBannerItem(
+        id: "qoo10-300",
+        linkURL: URL(string: "https://ck.jp.ap.valuecommerce.com/servlet/referral?sid=3778875&pid=892742212")!,
+        imageURL: URL(string: "https://ad.jp.ap.valuecommerce.com/servlet/gifbanner?sid=3778875&pid=892742212")!,
+        width: 300,
+        height: 250
+    )
+
+    /// SHEIN promotion (ValueCommerce affiliate)
+    static let sheinAdItem = PromotionBannerItem(
+        id: "shein-300",
+        linkURL: URL(string: "https://ck.jp.ap.valuecommerce.com/servlet/referral?sid=3778875&pid=892742215")!,
+        imageURL: URL(string: "https://ad.jp.ap.valuecommerce.com/servlet/gifbanner?sid=3778875&pid=892742215")!,
         width: 300,
         height: 250
     )
@@ -216,8 +186,6 @@ struct PromotionBannerItem: Identifiable, Sendable {
     let width: CGFloat
     let height: CGFloat
 }
-
-typealias HelloTalkAdItem = PromotionBannerItem
 
 struct AffiliateItem: Identifiable, Sendable {
     let id: String

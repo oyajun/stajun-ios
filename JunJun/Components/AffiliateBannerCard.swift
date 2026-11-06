@@ -7,7 +7,6 @@ final class AffiliateCache {
     private var itemCache: [String: AffiliateItem] = [:]
     private var usedItemIDs: Set<String> = []
     private var lastAssignedID: String?
-    private var helloTalkItemCache: [String: HelloTalkAdItem] = [:]
     private let imageCache = NSCache<NSURL, UIImage>()
 
     private init() {}
@@ -17,7 +16,6 @@ final class AffiliateCache {
         itemCache.removeAll()
         usedItemIDs.removeAll()
         lastAssignedID = nil
-        helloTalkItemCache.removeAll()
     }
 
     func item(for key: String, from items: [AffiliateItem]) -> AffiliateItem? {
@@ -43,19 +41,6 @@ final class AffiliateCache {
         itemCache[key] = picked
         usedItemIDs.insert(picked.id)
         lastAssignedID = picked.id
-        return picked
-    }
-
-    func helloTalkItem(for key: String?, from items: [HelloTalkAdItem]? = nil) -> HelloTalkAdItem? {
-        let adItems = items ?? Config.helloTalkAdItems
-        guard !adItems.isEmpty else { return nil }
-        if let key, let cached = helloTalkItemCache[key] {
-            return cached
-        }
-        guard let picked = adItems.randomElement() else { return nil }
-        if let key {
-            helloTalkItemCache[key] = picked
-        }
         return picked
     }
 
