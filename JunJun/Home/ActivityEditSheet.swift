@@ -5,7 +5,9 @@ struct ActivityEditSheet: View {
     let onSave: (String?) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppState.self) private var appState
     @State private var text: String
+    @State private var showPaywall = false
     @FocusState private var isFocused: Bool
 
     private let maxLength = 50
@@ -47,6 +49,15 @@ struct ActivityEditSheet: View {
                             .foregroundStyle(text.count > maxLength ? .red : .secondary)
                     }
                 }
+
+                if Config.showAds && !appState.isPro {
+                    Section {
+                        CompactNativeAdCard()
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    }
+                }
             }
             .navigationTitle(Text("Status"))
             .navigationBarTitleDisplayMode(.inline)
@@ -63,6 +74,12 @@ struct ActivityEditSheet: View {
                     .disabled(!isValid)
                     .fontWeight(.semibold)
                 }
+            }
+            .environment(\.openPaywall) {
+                showPaywall = true
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
             }
             .onAppear {
                 isFocused = true

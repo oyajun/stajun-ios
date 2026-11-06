@@ -142,14 +142,14 @@ struct AdBannerView: UIViewRepresentable {
         static func findRootViewController() -> UIViewController? {
             let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             for scene in scenes {
-                if let root = scene.keyWindow?.rootViewController {
-                    return root
-                }
-                if let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController {
-                    return root
-                }
-                if let root = scene.windows.first?.rootViewController {
-                    return root
+                let root = scene.keyWindow?.rootViewController
+                    ?? scene.windows.first(where: { $0.isKeyWindow })?.rootViewController
+                    ?? scene.windows.first?.rootViewController
+                if var top = root {
+                    while let presented = top.presentedViewController, !presented.isBeingDismissed {
+                        top = presented
+                    }
+                    return top
                 }
             }
             return nil
@@ -157,13 +157,29 @@ struct AdBannerView: UIViewRepresentable {
     }
 }
 
+private struct OpenPaywallKey: EnvironmentKey {
+    static let defaultValue: (@MainActor () -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    var openPaywall: (@MainActor () -> Void)? {
+        get { self[OpenPaywallKey.self] }
+        set { self[OpenPaywallKey.self] = newValue }
+    }
+}
+
 /// 広告右上に表示する × ボタン（タップすると JunJun Pro ペイウォールを表示）
 struct AdCloseButton: View {
     var size: CGFloat = 24
+    @Environment(\.openPaywall) private var openPaywall
 
     var body: some View {
         Button {
-            SubscriptionManager.shared.showPaywall = true
+            if let openPaywall {
+                openPaywall()
+            } else {
+                SubscriptionManager.shared.showPaywall = true
+            }
         } label: {
             Image(systemName: "xmark")
                 .font(.system(size: 11, weight: .bold))
@@ -176,16 +192,20 @@ struct AdCloseButton: View {
 }
 
 /// タイムライン用の大型広告 (300×250 Medium Rectangle)
-/// cacheKey を渡すことでスクロール復帰時の再読み込みを防ぐ
+/// cacheKey を渡すことでスクロール復帰時の再読み込みを防ぐ（nil の場合はキャッシュなし）
 struct AdBannerCard: View {
-    let cacheKey: String
+    let cacheKey: String?
     @Environment(AppState.self) private var appState
     @State private var isFailed: Bool
 
-    init(cacheKey: String) {
+    init(cacheKey: String? = nil) {
         self.cacheKey = cacheKey
-        let failed = AdBannerCache.shared.state(for: cacheKey) == .failed
-        _isFailed = State(initialValue: failed)
+        if let cacheKey {
+            let failed = AdBannerCache.shared.state(for: cacheKey) == .failed
+            _isFailed = State(initialValue: failed)
+        } else {
+            _isFailed = State(initialValue: false)
+        }
     }
 
     var body: some View {
@@ -193,9 +213,8 @@ struct AdBannerCard: View {
             Group {
                 if isFailed {
                     if Config.isJapanRegion {
-                        let fallbackKey = "fallback-\(cacheKey)"
+                        let fallbackKey = cacheKey.map { "fallback-\($0)" }
                         SpecialPromotionBannerCard(cacheKey: fallbackKey)
-                            .id(fallbackKey)
                     }
                 } else {
                     HStack(alignment: .bottom, spacing: 2) {
@@ -208,7 +227,6 @@ struct AdBannerCard: View {
                                 isFailed = true
                             }
                         )
-                        .id(cacheKey)
                         .frame(width: 300, height: 250)
 
                         VStack(alignment: .trailing, spacing: 6) {
@@ -220,12 +238,18 @@ struct AdBannerCard: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                     .onAppear {
-                        isFailed = (AdBannerCache.shared.state(for: cacheKey) == .failed)
+                        if let cacheKey {
+                            isFailed = (AdBannerCache.shared.state(for: cacheKey) == .failed)
+                        }
                     }
                 }
             }
             .onChange(of: cacheKey) { _, newKey in
-                isFailed = (AdBannerCache.shared.state(for: newKey) == .failed)
+                if let newKey {
+                    isFailed = (AdBannerCache.shared.state(for: newKey) == .failed)
+                } else {
+                    isFailed = false
+                }
             }
         }
     }

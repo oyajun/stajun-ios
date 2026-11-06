@@ -149,3 +149,138 @@ struct NativeAdMediaAndCTAViewRepresentable: UIViewRepresentable {
         uiView.configure(with: nativeAd)
     }
 }
+
+/// 横並びコンパクト広告用の GADNativeAdView コンテナ（左 150x124 メディア + 右側全面タップ領域）
+final class CompactNativeAdContainerUIView: UIView {
+    let nativeAdView = GADNativeAdView()
+    let mediaView = GADMediaView()
+    let headlineLabel = UILabel()
+    let bodyLabel = UILabel()
+    let callToActionButton = UIButton(type: .custom)
+    let adAttributionLabel = UILabel()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupLayout()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setupLayout()
+    }
+
+    private func setupLayout() {
+        backgroundColor = .clear
+        addSubview(nativeAdView)
+        nativeAdView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            nativeAdView.topAnchor.constraint(equalTo: topAnchor),
+            nativeAdView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            nativeAdView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            nativeAdView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+
+        // 1. Left: Media View (150x124 for wider video presentation)
+        mediaView.translatesAutoresizingMaskIntoConstraints = false
+        mediaView.clipsToBounds = true
+        mediaView.layer.cornerRadius = 10
+        mediaView.backgroundColor = .clear
+        nativeAdView.addSubview(mediaView)
+
+        // Ad attribution label inside GADNativeAdView for AdMob policy compliance
+        adAttributionLabel.text = NSLocalizedString("Ad", comment: "Ad badge")
+        adAttributionLabel.font = .systemFont(ofSize: 10, weight: .bold)
+        adAttributionLabel.textColor = .clear
+        adAttributionLabel.translatesAutoresizingMaskIntoConstraints = false
+        nativeAdView.addSubview(adAttributionLabel)
+
+        // Hidden asset views registered to GADNativeAdView while SwiftUI renders the crisp right-hand text
+        headlineLabel.textColor = .clear
+        headlineLabel.isUserInteractionEnabled = false
+        headlineLabel.translatesAutoresizingMaskIntoConstraints = false
+        nativeAdView.addSubview(headlineLabel)
+
+        bodyLabel.textColor = .clear
+        bodyLabel.isUserInteractionEnabled = false
+        bodyLabel.translatesAutoresizingMaskIntoConstraints = false
+        nativeAdView.addSubview(bodyLabel)
+
+        // Transparent tap target covering the right-hand text column so tapping text opens the ad
+        callToActionButton.backgroundColor = .clear
+        callToActionButton.isUserInteractionEnabled = false // GADNativeAdView handles the tap
+        callToActionButton.translatesAutoresizingMaskIntoConstraints = false
+        nativeAdView.addSubview(callToActionButton)
+
+        // Bind asset views to GADNativeAdView
+        nativeAdView.mediaView = mediaView
+        nativeAdView.headlineView = headlineLabel
+        nativeAdView.bodyView = bodyLabel
+        nativeAdView.callToActionView = callToActionButton
+
+        let headlineTrailing = headlineLabel.trailingAnchor.constraint(equalTo: nativeAdView.trailingAnchor)
+        headlineTrailing.priority = .defaultHigh
+
+        let bodyTrailing = bodyLabel.trailingAnchor.constraint(equalTo: nativeAdView.trailingAnchor)
+        bodyTrailing.priority = .defaultHigh
+
+        let bodyBottom = bodyLabel.bottomAnchor.constraint(equalTo: nativeAdView.bottomAnchor)
+        bodyBottom.priority = .defaultHigh
+
+        let ctaTrailing = callToActionButton.trailingAnchor.constraint(equalTo: nativeAdView.trailingAnchor)
+        ctaTrailing.priority = .defaultHigh
+
+        NSLayoutConstraint.activate([
+            mediaView.leadingAnchor.constraint(equalTo: nativeAdView.leadingAnchor),
+            mediaView.topAnchor.constraint(equalTo: nativeAdView.topAnchor),
+            mediaView.widthAnchor.constraint(equalToConstant: 150),
+            mediaView.heightAnchor.constraint(equalToConstant: 124),
+
+            adAttributionLabel.widthAnchor.constraint(equalToConstant: 16),
+            adAttributionLabel.heightAnchor.constraint(equalToConstant: 16),
+            adAttributionLabel.topAnchor.constraint(equalTo: nativeAdView.topAnchor),
+            adAttributionLabel.leadingAnchor.constraint(equalTo: nativeAdView.leadingAnchor),
+
+            headlineLabel.topAnchor.constraint(equalTo: nativeAdView.topAnchor, constant: 20),
+            headlineLabel.leadingAnchor.constraint(equalTo: mediaView.trailingAnchor, constant: 12),
+            headlineTrailing,
+            headlineLabel.heightAnchor.constraint(equalToConstant: 40),
+
+            bodyLabel.topAnchor.constraint(equalTo: headlineLabel.bottomAnchor),
+            bodyLabel.leadingAnchor.constraint(equalTo: mediaView.trailingAnchor, constant: 12),
+            bodyTrailing,
+            bodyBottom,
+
+            callToActionButton.topAnchor.constraint(equalTo: nativeAdView.topAnchor, constant: 20),
+            callToActionButton.leadingAnchor.constraint(equalTo: mediaView.trailingAnchor, constant: 12),
+            ctaTrailing,
+            callToActionButton.bottomAnchor.constraint(equalTo: nativeAdView.bottomAnchor)
+        ])
+    }
+
+    func configure(with nativeAd: GADNativeAd) {
+        nativeAdView.nativeAd = nativeAd
+        mediaView.mediaContent = nativeAd.mediaContent
+        headlineLabel.text = nativeAd.headline
+        bodyLabel.text = nativeAd.body
+    }
+}
+
+/// SwiftUI wrapper for CompactNativeAdContainerUIView
+struct CompactNativeAdViewRepresentable: UIViewRepresentable {
+    let nativeAd: GADNativeAd
+
+    func makeUIView(context: Context) -> CompactNativeAdContainerUIView {
+        let view = CompactNativeAdContainerUIView(frame: CGRect(x: 0, y: 0, width: 320, height: 124))
+        view.configure(with: nativeAd)
+        return view
+    }
+
+    func updateUIView(_ uiView: CompactNativeAdContainerUIView, context: Context) {
+        uiView.configure(with: nativeAd)
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: CompactNativeAdContainerUIView, context: Context) -> CGSize {
+        let width = proposal.width ?? 320
+        return CGSize(width: max(width, 260), height: 124)
+    }
+}

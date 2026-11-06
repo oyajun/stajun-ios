@@ -8,12 +8,14 @@ struct ComposePostView: View {
     var onPosted: ((StudyPost) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppState.self) private var appState
 
     @State private var hours: Int
     @State private var mins: Int
     @State private var comment = ""
     @State private var isSubmitting = false
     @State private var errorMessage: String?
+    @State private var showPaywall = false
 
     private let maxCommentLength = 50
 
@@ -95,10 +97,25 @@ struct ComposePostView: View {
                             .foregroundStyle(comment.count > maxCommentLength ? .red : .secondary)
                     }
                 }
+
+                if Config.showAds && !appState.isPro {
+                    Section {
+                        CompactNativeAdCard()
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    }
+                }
             }
             .navigationTitle("New Post")
             .navigationBarTitleDisplayMode(.inline)
             .errorAlert(errorMessage: $errorMessage)
+            .environment(\.openPaywall) {
+                showPaywall = true
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -136,4 +153,5 @@ struct ComposePostView: View {
 
 #Preview {
     ComposePostView(initialMinutes: 45)
+        .environment(AppState())
 }
